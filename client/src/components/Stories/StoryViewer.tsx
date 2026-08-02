@@ -261,7 +261,7 @@ export default function StoryViewer({ startUid, onClose }: StoryViewerProps) {
         <div className="story-viewer-user">
           <div className="story-viewer-avatar" id="storyViewerAvatar">
             {currentProfile?.avatar ? (
-              <img src={currentProfile.avatar} alt="" className="w-full h-full object-cover rounded-full" />
+              <img src={currentProfile.avatar} alt="" className="w-full h-full object-cover rounded-full" loading="lazy" decoding="async" />
             ) : (
               <span>{(currentProfile?.pseudo || '?')[0]}</span>
             )}
@@ -283,7 +283,7 @@ export default function StoryViewer({ startUid, onClose }: StoryViewerProps) {
       </div>
 
       {/* Media */}
-      <img className="story-viewer-image" id="storyViewerImage" src={currentStory.media} alt="" />
+      <img className="story-viewer-image" id="storyViewerImage" src={currentStory.media} alt="" loading="lazy" decoding="async" />
 
       {/* Description */}
       {currentStory.description && <div className="story-viewer-desc">{currentStory.description}</div>}

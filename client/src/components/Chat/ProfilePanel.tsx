@@ -90,6 +90,8 @@ export default function ProfilePanel({ onClose, targetUid }: ProfilePanelProps) 
               src={p.avatar}
               alt={p?.pseudo || 'Avatar'}
               className="w-16 h-16 rounded-full object-cover border-[3px] border-[var(--bg)]"
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <div className="w-16 h-16 rounded-full bg-brand flex items-center justify-center text-2xl font-bold text-white border-[3px] border-[var(--bg)]">
@@ -108,7 +110,7 @@ export default function ProfilePanel({ onClose, targetUid }: ProfilePanelProps) 
               const def = badgeDefs[id];
               return (
                 <span key={id} className="badge-chip">
-                  {def?.icon && <img src={def.icon} alt="" />}
+                  {def?.icon && <img src={def.icon} alt="" loading="lazy" decoding="async" />}
                   {def?.name || id}
                 </span>
               );

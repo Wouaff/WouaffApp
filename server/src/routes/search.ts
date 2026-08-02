@@ -1,7 +1,8 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
+import { query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
-import { getAllWouaffIds, getProfile, searchByWouaffId } from '../services/rtdb.js';
+import { getProfile, searchByWouaffId } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
 
 const router: Router = Router();
@@ -15,16 +16,17 @@ router.get('/users', async (req: Request, res: Response) => {
     res.json({ results: [] });
     return;
   }
-  const allIds = await getAllWouaffIds();
+  const limit = Math.min(20, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
+  const searchPattern = `%${q}%`;
+  const rows = await query<Array<{ wouaffId: string; uid: string }>>(
+    `SELECT wouaffId, uid FROM wouaff_id_index WHERE (wouaffId LIKE ? OR REPLACE(wouaffId, '@', '') LIKE ?) AND uid != ? LIMIT ?`,
+    [searchPattern, searchPattern, authReq.uid!, limit],
+  );
   const results: Array<{ uid: string; wouaffId: string; profile: Record<string, unknown> | null }> = [];
-  for (const [wouaffId, uid] of Object.entries(allIds)) {
-    if (uid === authReq.uid) continue;
-    const displayId = wouaffId.startsWith('@') ? wouaffId : `@${wouaffId}`;
-    if (displayId.toLowerCase().includes(q) || displayId.replace('@', '').includes(q)) {
-      const profile = await getProfile(uid as string);
-      results.push({ uid: uid as string, wouaffId: displayId, profile });
-    }
-    if (results.length >= 20) break;
+  for (const row of rows) {
+    const displayId = row.wouaffId.startsWith('@') ? row.wouaffId : `@${row.wouaffId}`;
+    const profile = await getProfile(row.uid);
+    results.push({ uid: row.uid, wouaffId: displayId, profile });
   }
   res.json({ results });
 });

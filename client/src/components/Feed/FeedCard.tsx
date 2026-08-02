@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Heart, MessageCircle, Play } from 'lucide-react';
 import type { VideoData } from '../../types';
 import { resolveMediaUrl } from '../../utils/media';
@@ -8,7 +9,7 @@ interface Props {
   onOpen: () => void;
 }
 
-export default function FeedCard({ video, onLike, onOpen }: Props) {
+const FeedCard = memo(function FeedCard({ video, onLike, onOpen }: Props) {
   return (
     <div
       className="feed-card"
@@ -21,7 +22,7 @@ export default function FeedCard({ video, onLike, onOpen }: Props) {
     >
       <div className="feed-card-thumb">
         {video.thumbnailPath ? (
-          <img src={resolveMediaUrl(video.thumbnailPath)} alt="" loading="lazy" />
+          <img src={resolveMediaUrl(video.thumbnailPath)} alt="" loading="lazy" decoding="async" />
         ) : (
           <video
             src={resolveMediaUrl(video.videoPath)}
@@ -51,7 +52,7 @@ export default function FeedCard({ video, onLike, onOpen }: Props) {
       <div className="feed-card-body">
         <div className="feed-card-author">
           <div className="feed-card-avatar">
-            {video.avatar ? <img src={video.avatar} alt="" /> : <span>{(video.pseudo || '?')[0]}</span>}
+            {video.avatar ? <img src={video.avatar} alt="" loading="lazy" decoding="async" /> : <span>{(video.pseudo || '?')[0]}</span>}
           </div>
           <span className="feed-card-pseudo">{video.pseudo || 'Inconnu'}</span>
         </div>
@@ -65,4 +66,6 @@ export default function FeedCard({ video, onLike, onOpen }: Props) {
       </div>
     </div>
   );
-}
+});
+
+export default FeedCard;

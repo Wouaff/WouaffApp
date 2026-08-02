@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 
 interface ConvContextMenuProps {
   x: number;
@@ -11,7 +11,7 @@ interface ConvContextMenuProps {
   onTogglePin: () => void;
 }
 
-export default function ConvContextMenu({
+const ConvContextMenu = memo(function ConvContextMenu({
   x,
   y,
   isPinned,
@@ -132,4 +132,6 @@ export default function ConvContextMenu({
       </div>
     </div>
   );
-}
+});
+
+export default ConvContextMenu;

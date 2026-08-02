@@ -49,34 +49,30 @@ router.get('/', async (req: Request, res: Response) => {
   const limit = Math.min(20, Math.max(1, parseInt(req.query.limit as string, 10) || 10));
   const offset = (page - 1) * limit;
   const rows = await query<Array<VideoData & { uid: string }>>(
-    'SELECT * FROM videos ORDER BY createdAt DESC LIMIT ? OFFSET ?',
+    'SELECT v.*, p.pseudo, p.avatar FROM videos v LEFT JOIN profiles p ON p.uid = v.uid ORDER BY v.createdAt DESC LIMIT ? OFFSET ?',
     [limit, offset],
   );
+  const videoIds = rows.map((r) => r.id);
+  const likesMap: Record<string, boolean> = {};
+  if (authReq.uid && videoIds.length > 0) {
+    const likeRows = await query<Array<{ videoId: string }>>(
+      `SELECT videoId FROM video_likes WHERE uid = ? AND videoId IN (${videoIds.map(() => '?').join(',')})`,
+      [authReq.uid, ...videoIds],
+    );
+    for (const lr of likeRows) likesMap[lr.videoId] = true;
+  }
   const enriched: Array<VideoData & { pseudo?: string; avatar?: string; liked?: boolean }> = [];
   for (const row of rows) {
-    const profile = await getProfile(row.uid);
-    let liked = false;
-    if (authReq.uid) {
-      const likeRow = await getOne<{ uid: string }>('SELECT uid FROM video_likes WHERE uid=? AND videoId=?', [
-        authReq.uid,
-        row.id,
-      ]);
-      liked = !!likeRow;
-    }
     let location = row.location;
     if (typeof location === 'string') {
-      try {
-        location = JSON.parse(location);
-      } catch {
-        location = null;
-      }
+      try { location = JSON.parse(location); } catch { location = null; }
     }
     enriched.push({
       ...row,
       location: location as unknown as VideoData['location'],
-      pseudo: (profile?.pseudo as string) || 'Inconnu',
-      avatar: profile?.avatar as string,
-      liked,
+      pseudo: (row as unknown as Record<string, unknown>).pseudo as string || 'Inconnu',
+      avatar: (row as unknown as Record<string, unknown>).avatar as string,
+      liked: !!likesMap[row.id],
     });
   }
   res.json(enriched);
@@ -200,17 +196,18 @@ router.post('/:id/comments', async (req: Request, res: Response) => {
 });
 
 router.get('/:id/comments', async (req: Request, res: Response) => {
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
+  const offset = Math.max(0, parseInt(req.query.offset as string, 10) || 0);
   const rows = await query<Array<VideoComment & { uid: string }>>(
-    'SELECT * FROM video_comments WHERE videoId=? ORDER BY createdAt ASC',
-    [req.params.id],
+    'SELECT c.*, p.pseudo, p.avatar FROM video_comments c LEFT JOIN profiles p ON p.uid = c.uid WHERE c.videoId = ? ORDER BY c.createdAt ASC LIMIT ? OFFSET ?',
+    [req.params.id, limit, offset],
   );
   const enriched: VideoComment[] = [];
   for (const row of rows) {
-    const profile = await getProfile(row.uid);
     enriched.push({
       ...row,
-      pseudo: (profile?.pseudo as string) || 'Inconnu',
-      avatar: profile?.avatar as string,
+      pseudo: (row as unknown as Record<string, unknown>).pseudo as string || 'Inconnu',
+      avatar: (row as unknown as Record<string, unknown>).avatar as string,
     });
   }
   res.json(enriched);

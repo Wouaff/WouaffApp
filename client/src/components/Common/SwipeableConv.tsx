@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useRef, useState } from 'react';
+import { memo, type ReactNode, useCallback, useRef, useState } from 'react';
 
 interface SwipeAction {
   label: string;
@@ -12,7 +12,7 @@ interface SwipeableConvProps {
   actions: SwipeAction[];
 }
 
-export default function SwipeableConv({ children, actions }: SwipeableConvProps) {
+const SwipeableConv = memo(function SwipeableConv({ children, actions }: SwipeableConvProps) {
   const [swiped, setSwiped] = useState(false);
   const touchStart = useRef({ x: 0, y: 0 });
   const itemRef = useRef<HTMLDivElement>(null);
@@ -67,4 +67,6 @@ export default function SwipeableConv({ children, actions }: SwipeableConvProps)
       </div>
     </div>
   );
-}
+});
+
+export default SwipeableConv;

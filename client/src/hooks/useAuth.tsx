@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { logout as authLogout, initSession } from '../services/auth';
 import { connectSocket, disconnectSocket } from '../services/socket';
 
@@ -46,15 +46,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUser();
   }, [fetchUser]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await authLogout();
     setUser(null);
     setEmailVerified(false);
     disconnectSocket();
-  };
+  }, []);
+
+  const value = useMemo(() => ({ user, loading, emailVerified, logout, refresh: fetchUser }), [user, loading, emailVerified, logout, fetchUser]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, emailVerified, logout, refresh: fetchUser }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

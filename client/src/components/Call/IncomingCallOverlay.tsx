@@ -12,7 +12,7 @@ export default function IncomingCallOverlay() {
       <div className="call-overlay-card">
         <div className="call-overlay-avatar">
           {callerInfo.avatar ? (
-            <img src={callerInfo.avatar} alt="" />
+            <img src={callerInfo.avatar} alt="" loading="lazy" decoding="async" />
           ) : (
             <span className="call-overlay-initial">{initial}</span>
           )}

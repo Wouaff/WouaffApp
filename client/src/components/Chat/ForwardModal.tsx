@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { contacts as contactsAPI, groups as groupsAPI, messages as messagesAPI } from '../../services/api';
 import type { MessageData } from '../../types';
 
@@ -10,7 +10,7 @@ interface ForwardModalProps {
   onClose: () => void;
 }
 
-export default function ForwardModal({ msg, user, currentChatWith, currentGroupId, onClose }: ForwardModalProps) {
+const ForwardModal = memo(function ForwardModal({ msg, user, currentChatWith, currentGroupId, onClose }: ForwardModalProps) {
   const [contacts, setContacts] = useState<Record<string, { pseudo?: string; avatar?: string }>>({});
   const [groups, setGroups] = useState<Record<string, { group: { name: string; icon?: string } }>>({});
 
@@ -91,7 +91,7 @@ export default function ForwardModal({ msg, user, currentChatWith, currentGroupI
               return (
                 <button key={gid} type="button" className="forward-item" onClick={() => doForward(undefined, gid)}>
                   <div className="forward-item-avatar">
-                    {g.group.icon ? <img src={g.group.icon} alt="" /> : <span>{(g.group.name || 'G')[0]}</span>}
+                    {g.group.icon ? <img src={g.group.icon} alt="" loading="lazy" decoding="async" /> : <span>{(g.group.name || 'G')[0]}</span>}
                   </div>
                   <span className="forward-item-name">{g.group.name}</span>
                 </button>
@@ -107,7 +107,7 @@ export default function ForwardModal({ msg, user, currentChatWith, currentGroupI
               return (
                 <button key={uid} type="button" className="forward-item" onClick={() => doForward(uid)}>
                   <div className="forward-item-avatar">
-                    {c.avatar ? <img src={c.avatar} alt="" /> : <span>{(c.pseudo || '?')[0]}</span>}
+                    {c.avatar ? <img src={c.avatar} alt="" loading="lazy" decoding="async" /> : <span>{(c.pseudo || '?')[0]}</span>}
                   </div>
                   <span className="forward-item-name">{c.pseudo || uid}</span>
                 </button>
@@ -118,4 +118,6 @@ export default function ForwardModal({ msg, user, currentChatWith, currentGroupI
       </div>
     </div>
   );
-}
+});
+
+export default ForwardModal;

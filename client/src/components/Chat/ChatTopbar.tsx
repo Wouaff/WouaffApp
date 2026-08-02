@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import CallButton from '../Call/CallButton';
 
 interface ChatTopbarProps {
@@ -11,7 +12,7 @@ interface ChatTopbarProps {
   onDeleteConv?: () => void;
 }
 
-export default function ChatTopbar({
+const ChatTopbar = memo(function ChatTopbar({
   chatWithPseudo,
   currentGroupId,
   chatWith,
@@ -79,4 +80,6 @@ export default function ChatTopbar({
       </div>
     </div>
   );
-}
+});
+
+export default ChatTopbar;

@@ -3,6 +3,7 @@ import './services/logger.js';
 import { createServer } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
@@ -36,12 +37,14 @@ import { setupSocket } from './socket/index.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
+app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
 /* Middleware */
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(compression());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
 
 /* Rate limiting */
@@ -49,6 +52,9 @@ app.use('/api/auth/login', rateLimit({ windowMs: 60000, max: 20 }));
 app.use('/api/auth/register', rateLimit({ windowMs: 60000, max: 10 }));
 app.use('/api/auth/forgot-password', rateLimit({ windowMs: 60000, max: 5 }));
 app.use('/api/contacts', rateLimit({ windowMs: 60000, max: 60 }));
+app.use('/api/messages', rateLimit({ windowMs: 60000, max: 120 }));
+app.use('/api/search', rateLimit({ windowMs: 60000, max: 30 }));
+app.use('/api/videos', rateLimit({ windowMs: 60000, max: 60 }));
 
 /* Public maintenance status (accessible even during maintenance) */
 app.get('/api/maintenance', (_req, res) => {
@@ -92,7 +98,7 @@ app.get('/api/health', (_req, res) => {
 
 /* Frontend static files (built React app) */
 const clientDist = resolve(__dirname, '../../client/dist');
-app.use(express.static(clientDist));
+app.use(express.static(clientDist, { maxAge: '7d', immutable: true }));
 
 /* Downloads (installer, etc.) */
 const downloadsDir = resolve(__dirname, '../downloads');
@@ -130,7 +136,7 @@ runMigrations()
         archiveOldCalls().catch(() => {});
       }, 21600000); /* every 6h */
     }
-    /* Start ephemeral messages cleanup every 10 seconds */
+    /* Start ephemeral messages cleanup every 30 seconds */
     setInterval(async () => {
       try {
         const deleted = await cleanExpiredEphemeralMessages();
@@ -143,7 +149,7 @@ runMigrations()
       } catch {
         /* silent */
       }
-    }, 10000);
+    }, 30000);
 
     httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`🟢 Wouaff server running on http://0.0.0.0:${PORT}`);

@@ -78,7 +78,7 @@ export default function VideoModal({ video, onClose, onLike }: Props) {
           <div className="video-modal-meta">
             <div className="video-modal-author">
               <div className="video-modal-avatar">
-                {video.avatar ? <img src={video.avatar} alt="" /> : <span>{(video.pseudo || '?')[0]}</span>}
+                {video.avatar ? <img src={video.avatar} alt="" loading="lazy" decoding="async" /> : <span>{(video.pseudo || '?')[0]}</span>}
               </div>
               <span className="video-modal-pseudo">{video.pseudo || 'Inconnu'}</span>
             </div>
@@ -122,7 +122,7 @@ export default function VideoModal({ video, onClose, onLike }: Props) {
                 comments.map((c) => (
                   <div key={c.id} className="video-modal-comment-item">
                     <div className="video-modal-comment-avatar">
-                      {c.avatar ? <img src={c.avatar} alt="" /> : <span>{(c.pseudo || '?')[0]}</span>}
+                      {c.avatar ? <img src={c.avatar} alt="" loading="lazy" decoding="async" /> : <span>{(c.pseudo || '?')[0]}</span>}
                     </div>
                     <div className="video-modal-comment-body">
                       <div className="video-modal-comment-pseudo">{c.pseudo || 'Inconnu'}</div>

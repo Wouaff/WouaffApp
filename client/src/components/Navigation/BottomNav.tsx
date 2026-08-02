@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Compass, Film, MessageSquare, Settings, Users } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -5,7 +6,7 @@ interface BottomNavProps {
   storyBadge?: boolean;
 }
 
-export default function BottomNav({ storyBadge }: BottomNavProps) {
+const BottomNav = memo(function BottomNav({ storyBadge }: BottomNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const isChat = location.pathname === '/' || location.pathname === '' || location.pathname.match(/^\/@/);
@@ -61,4 +62,6 @@ export default function BottomNav({ storyBadge }: BottomNavProps) {
       </div>
     </nav>
   );
-}
+});
+
+export default BottomNav;

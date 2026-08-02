@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import EmojiPicker from './EmojiPicker';
 
 const EPHEMERAL_OPTIONS = [
@@ -28,7 +28,7 @@ interface MessageInputProps {
   placeholder: string;
 }
 
-export default function MessageInput({
+const MessageInput = memo(function MessageInput({
   inputValue,
   recording,
   recordingTime,
@@ -194,4 +194,6 @@ export default function MessageInput({
       </button>
     </div>
   );
-}
+});
+
+export default MessageInput;

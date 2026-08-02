@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 interface ReplyPreviewProps {
   replyTo: string | null;
   replyText: string;
@@ -6,7 +8,7 @@ interface ReplyPreviewProps {
   onCancelEdit: () => void;
 }
 
-export default function ReplyPreview({
+const ReplyPreview = memo(function ReplyPreview({
   replyTo,
   replyText,
   editingMsgId,
@@ -36,4 +38,6 @@ export default function ReplyPreview({
       )}
     </>
   );
-}
+});
+
+export default ReplyPreview;

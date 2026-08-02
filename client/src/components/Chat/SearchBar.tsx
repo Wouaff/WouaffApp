@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import type { MessageData } from '../../types';
 import { formatTime } from '../../utils/chatHelpers';
 
@@ -12,7 +12,7 @@ interface SearchBarProps {
   onResultClick: (mid: string) => void;
 }
 
-export default function SearchBar({
+const SearchBar = memo(function SearchBar({
   searchOpen,
   searchQuery,
   searching,
@@ -63,4 +63,6 @@ export default function SearchBar({
       )}
     </div>
   );
-}
+});
+
+export default SearchBar;

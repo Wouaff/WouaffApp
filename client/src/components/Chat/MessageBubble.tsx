@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { MessageData } from '../../types';
 import {
   formatTime,
@@ -31,7 +32,7 @@ interface MessageBubbleProps {
   onDownloadFile?: (fileData: string, fileName: string, fromUid: string) => void;
 }
 
-export default function MessageBubble({
+const MessageBubble = memo(function MessageBubble({
   mid,
   msg,
   isSent,
@@ -57,7 +58,7 @@ export default function MessageBubble({
   return (
     <div className={`msg-wrapper ${isSent ? 'sent' : 'recv'} ${groupClass || ''}`} data-mid={mid}>
       {!isSent && !prevSame && (
-        <div className="msg-avatar">{p?.avatar ? <img src={p.avatar} alt="" /> : <span>{initial}</span>}</div>
+        <div className="msg-avatar">{p?.avatar ? <img src={p.avatar} alt="" loading="lazy" decoding="async" /> : <span>{initial}</span>}</div>
       )}
       {!isSent && prevSame && <div className="msg-avatar-placeholder" />}
       <div
@@ -99,6 +100,7 @@ export default function MessageBubble({
               src={msg.imageData || msg.text}
               alt=""
               loading="lazy"
+              decoding="async"
               onClick={() => window.open(msg.imageData || msg.text)}
               className="cursor-pointer max-w-full max-h-[300px] rounded-lg block"
             />
@@ -197,4 +199,6 @@ export default function MessageBubble({
       </div>
     </div>
   );
-}
+});
+
+export default MessageBubble;

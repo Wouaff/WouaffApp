@@ -449,6 +449,8 @@ export default function ChatPage() {
               <img
                 src={(joinGroupData.group.icon as string) || 'https://cdn-icons-png.flaticon.com/512/4128/4128199.png'}
                 alt=""
+                loading="lazy"
+                decoding="async"
               />
             </div>
             <h3 className="mb-1">{(joinGroupData.group.name as string) || 'Groupe'}</h3>
@@ -543,7 +545,7 @@ function ProfileModalContent({
       </div>
       <div className="profile-avatar-wrap">
         <div className="profile-avatar-lg">
-          {p.avatar ? <img src={p.avatar as string} alt="" /> : <span>{initial}</span>}
+          {p.avatar ? <img src={p.avatar as string} alt="" loading="lazy" decoding="async" /> : <span>{initial}</span>}
         </div>
       </div>
       <div className="profile-body-content">
@@ -559,7 +561,7 @@ function ProfileModalContent({
               const def = badgeDefs[id];
               return (
                 <span key={id} className="badge-chip">
-                  {def?.icon && <img src={def.icon} alt="" />}
+                  {def?.icon && <img src={def.icon} alt="" loading="lazy" decoding="async" />}
                   {def?.name || id}
                 </span>
               );

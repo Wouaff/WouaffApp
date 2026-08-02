@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import { EMOJI_CATEGORIES } from '../../utils/chatHelpers';
 
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
 }
 
-export default function EmojiPicker({ onEmojiSelect }: EmojiPickerProps) {
+const EmojiPicker = memo(function EmojiPicker({ onEmojiSelect }: EmojiPickerProps) {
   return (
     <div className="emoji-picker">
       <div className="emoji-picker-content">
@@ -29,4 +30,6 @@ export default function EmojiPicker({ onEmojiSelect }: EmojiPickerProps) {
       </div>
     </div>
   );
-}
+});
+
+export default EmojiPicker;

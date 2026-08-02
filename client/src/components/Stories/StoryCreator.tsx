@@ -206,7 +206,7 @@ export default function StoryCreator({ onClose, onPublished }: StoryCreatorProps
           </div>
         ) : (
           <div className="mb-4">
-            <img src={preview} alt="" className="max-w-full max-h-[300px] rounded-xl object-contain" />
+            <img src={preview} alt="" className="max-w-full max-h-[300px] rounded-xl object-contain" loading="lazy" decoding="async" />
           </div>
         )}
 

@@ -89,8 +89,10 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 /* GET /groups/public — lister les groupes publics */
-router.get('/public', async (_req: Request, res: Response) => {
-  const groups = await getPublicGroups();
+router.get('/public', async (req: Request, res: Response) => {
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 100));
+  const offset = Math.max(0, parseInt(req.query.offset as string, 10) || 0);
+  const groups = await getPublicGroups(limit, offset);
   res.json(groups);
 });
 

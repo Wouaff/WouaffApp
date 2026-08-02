@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import {
   badges as badgesAPI,
@@ -380,7 +380,7 @@ export default function Sidebar({
     };
   }, [user, loadPending]);
 
-  const filtered = (
+  const filtered = useMemo(() => (
     search.trim()
       ? convs.filter((c) => {
           const name = c.type === 'dm' ? c.profile?.pseudo || '' : c.group?.name || '';
@@ -391,7 +391,7 @@ export default function Sidebar({
     const aPinned = pinned.includes(a.id) ? 1 : 0;
     const bPinned = pinned.includes(b.id) ? 1 : 0;
     return bPinned - aPinned;
-  });
+  }), [convs, search, pinned]);
 
   const handleDeleteConv = useCallback(async (uid: string) => {
     try {
@@ -512,7 +512,7 @@ export default function Sidebar({
               <div
                 className={`story-avatar ${su.hasStories ? (su.allViewed ? 'story-ring viewed' : 'story-ring') : ''}`}
               >
-                {su.avatar ? <img src={su.avatar} alt={su.pseudo} /> : <span>{su.initials}</span>}
+                {su.avatar ? <img src={su.avatar} alt={su.pseudo} loading="lazy" decoding="async" /> : <span>{su.initials}</span>}
               </div>
               <div className="story-name">{su.isMe ? 'Votre story' : su.pseudo}</div>
             </div>
@@ -549,7 +549,7 @@ export default function Sidebar({
                 return (
                   <div key={r.fromUid} className="pending-item">
                     <div className="pending-item-avatar">
-                      {r.profile.avatar ? <img src={r.profile.avatar} alt="" /> : <span>{initial}</span>}
+                      {r.profile.avatar ? <img src={r.profile.avatar} alt="" loading="lazy" decoding="async" /> : <span>{initial}</span>}
                     </div>
                     <div className="pending-item-name">{r.profile.pseudo || '?'}</div>
                     <div className="pending-item-actions">
@@ -624,7 +624,7 @@ export default function Sidebar({
                     onContextMenu={(e) => handleCtxMenu(e, c)}
                   >
                     <div className="conv-avatar group-avatar">
-                      <img src={iconUrl} alt={g.name} />
+                      <img src={iconUrl} alt={g.name} loading="lazy" decoding="async" />
                     </div>
                     <div className="conv-info">
                       <div className="conv-row">
@@ -670,7 +670,7 @@ export default function Sidebar({
                       onOpenUserProfile?.(c.id);
                     }}
                   >
-                    {p.avatar ? <img src={p.avatar} alt={p.pseudo} /> : <span>{initial}</span>}
+                    {p.avatar ? <img src={p.avatar} alt={p.pseudo} loading="lazy" decoding="async" /> : <span>{initial}</span>}
                     <div className={`status-dot ${isOnline ? 'online' : 'offline'}`} />
                   </div>
                   <div className="conv-info">
@@ -687,6 +687,8 @@ export default function Sidebar({
                               src={def.icon}
                               alt={def.name || id}
                               title={def.name || id}
+                              loading="lazy"
+                              decoding="async"
                             />
                           );
                         })}
@@ -720,7 +722,7 @@ export default function Sidebar({
       <div className="sidebar-footer">
         <div className="sidebar-user" onClick={onToggleProfile} role="button" tabIndex={0} aria-label="Profil">
           <div className="sidebar-user-avatar">
-            {myAvatar ? <img src={myAvatar} alt="" /> : <span>{myInitial}</span>}
+            {myAvatar ? <img src={myAvatar} alt="" loading="lazy" decoding="async" /> : <span>{myInitial}</span>}
           </div>
           <div className="sidebar-user-info">
             <div className="sidebar-user-name" id="sidebarPseudo">

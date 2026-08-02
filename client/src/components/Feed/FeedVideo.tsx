@@ -1,5 +1,5 @@
 import { Heart, MapPin, MessageCircle, Play, Send, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { VideoComment, VideoData } from '../../types';
 import { resolveMediaUrl } from '../../utils/media';
@@ -10,7 +10,7 @@ interface Props {
   onLike: (id: string) => void;
 }
 
-export default function FeedVideo({ video, isVisible, onLike }: Props) {
+const FeedVideo = memo(function FeedVideo({ video, isVisible, onLike }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
   const [playing, setPlaying] = useState(false);
@@ -108,7 +108,7 @@ export default function FeedVideo({ video, isVisible, onLike }: Props) {
       <div className="feed-video-info">
         <div className="feed-video-author" onClick={() => navigate(`/@${video.pseudo}`)}>
           {video.avatar ? (
-            <img src={video.avatar} alt="" className="feed-video-avatar" />
+            <img src={video.avatar} alt="" className="feed-video-avatar" loading="lazy" decoding="async" />
           ) : (
             <div className="feed-video-avatar feed-video-avatar-placeholder">{(video.pseudo || '?')[0]}</div>
           )}
@@ -155,7 +155,7 @@ export default function FeedVideo({ video, isVisible, onLike }: Props) {
                 comments.map((c) => (
                   <div key={c.id} className="feed-comment-item">
                     <div className="feed-comment-avatar">
-                      {c.avatar ? <img src={c.avatar} alt="" /> : <span>{(c.pseudo || '?')[0]}</span>}
+                      {c.avatar ? <img src={c.avatar} alt="" loading="lazy" decoding="async" /> : <span>{(c.pseudo || '?')[0]}</span>}
                     </div>
                     <div className="feed-comment-body">
                       <div className="feed-comment-pseudo">{c.pseudo || 'Inconnu'}</div>
@@ -181,4 +181,6 @@ export default function FeedVideo({ video, isVisible, onLike }: Props) {
       )}
     </div>
   );
-}
+});
+
+export default FeedVideo;

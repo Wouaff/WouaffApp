@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { profiles } from '../services/api';
 import {
   offCallAccepted,
@@ -75,6 +75,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [muted, setMuted] = useState(false);
   const [deafened, setDeafened] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
+  const localStreamRef = useRef<MediaStream | null>(getLocalStream());
   const callTargetRef = useRef<{ uid: string; pseudo: string; avatar?: string } | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -169,59 +170,59 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const startCall = (uid: string, pseudo: string, avatar?: string) => {
+  const startCall = useCallback((uid: string, pseudo: string, avatar?: string) => {
     callTargetRef.current = { uid, pseudo, avatar };
     setCallerInfo({ uid, pseudo, avatar });
     voiceStartCall(uid);
-  };
+  }, []);
 
-  const acceptCall = () => {
+  const acceptCall = useCallback(() => {
     voiceAcceptCall();
-  };
+  }, []);
 
-  const rejectCall = () => {
+  const rejectCall = useCallback(() => {
     voiceRejectCall();
     setCallerInfo(null);
     callTargetRef.current = null;
-  };
+  }, []);
 
-  const endCall = () => {
+  const endCall = useCallback(() => {
     voiceEndCall();
-  };
+  }, []);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     const val = voiceToggleMute();
     setMuted(val);
-  };
+  }, []);
 
-  const toggleDeafen = () => {
+  const toggleDeafen = useCallback(() => {
     const val = voiceToggleDeafen();
     setDeafened(val);
-  };
+  }, []);
 
-  const toggleCamera = () => {
+  const toggleCamera = useCallback(() => {
     voiceToggleCamera().then(setCameraOn);
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    state,
+    remoteStream,
+    localStream: localStreamRef.current,
+    callerInfo,
+    muted,
+    deafened,
+    cameraOn,
+    startCall,
+    acceptCall,
+    rejectCall,
+    endCall,
+    toggleMute,
+    toggleDeafen,
+    toggleCamera,
+  }), [state, remoteStream, callerInfo, muted, deafened, cameraOn, startCall, acceptCall, rejectCall, endCall, toggleMute, toggleDeafen, toggleCamera]);
 
   return (
-    <CallContext.Provider
-      value={{
-        state,
-        remoteStream,
-        localStream: getLocalStream(),
-        callerInfo,
-        muted,
-        deafened,
-        cameraOn,
-        startCall,
-        acceptCall,
-        rejectCall,
-        endCall,
-        toggleMute,
-        toggleDeafen,
-        toggleCamera,
-      }}
-    >
+    <CallContext.Provider value={value}>
       {children}
     </CallContext.Provider>
   );

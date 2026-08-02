@@ -1,11 +1,11 @@
-import { useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 
 interface VoiceMessageProps {
   audioData?: string;
   duration?: number;
 }
 
-export default function VoiceMessage({ audioData, duration }: VoiceMessageProps) {
+const VoiceMessage = memo(function VoiceMessage({ audioData, duration }: VoiceMessageProps) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -58,4 +58,6 @@ export default function VoiceMessage({ audioData, duration }: VoiceMessageProps)
       </div>
     </div>
   );
-}
+});
+
+export default VoiceMessage;

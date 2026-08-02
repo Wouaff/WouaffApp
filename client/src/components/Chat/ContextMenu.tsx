@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { MessageData } from '../../types';
 import { EMOJIS, toggleReaction } from '../../utils/chatHelpers';
 
@@ -17,7 +18,7 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
-export default function ContextMenu({
+const ContextMenu = memo(function ContextMenu({
   x,
   y,
   mid,
@@ -109,4 +110,6 @@ export default function ContextMenu({
       )}
     </div>
   );
-}
+});
+
+export default ContextMenu;

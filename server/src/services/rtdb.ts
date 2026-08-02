@@ -14,24 +14,46 @@ function msgKey(): string {
 /* ── Conversations ── */
 
 export async function getConversationsForUser(uid: string): Promise<Record<string, unknown>> {
-  const contactRows = await query<Array<{ contactUid: string }>>('SELECT contactUid FROM contacts WHERE uid = ?', [
-    uid,
-  ]);
-  const result: Record<string, unknown> = {};
-  const entries = await Promise.all(
-    contactRows.map(async (row) => {
-      const contactUid = row.contactUid;
-      const profile = await getProfile(contactUid);
-      const msgRows = await query<Array<MessageData & { convId: string }>>(
-        'SELECT * FROM messages WHERE convId = ? ORDER BY time DESC LIMIT 1',
-        [chatId(uid, contactUid)],
-      );
-      const lastMsg = msgRows.length > 0 ? msgRows[0] : null;
-      return { contactUid, profile: profile || {}, lastMsg, lastTime: lastMsg?.time || 0 };
-    }),
+  const rows = await query<Array<Record<string, unknown>>>(
+    `SELECT c.contactUid,
+            p.pseudo, p.avatar, p.status, p.lastSeen, p.bio, p.wouaffId,
+            p.social_links, p.createdAt, p.banner, p.email,
+            m.msgKey, m.text, m.fromUid, m.time, m.deleted, m.edited,
+            m.encrypted, m.imageData, m.fileData, m.fileName,
+            m.audioData, m.duration, m.contactData, m.replyTo, m.messageTheme,
+            m.forwardedFrom, m.ephemeralDuration, m.reactions, m.type,
+            m.pendingFrom, m.senderName, m.seen
+     FROM contacts c
+     JOIN profiles p ON p.uid = c.contactUid
+     LEFT JOIN messages m ON m.msgKey = (
+       SELECT m2.msgKey FROM messages m2
+       WHERE m2.convId = CONCAT(LEAST(c.uid, c.contactUid), '_', GREATEST(c.uid, c.contactUid))
+       ORDER BY m2.time DESC LIMIT 1
+     )
+     WHERE c.uid = ?`,
+    [uid],
   );
-  for (const entry of entries) {
-    result[entry.contactUid] = { profile: entry.profile, lastMsg: entry.lastMsg, lastTime: entry.lastTime, type: 'dm' };
+  const result: Record<string, unknown> = {};
+  for (const row of rows) {
+    const contactUid = row.contactUid as string;
+    const profile: Record<string, unknown> = {};
+    for (const k of ['pseudo', 'avatar', 'status', 'lastSeen', 'bio', 'wouaffId', 'social_links', 'createdAt', 'banner', 'email']) {
+      if (row[k] !== undefined) profile[k] = row[k];
+    }
+    let lastMsg: Record<string, unknown> | null = null;
+    if (row.msgKey) {
+      lastMsg = {
+        msgKey: row.msgKey, text: row.text, fromUid: row.fromUid, time: row.time,
+        deleted: row.deleted, edited: row.edited, encrypted: row.encrypted,
+        imageData: row.imageData, fileData: row.fileData, fileName: row.fileName,
+        audioData: row.audioData, duration: row.duration, contactData: row.contactData,
+        replyTo: row.replyTo, messageTheme: row.messageTheme, forwardedFrom: row.forwardedFrom,
+        ephemeralDuration: row.ephemeralDuration, reactions: row.reactions, type: row.type,
+        pendingFrom: row.pendingFrom, senderName: row.senderName, seen: row.seen,
+        from: row.fromUid,
+      };
+    }
+    result[contactUid] = { profile, lastMsg, lastTime: (lastMsg?.time as number) || 0, type: 'dm' };
   }
   return result;
 }
@@ -47,21 +69,69 @@ export async function getReverseContactUids(uid: string): Promise<string[]> {
 }
 
 export async function getGroupConversations(uid: string): Promise<Record<string, unknown>> {
-  const memberRows = await query<Array<{ gid: string }>>('SELECT gid FROM group_members WHERE uid = ?', [uid]);
-  const groups: Record<string, unknown> = {};
-  const entries = await Promise.all(
-    memberRows.map(async (row) => {
-      const group = await getGroup(row.gid);
-      const msgRows = await query<Array<MessageData & { gid: string }>>(
-        'SELECT * FROM group_messages WHERE gid = ? ORDER BY time DESC LIMIT 1',
-        [row.gid],
-      );
-      const lastMsg = msgRows.length > 0 ? msgRows[0] : null;
-      return { gid: row.gid, group: group || {}, lastMsg, lastTime: lastMsg?.time || 0 };
-    }),
+  const rows = await query<Array<Record<string, unknown>>>(
+    `SELECT gm.gid,
+            g.name, g.description, g.icon, g.banner, g.privacy,
+            g.createdAt, g.createdBy, g.reported, g.reportedBy, g.reportedAt,
+            lm.msgKey, lm.text, lm.fromUid, lm.time, lm.deleted, lm.edited,
+            lm.encrypted, lm.imageData, lm.fileData, lm.fileName,
+            lm.audioData, lm.duration, lm.replyTo, lm.messageTheme,
+            lm.forwardedFrom, lm.ephemeralDuration, lm.reactions, lm.type,
+            lm.senderName, lm.seenBy
+     FROM group_members gm
+     JOIN groups_table g ON g.gid = gm.gid
+     LEFT JOIN group_messages lm ON lm.msgKey = (
+       SELECT lm2.msgKey FROM group_messages lm2
+       WHERE lm2.gid = gm.gid
+       ORDER BY lm2.time DESC LIMIT 1
+     )
+     WHERE gm.uid = ?`,
+    [uid],
   );
-  for (const entry of entries) {
-    groups[entry.gid] = { group: entry.group, lastMsg: entry.lastMsg, lastTime: entry.lastTime, type: 'group' };
+  const gids = rows.map((r) => r.gid as string);
+  const membersAll = gids.length > 0
+    ? await query<Array<{ gid: string; uid: string; role: string; joinedAt: number }>>(
+        `SELECT gid, uid, role, joinedAt FROM group_members WHERE gid IN (${gids.map(() => '?').join(',')})`,
+        gids,
+      )
+    : [];
+  const membersByGid: Record<string, Record<string, { role: string; joinedAt: number }>> = {};
+  for (const m of membersAll) {
+    if (!membersByGid[m.gid]) membersByGid[m.gid] = {};
+    membersByGid[m.gid][m.uid] = { role: m.role, joinedAt: m.joinedAt };
+  }
+  const invitesAll = gids.length > 0
+    ? await query<Array<{ gid: string; inviteId: string }>>(
+        `SELECT gid, inviteId FROM (SELECT gid, inviteId, ROW_NUMBER() OVER (PARTITION BY gid ORDER BY createdAt DESC) as rn FROM group_invites) t WHERE t.rn = 1 AND t.gid IN (${gids.map(() => '?').join(',')})`,
+        gids,
+      )
+    : [];
+  const inviteByGid: Record<string, string> = {};
+  for (const inv of invitesAll) {
+    inviteByGid[inv.gid as string] = inv.inviteId;
+  }
+  const groups: Record<string, unknown> = {};
+  for (const row of rows) {
+    const gid = row.gid as string;
+    const group: Record<string, unknown> = {};
+    for (const k of ['name', 'description', 'icon', 'banner', 'privacy', 'createdAt', 'createdBy', 'reported', 'reportedBy', 'reportedAt']) {
+      if (row[k] !== undefined) group[k] = row[k];
+    }
+    group.members = membersByGid[gid] || {};
+    group.inviteId = inviteByGid[gid] || null;
+    let lastMsg: Record<string, unknown> | null = null;
+    if (row.msgKey) {
+      lastMsg = {
+        msgKey: row.msgKey, text: row.text, fromUid: row.fromUid, time: row.time,
+        deleted: row.deleted, edited: row.edited, encrypted: row.encrypted,
+        imageData: row.imageData, fileData: row.fileData, fileName: row.fileName,
+        audioData: row.audioData, duration: row.duration,
+        replyTo: row.replyTo, messageTheme: row.messageTheme, forwardedFrom: row.forwardedFrom,
+        ephemeralDuration: row.ephemeralDuration, reactions: row.reactions, type: row.type,
+        senderName: row.senderName, seenBy: row.seenBy, from: row.fromUid,
+      };
+    }
+    groups[gid] = { group, lastMsg, lastTime: (lastMsg?.time as number) || 0, type: 'group' };
   }
   return groups;
 }
@@ -402,20 +472,27 @@ export async function getGroup(gid: string): Promise<Record<string, unknown> | n
   return { ...row, members: membersMap, inviteId: inv?.inviteId || null };
 }
 
-export async function getPublicGroups(): Promise<Record<string, unknown>[]> {
+export async function getPublicGroups(limit = 100, offset = 0): Promise<Record<string, unknown>[]> {
   const rows = await query<Array<Record<string, unknown>>>(
     `SELECT g.*, (SELECT COUNT(*) FROM group_members WHERE gid = g.gid) as memberCount
-     FROM groups_table g WHERE g.privacy = 'public' ORDER BY g.createdAt DESC LIMIT 100`,
+     FROM groups_table g WHERE g.privacy = 'public' ORDER BY g.createdAt DESC LIMIT ? OFFSET ?`,
+    [limit, offset],
   );
+  const gids = rows.map((r) => r.gid as string);
+  const membersAll = gids.length > 0
+    ? await query<Array<{ gid: string; uid: string; role: string }>>(
+        `SELECT gid, uid, role FROM group_members WHERE gid IN (${gids.map(() => '?').join(',')})`,
+        gids,
+      )
+    : [];
+  const membersByGid: Record<string, Record<string, { role: string }>> = {};
+  for (const m of membersAll) {
+    if (!membersByGid[m.gid]) membersByGid[m.gid] = {};
+    membersByGid[m.gid][m.uid] = { role: m.role };
+  }
   const result: Record<string, unknown>[] = [];
   for (const row of rows) {
-    const members = await query<Array<{ uid: string; role: string }>>(
-      'SELECT uid, role FROM group_members WHERE gid = ?',
-      [row.gid],
-    );
-    const membersMap: Record<string, { role: string }> = {};
-    for (const m of members) membersMap[m.uid] = { role: m.role };
-    result.push({ ...row, members: membersMap });
+    result.push({ ...row, members: membersByGid[row.gid as string] || {} });
   }
   return result;
 }
@@ -600,12 +677,21 @@ export async function getStories(uid: string): Promise<Record<string, unknown>> 
     [uid, Date.now()],
   );
   const result: Record<string, unknown> = {};
+  const storyIds = rows.map((r) => (r as Record<string, unknown>).storyId as string);
+  const viewsByStory: Record<string, string[]> = {};
+  if (storyIds.length > 0) {
+    const viewRows = await query<Array<{ storyId: string; viewedBy: string }>>(
+      `SELECT storyId, viewedBy FROM story_views WHERE storyId IN (${storyIds.map(() => '?').join(',')})`,
+      storyIds,
+    );
+    for (const v of viewRows) {
+      if (!viewsByStory[v.storyId]) viewsByStory[v.storyId] = [];
+      viewsByStory[v.storyId].push(v.viewedBy);
+    }
+  }
   for (const row of rows) {
     const storyId = (row as Record<string, unknown>).storyId as string;
-    const views = await query<Array<{ viewedBy: string }>>('SELECT viewedBy FROM story_views WHERE storyId=?', [
-      storyId,
-    ]);
-    (row as Record<string, unknown>).views = views.map((v) => v.viewedBy);
+    (row as Record<string, unknown>).views = viewsByStory[storyId] || [];
     result[storyId] = row;
   }
   return result;

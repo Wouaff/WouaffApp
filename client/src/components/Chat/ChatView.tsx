@@ -174,12 +174,16 @@ export default function ChatView({
     })();
   }, [chatWith]);
 
+  const allMessagesRef = useRef(allMessages);
+  allMessagesRef.current = allMessages;
+
   const markSeen = useCallback(
     (msgKeys: string[]) => {
       if (!user) return;
+      const msgs = allMessagesRef.current;
       if (chatWith) {
         const unseen = msgKeys.filter((k) => {
-          const m = allMessages[k];
+          const m = msgs[k];
           return !m || (m.from !== user.uid && !m.seen);
         });
         if (unseen.length > 0) {
@@ -189,7 +193,7 @@ export default function ChatView({
         }
       } else if (currentGroupId) {
         const unseen = msgKeys.filter((k) => {
-          const m = allMessages[k];
+          const m = msgs[k];
           return !m || (m.from !== user.uid && !m.seenBy?.includes(user.uid));
         });
         if (unseen.length > 0) {
@@ -199,8 +203,11 @@ export default function ChatView({
         }
       }
     },
-    [chatWith, currentGroupId, user, allMessages],
+    [chatWith, currentGroupId, user],
   );
+
+  const markSeenRef = useRef(markSeen);
+  markSeenRef.current = markSeen;
 
   useEffect(() => {
     if (!chatWith && !currentGroupId) return;
@@ -273,7 +280,7 @@ export default function ChatView({
     };
     load();
 
-    const onAdd = async (ev: { convId: string; key: string; data: MessageData }) => {
+    const onAdd = useCallback(async (ev: { convId: string; key: string; data: MessageData }) => {
       let msg = ev.data;
       if (msg.encrypted && msg.ct && msg.iv && partnerPubKey) {
         msg = (await decryptMessageData(
@@ -283,7 +290,7 @@ export default function ChatView({
       }
       setAllMessages((prev) => ({ ...prev, [ev.key]: msg }));
       if (msg.from !== user?.uid) {
-        markSeen([ev.key]);
+        markSeenRef.current?.([ev.key]);
         playMessageSound();
       }
       if (msg.type === 'text' && msg.text && localStorage.getItem('wouaff_animations_enabled') !== 'false') {
@@ -294,7 +301,7 @@ export default function ChatView({
           }
         }
       }
-    };
+    }, [user, partnerPubKey]);
     const onUpd = async (ev: { convId: string; key: string; data: MessageData }) => {
       let msg = ev.data;
       if (msg.encrypted && msg.ct && msg.iv && partnerPubKey) {
@@ -369,7 +376,7 @@ export default function ChatView({
       offSeen(handleSeenDM);
       offGroupSeen(handleGroupSeen);
     };
-  }, [chatWith, currentGroupId, user, partnerPubKey, markSeen, chatWithPseudo]);
+  }, [chatWith, currentGroupId, user, partnerPubKey, chatWithPseudo]);
 
   useEffect(() => {
     if (msgsEl.current && !userScrolledUpRef.current && !loadingMoreRef.current) {

@@ -1,8 +1,10 @@
+import { memo } from 'react';
+
 interface PinnedBannerProps {
   count: number;
 }
 
-export default function PinnedBanner({ count }: PinnedBannerProps) {
+const PinnedBanner = memo(function PinnedBanner({ count }: PinnedBannerProps) {
   if (count === 0) return null;
 
   return (
@@ -15,4 +17,6 @@ export default function PinnedBanner({ count }: PinnedBannerProps) {
       </span>
     </div>
   );
-}
+});
+
+export default PinnedBanner;

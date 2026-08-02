@@ -13,10 +13,11 @@ const pool = createPool({
   database: process.env.DB_NAME || 'wouaff',
   waitForConnections: true,
   connectionLimit: 20,
-  queueLimit: 0,
+  queueLimit: 50,
   charset: 'utf8mb4',
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
+  connectTimeout: 10000,
 });
 
 (pool as unknown as { on?: (event: string, cb: (err: Error) => void) => void }).on?.('error', (err: Error) => {
@@ -42,6 +43,18 @@ export async function query<T>(sql: string, params?: unknown[]): Promise<T> {
 export async function getOne<T>(sql: string, params?: unknown[]): Promise<T | null> {
   const rows = await query<T[]>(sql, params);
   return rows.length > 0 ? rows[0] : null;
+}
+
+export async function queryPaginated<T>(
+  sql: string,
+  params: unknown[],
+  limit: number = 50,
+  offset: number = 0,
+): Promise<{ rows: T; total: number }> {
+  const countSql = `SELECT COUNT(*) as total FROM (${sql}) as _count`;
+  const [{ total }] = await query<[{ total: number }]>(countSql, params.slice(0, -2));
+  const rows = await query<T>(`${sql} LIMIT ? OFFSET ?`, [...params, limit, offset]);
+  return { rows, total };
 }
 
 export default pool;

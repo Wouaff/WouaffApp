@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import LoginPage from './components/Auth/LoginPage';
 import ActiveCallBar from './components/Call/ActiveCallBar';
@@ -105,58 +105,60 @@ export default function App() {
             <TitleBar />
             <DownloadBanner />
             <div className="flex-1 overflow-hidden">
-              <Routes>
-                <Route path="/auth" element={<LoginPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/verify-email" element={<VerifyEmailPage />} />
-                <Route
-                  path="/settings"
-                  element={
-                    <ProtectedRoute>
-                      <MaintenanceGuard>
-                        <MobileLayout>
-                          <SettingsPage />
-                        </MobileLayout>
-                      </MaintenanceGuard>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/feed"
-                  element={
-                    <ProtectedRoute>
-                      <MaintenanceGuard>
-                        <MobileLayout>
-                          <FeedPage />
-                        </MobileLayout>
-                      </MaintenanceGuard>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/download" element={<DownloadPage />} />
-                <Route
-                  path="/explore"
-                  element={
-                    <ProtectedRoute>
-                      <MaintenanceGuard>
-                        <PublicGroupsPage />
-                      </MaintenanceGuard>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute>
-                      <MaintenanceGuard skip>
-                        <AdminPage />
-                      </MaintenanceGuard>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/*" element={<CatchAll />} />
-              </Routes>
+              <Suspense fallback={<div className="flex items-center justify-center h-dvh"><div className="spinner" /></div>}>
+                <Routes>
+                  <Route path="/auth" element={<LoginPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/verify-email" element={<VerifyEmailPage />} />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <MaintenanceGuard>
+                          <MobileLayout>
+                            <SettingsPage />
+                          </MobileLayout>
+                        </MaintenanceGuard>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/feed"
+                    element={
+                      <ProtectedRoute>
+                        <MaintenanceGuard>
+                          <MobileLayout>
+                            <FeedPage />
+                          </MobileLayout>
+                        </MaintenanceGuard>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="/download" element={<DownloadPage />} />
+                  <Route
+                    path="/explore"
+                    element={
+                      <ProtectedRoute>
+                        <MaintenanceGuard>
+                          <PublicGroupsPage />
+                        </MaintenanceGuard>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin"
+                    element={
+                      <ProtectedRoute>
+                        <MaintenanceGuard skip>
+                          <AdminPage />
+                        </MaintenanceGuard>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="/*" element={<CatchAll />} />
+                </Routes>
+              </Suspense>
             </div>
           </div>
         </CallProvider>
