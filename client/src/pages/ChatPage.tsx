@@ -280,7 +280,11 @@ export default function ChatPage() {
         >
           <div className="modal-box">
             <h3>Ajouter un contact</h3>
+            <label htmlFor="addContactInput" className="sr-only">
+              Pseudo ou Wouaff ID
+            </label>
             <input
+              id="addContactInput"
               className="modal-input"
               type="text"
               placeholder="@wouaffId"
@@ -288,12 +292,16 @@ export default function ChatPage() {
               onChange={(e) => setContactInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddContact()}
             />
-            <div className={`modal-feedback ${addFeedback.includes('✅') ? 'success' : addFeedback ? 'error' : ''}`}>
+            <div
+              className={`modal-feedback ${addFeedback.includes('✅') ? 'success' : addFeedback ? 'error' : ''}`}
+              role="alert"
+            >
               {addFeedback}
             </div>
             <button
               className="bg-brand text-white px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans w-full"
               onClick={handleAddContact}
+              aria-label="Ajouter un contact"
             >
               Ajouter
             </button>
@@ -316,31 +324,46 @@ export default function ChatPage() {
         >
           <div className="modal-box">
             <h3>Nouveau groupe</h3>
+            <label htmlFor="groupNameInput" className="sr-only">
+              Nom du groupe
+            </label>
             <input
+              id="groupNameInput"
               className="modal-input"
               type="text"
               placeholder="Nom du groupe"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
             />
+            <label htmlFor="groupDescInput" className="sr-only">
+              Description du groupe
+            </label>
             <input
+              id="groupDescInput"
               className="modal-input"
               type="text"
               placeholder="Description (optionnel)"
               value={groupDesc}
               onChange={(e) => setGroupDesc(e.target.value)}
             />
+            <label htmlFor="groupIconInput" className="sr-only">
+              URL de l'icône du groupe
+            </label>
             <input
+              id="groupIconInput"
               className="modal-input"
               type="text"
               placeholder="URL de l'icône (optionnel)"
               value={groupIcon}
               onChange={(e) => setGroupIcon(e.target.value)}
             />
-            <div className={`modal-feedback ${groupFeedback ? 'error' : ''}`}>{groupFeedback}</div>
+            <div className={`modal-feedback ${groupFeedback ? 'error' : ''}`} role="alert">
+              {groupFeedback}
+            </div>
             <button
               className="bg-brand text-white px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans w-full"
               onClick={handleCreateGroup}
+              aria-label="Créer le groupe"
             >
               Créer le groupe
             </button>
@@ -366,12 +389,14 @@ export default function ChatPage() {
               <button
                 className="bg-transparent text-text-primary px-6 py-3 rounded-xl font-bold text-sm border border-border cursor-pointer font-sans"
                 onClick={() => setShowDeleteConvModal(false)}
+                aria-label="Annuler"
               >
                 Annuler
               </button>
               <button
                 className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans"
                 onClick={handleDeleteConv}
+                aria-label="Supprimer"
               >
                 Supprimer
               </button>

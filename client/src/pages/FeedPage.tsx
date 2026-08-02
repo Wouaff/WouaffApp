@@ -74,14 +74,14 @@ export default function FeedPage() {
   return (
     <div className="feed-page">
       <div className="feed-header">
-        <button className="feed-back" onClick={() => navigate('/')}>
+        <button className="feed-back" onClick={() => navigate('/')} aria-label="Retour">
           <ChevronLeft size={22} />
         </button>
         <div className="feed-header-info">
           <Film size={20} className="feed-header-icon" />
           <span>Feed</span>
         </div>
-        <button className="feed-upload-btn-header" onClick={() => setShowUploader(true)}>
+        <button className="feed-upload-btn-header" onClick={() => setShowUploader(true)} aria-label="Publier une vidéo">
           <Upload size={16} /> Publier
         </button>
       </div>
@@ -99,7 +99,7 @@ export default function FeedPage() {
             </button>
           </div>
         ) : (
-          <div className="feed-grid">
+          <div className="feed-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {videos.map((v) => (
               <FeedCard key={v.id} video={v} onLike={handleLike} onOpen={() => setSelectedVideo(v)} />
             ))}

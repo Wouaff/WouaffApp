@@ -34,12 +34,13 @@ export default function ContextMenu({
 }: ContextMenuProps) {
   return (
     <div className="ctx-menu" style={{ position: 'fixed', left: x, top: y, zIndex: 9999 } as React.CSSProperties}>
-      <div className="ctx-reactions">
+      <fieldset className="ctx-reactions" aria-label="Réactions">
         {EMOJIS.map((e) => (
           <button
             key={e}
             type="button"
             className="ctx-emoji"
+            aria-label={`Réaction ${e}`}
             onClick={() => {
               toggleReaction(mid, e, convId, isGroup);
               onClose();
@@ -48,7 +49,7 @@ export default function ContextMenu({
             {e}
           </button>
         ))}
-      </div>
+      </fieldset>
       <div className="ctx-divider" />
       {!msg.deleted && (
         <button

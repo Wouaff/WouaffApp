@@ -21,7 +21,7 @@ export default function ReplyPreview({
             <div className="reply-preview-name">Répondre</div>
             <div className="reply-preview-text">{replyText?.substring(0, 60)}</div>
           </div>
-          <button type="button" className="reply-preview-close" onClick={onCancelReply}>
+          <button type="button" className="reply-preview-close" onClick={onCancelReply} aria-label="Annuler la réponse">
             ✕
           </button>
         </div>
@@ -29,7 +29,7 @@ export default function ReplyPreview({
       {editingMsgId && (
         <div className="edit-preview" id="editPreview">
           <span>Modification du message</span>
-          <button type="button" className="reply-preview-close" onClick={onCancelEdit}>
+          <button type="button" className="reply-preview-close" onClick={onCancelEdit} aria-label="Annuler la réponse">
             ✕
           </button>
         </div>

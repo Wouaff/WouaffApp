@@ -124,11 +124,16 @@ export default function FeedVideo({ video, isVisible, onLike }: Props) {
       </div>
 
       <div className="feed-video-actions">
-        <button className={`feed-action-btn${liked ? ' liked' : ''}`} onClick={handleLike}>
+        <button
+          className={`feed-action-btn${liked ? ' liked' : ''}`}
+          onClick={handleLike}
+          aria-label="J'aime"
+          aria-pressed={liked}
+        >
           <Heart size={28} />
           <span>{likeCount}</span>
         </button>
-        <button className="feed-action-btn" onClick={toggleComments}>
+        <button className="feed-action-btn" onClick={toggleComments} aria-label="Commentaires">
           <MessageCircle size={28} />
           <span>{video.commentsCount}</span>
         </button>
@@ -139,7 +144,7 @@ export default function FeedVideo({ video, isVisible, onLike }: Props) {
           <div className="feed-comments-panel" onClick={(e) => e.stopPropagation()}>
             <div className="feed-comments-header">
               <span>Commentaires</span>
-              <button onClick={() => setShowComments(false)}>
+              <button onClick={() => setShowComments(false)} aria-label="Fermer les commentaires">
                 <X size={20} />
               </button>
             </div>
@@ -167,7 +172,7 @@ export default function FeedVideo({ video, isVisible, onLike }: Props) {
                 placeholder="Écrire un commentaire..."
                 onKeyDown={(e) => e.key === 'Enter' && sendComment()}
               />
-              <button onClick={sendComment} disabled={!commentText.trim()}>
+              <button onClick={sendComment} disabled={!commentText.trim()} aria-label="Envoyer le commentaire">
                 <Send size={18} />
               </button>
             </div>

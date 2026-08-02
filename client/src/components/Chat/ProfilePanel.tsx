@@ -64,8 +64,8 @@ export default function ProfilePanel({ onClose, targetUid }: ProfilePanelProps) 
     <aside className="profile-panel" id="profilePanel">
       <div className="profile-panel-header">
         <span>Profil</span>
-        <button type="button" className="profile-panel-close" onClick={onClose}>
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-label="Fermer">
+        <button type="button" className="profile-panel-close" onClick={onClose} aria-label="Fermer le profil">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
           </svg>
         </button>
@@ -88,7 +88,7 @@ export default function ProfilePanel({ onClose, targetUid }: ProfilePanelProps) 
           {p?.avatar ? (
             <img
               src={p.avatar}
-              alt=""
+              alt={p?.pseudo || 'Avatar'}
               className="w-16 h-16 rounded-full object-cover border-[3px] border-[var(--bg)]"
             />
           ) : (

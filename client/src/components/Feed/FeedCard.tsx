@@ -10,7 +10,15 @@ interface Props {
 
 export default function FeedCard({ video, onLike, onOpen }: Props) {
   return (
-    <div className="feed-card" onClick={onOpen}>
+    <div
+      className="feed-card"
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onOpen();
+      }}
+    >
       <div className="feed-card-thumb">
         {video.thumbnailPath ? (
           <img src={resolveMediaUrl(video.thumbnailPath)} alt="" loading="lazy" />

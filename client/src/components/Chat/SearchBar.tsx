@@ -33,7 +33,11 @@ export default function SearchBar({
 
   return (
     <div className="search-bar">
+      <label htmlFor="searchInput" className="sr-only">
+        Rechercher
+      </label>
       <input
+        id="searchInput"
         ref={searchInputRef}
         className="search-bar-input"
         placeholder="Rechercher dans la conversation…"

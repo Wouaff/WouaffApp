@@ -20,7 +20,7 @@
   --border-light: #1e2a3a;
   --text-primary: #e8ecf0;
   --text-secondary: #8a9bb0;
-  --text-muted: #5a6a80;
+  --text-muted: #6d7d96;
   --msg-sent: #1a3a5c;
   --msg-sent-border: #1e4570;
   --msg-recv: #1c2333;
@@ -62,7 +62,7 @@
   --border-light: #e6e9f0;
   --text-primary: #1c1e24;
   --text-secondary: #5a6577;
-  --text-muted: #8e97a8;
+  --text-muted: #6a7a90;
   --msg-sent: #dce8f5;
   --msg-sent-border: #b8cce0;
   --msg-recv: #f0f2f6;
@@ -117,18 +117,39 @@
     }
   }
 
-  [data-theme="light"] .settings-page,
-  [data-theme="light"] .auth-page,
-  [data-theme="light"] .admin-page,
-  [data-theme="light"] .profile-page,
-  [data-theme="light"] .chat-placeholder,
-  [data-theme="light"] .messages,
-  [data-theme="light"] #messages,
-  [data-theme="light"] #joinGroupOverlay {
-    background-image: url("/assets/logo/background.png");
+  /* biome-ignore lint/complexity/noImportantStyles: required for WCAG prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
-  [data-theme="light"] .vip-locked::after {
-    background: rgba(200, 200, 210, 0.65);
+
+  [dir="rtl"] {
+    .sidebar {
+      left: auto;
+      right: 0;
+    }
+    .chat-topbar {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    .msg-wrapper.sent {
+      flex-direction: row-reverse;
+    }
+    .msg-wrapper.recv {
+      flex-direction: row;
+    }
+    .conv-item {
+      text-align: right;
+    }
+    .sidebar-footer,
+    .sidebar-actions {
+      flex-direction: row-reverse;
+    }
   }
 
   :root {
@@ -398,3 +419,68 @@
    COMPONENT STYLES — seront progressivement supprimées
    au fur et à mesure de la migration Tailwind
 ══════════════════════════════════════════════════════════ */
+
+/* Increased touch targets for mobile — minimum 44px as per WCAG 2.5.5 */
+.pending-accept-btn,
+.pending-decline-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+.app-download-banner-close,
+.pp-close-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+.icon-btn,
+.sidebar-logout,
+.sidebar-install {
+  min-width: 44px;
+  min-height: 44px;
+}
+.sidebar-icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Focus visible styles for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+/* sr-only utility — ensures screen reader only content is hidden visually but accessible */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    width: 100%;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  #chatArea {
+    padding-bottom: var(--bnav-h);
+  }
+  .chat-topbar {
+    padding-left: 50px;
+  }
+  .msg-input-area {
+    bottom: var(--bnav-h);
+  }
+}

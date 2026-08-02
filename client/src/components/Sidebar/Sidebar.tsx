@@ -486,7 +486,14 @@ export default function Sidebar({
       {(storyUsers.length > 0 || onOpenStoryCreator) && (
         <div id="storiesBar" className="stories-bar">
           {onOpenStoryCreator && (
-            <div className="story-avatar-wrap" onClick={onOpenStoryCreator} title="Ajouter une story">
+            <div
+              className="story-avatar-wrap"
+              onClick={onOpenStoryCreator}
+              title="Ajouter une story"
+              role="button"
+              tabIndex={0}
+              aria-label="Ajouter une story"
+            >
               <div className="story-avatar story-add-avatar">
                 <div className="story-add-icon">+</div>
               </div>
@@ -494,7 +501,14 @@ export default function Sidebar({
             </div>
           )}
           {storyUsers.map((su) => (
-            <div key={su.uid} className="story-avatar-wrap" onClick={() => onOpenStoryViewer?.(su.uid)}>
+            <div
+              key={su.uid}
+              className="story-avatar-wrap"
+              onClick={() => onOpenStoryViewer?.(su.uid)}
+              role="button"
+              tabIndex={0}
+              aria-label={`Story de ${su.pseudo}`}
+            >
               <div
                 className={`story-avatar ${su.hasStories ? (su.allViewed ? 'story-ring viewed' : 'story-ring') : ''}`}
               >
@@ -523,7 +537,7 @@ export default function Sidebar({
       {/* Contact requests */}
       {pendingRequests.length > 0 && (
         <div id="pendingContainer" className="pending-container">
-          <div className="pending-header" onClick={() => setPendingOpen(!pendingOpen)}>
+          <div className="pending-header" onClick={() => setPendingOpen(!pendingOpen)} role="button" tabIndex={0}>
             <span>Demandes d'ami ({pendingRequests.length})</span>
             <span id="pendingToggleIcon">{pendingOpen ? '▾' : '▸'}</span>
           </div>
@@ -704,7 +718,7 @@ export default function Sidebar({
 
       {/* Bottom user area */}
       <div className="sidebar-footer">
-        <div className="sidebar-user" onClick={onToggleProfile}>
+        <div className="sidebar-user" onClick={onToggleProfile} role="button" tabIndex={0} aria-label="Profil">
           <div className="sidebar-user-avatar">
             {myAvatar ? <img src={myAvatar} alt="" /> : <span>{myInitial}</span>}
           </div>

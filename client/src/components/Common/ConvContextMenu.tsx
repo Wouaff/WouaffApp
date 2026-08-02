@@ -50,10 +50,18 @@ export default function ConvContextMenu({
   return (
     <div ref={ref} className="ctx-menu" style={{ left: x, top: y } as React.CSSProperties}>
       <div
+        role="menuitem"
+        tabIndex={0}
         className="ctx-item"
         onClick={() => {
           onTogglePin();
           onClose();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            onTogglePin();
+            onClose();
+          }
         }}
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -63,10 +71,18 @@ export default function ConvContextMenu({
       </div>
       <div className="ctx-divider" />
       <div
+        role="menuitem"
+        tabIndex={0}
         className="ctx-item"
         onClick={() => {
           onDelete();
           onClose();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            onDelete();
+            onClose();
+          }
         }}
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -75,10 +91,18 @@ export default function ConvContextMenu({
         Supprimer
       </div>
       <div
+        role="menuitem"
+        tabIndex={0}
         className="ctx-item"
         onClick={() => {
           onBlock();
           onClose();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            onBlock();
+            onClose();
+          }
         }}
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -87,10 +111,18 @@ export default function ConvContextMenu({
         Bloquer
       </div>
       <div
+        role="menuitem"
+        tabIndex={0}
         className="ctx-item"
         onClick={() => {
           onReport();
           onClose();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            onReport();
+            onClose();
+          }
         }}
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">

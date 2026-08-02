@@ -132,6 +132,9 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-4">
+            <label htmlFor="email" className="sr-only">
+              Email
+            </label>
             <input
               id="email"
               type="email"
@@ -147,6 +150,9 @@ export default function LoginPage() {
 
           {isRegister && (
             <div className="mb-4">
+              <label htmlFor="pseudo" className="sr-only">
+                Pseudo
+              </label>
               <input
                 id="pseudo"
                 type="text"
@@ -164,6 +170,9 @@ export default function LoginPage() {
 
           <div className="mb-4">
             <div className="relative">
+              <label htmlFor="password" className="sr-only">
+                Mot de passe
+              </label>
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
@@ -179,7 +188,7 @@ export default function LoginPage() {
                 type="button"
                 className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 onClick={() => setShowPassword((p) => !p)}
-                tabIndex={-1}
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
               >
                 <svg
                   className="w-4 h-4"
@@ -225,6 +234,9 @@ export default function LoginPage() {
           {isRegister && (
             <div className="mb-4">
               <div className="relative">
+                <label htmlFor="confirmPassword" className="sr-only">
+                  Confirmer le mot de passe
+                </label>
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -242,7 +254,7 @@ export default function LoginPage() {
                   type="button"
                   className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                   onClick={() => setShowConfirmPassword((p) => !p)}
-                  tabIndex={-1}
+                  aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 >
                   <svg
                     className="w-4 h-4"
@@ -287,7 +299,10 @@ export default function LoginPage() {
           )}
 
           {error && (
-            <div className="bg-red-500/15 rounded-lg px-4 py-3 mb-4 text-sm text-red-400 animate-[shake_0.3s_ease-in-out]">
+            <div
+              role="alert"
+              className="bg-red-500/15 rounded-lg px-4 py-3 mb-4 text-sm text-red-400 animate-[shake_0.3s_ease-in-out]"
+            >
               {error}
             </div>
           )}

@@ -15,6 +15,14 @@ export default function ForwardModal({ msg, user, currentChatWith, currentGroupI
   const [groups, setGroups] = useState<Record<string, { group: { name: string; icon?: string } }>>({});
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  useEffect(() => {
     contactsAPI
       .list()
       .then((r: Record<string, { pseudo?: string; avatar?: string }>) => setContacts(r))

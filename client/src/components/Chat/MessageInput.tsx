@@ -174,6 +174,9 @@ export default function MessageInput({
           </button>
         )}
       </div>
+      <label htmlFor="msgInput" className="sr-only">
+        Message
+      </label>
       <input
         id="msgInput"
         value={inputValue}

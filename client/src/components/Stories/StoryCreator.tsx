@@ -197,6 +197,9 @@ export default function StoryCreator({ onClose, onPublished }: StoryCreatorProps
           <div
             className="p-10 cursor-pointer bg-[var(--bg-input)] rounded-xl mb-4 border-2 border-dashed border-[var(--border)]"
             onClick={() => fileRef.current?.click()}
+            role="button"
+            tabIndex={0}
+            aria-label="Ajouter une image"
           >
             <div className="text-5xl mb-2">📷</div>
             <div className="text-text-muted">Cliquez pour sélectionner une image</div>

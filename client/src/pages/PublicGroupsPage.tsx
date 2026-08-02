@@ -101,7 +101,13 @@ export default function PublicGroupsPage() {
             {groups.map((g) => {
               const joined = joinedGids.has(g.gid);
               return (
-                <div key={g.gid} className="pubg-card" onClick={() => (joined ? handleOpen(g.gid) : undefined)}>
+                <div
+                  key={g.gid}
+                  className="pubg-card"
+                  onClick={() => (joined ? handleOpen(g.gid) : undefined)}
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="pubg-card-banner" style={g.icon ? { backgroundImage: `url(${g.icon})` } : {}}>
                     <div className="pubg-card-banner-overlay" />
                     <div className="pubg-card-avatar">{g.icon ? <img src={g.icon} alt="" /> : <Users size={24} />}</div>

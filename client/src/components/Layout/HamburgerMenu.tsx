@@ -1,3 +1,4 @@
+import { Compass, Film, MessageSquare, Settings, Users } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface HamburgerMenuProps {
@@ -16,12 +17,12 @@ export default function HamburgerMenu({ open, onClose, storyBadge }: HamburgerMe
   const isFeed = location.pathname === '/feed';
 
   const items = [
-    { path: '/', label: 'Discussions', active: isChat, icon: 'bi-chat-dots' },
+    { path: '/', label: 'Discussions', active: isChat, icon: MessageSquare },
     {
       path: '/',
       label: 'Stories',
       active: isChat,
-      icon: 'bi-camera',
+      icon: Users,
       badge: storyBadge,
       onClick: () => {
         navigate('/');
@@ -31,9 +32,9 @@ export default function HamburgerMenu({ open, onClose, storyBadge }: HamburgerMe
         }, 100);
       },
     },
-    { path: '/explore', label: 'Explorer', active: isExplore, icon: 'bi-compass' },
-    { path: '/feed', label: 'Feed', active: isFeed, icon: 'bi-newspaper' },
-    { path: '/settings', label: 'Paramètres', active: isSettings, icon: 'bi-gear' },
+    { path: '/explore', label: 'Explorer', active: isExplore, icon: Compass },
+    { path: '/feed', label: 'Feed', active: isFeed, icon: Film },
+    { path: '/settings', label: 'Paramètres', active: isSettings, icon: Settings },
   ];
 
   const handleNav = (item: (typeof items)[0]) => {
@@ -51,21 +52,25 @@ export default function HamburgerMenu({ open, onClose, storyBadge }: HamburgerMe
     <div className="hamburger-overlay" onClick={onClose}>
       <div className="hamburger-panel" onClick={(e) => e.stopPropagation()}>
         <div className="hamburger-header">
-          <i className="bi bi-chat-square-text fs-4" style={{ color: 'var(--brand)' }} />
+          <MessageSquare size={20} color="var(--brand)" />
           <span>Menu</span>
         </div>
         <div className="hamburger-items">
-          {items.map((item) => (
-            <button
-              key={item.label}
-              className={`hamburger-item${item.active ? ' active' : ''}`}
-              onClick={() => handleNav(item)}
-            >
-              <i className={`bi ${item.icon} fs-5`} />
-              <span>{item.label}</span>
-              {item.badge && <span className="hamburger-badge" />}
-            </button>
-          ))}
+          {items.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.label}
+                className={`hamburger-item${item.active ? ' active' : ''}`}
+                onClick={() => handleNav(item)}
+                aria-current={item.active ? 'page' : undefined}
+              >
+                <Icon size={18} />
+                <span>{item.label}</span>
+                {item.badge && <span className="hamburger-badge" />}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

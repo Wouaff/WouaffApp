@@ -29,5 +29,9 @@ export default function Toast() {
 
   if (!data) return null;
 
-  return <div className={`toast show ${data.type || ''}`}>{data.message}</div>;
+  return (
+    <div role="status" aria-live="polite" className={`toast show ${data.type || ''}`}>
+      {data.message}
+    </div>
+  );
 }

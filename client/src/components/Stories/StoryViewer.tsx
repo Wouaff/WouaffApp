@@ -217,6 +217,9 @@ export default function StoryViewer({ startUid, onClose }: StoryViewerProps) {
     <div
       className="story-viewer-overlay"
       id="storyViewer"
+      role="dialog"
+      aria-label="Visionneuse de story"
+      aria-modal="true"
       onTouchStart={(e) => {
         tryPlayAudio();
         touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
@@ -274,7 +277,7 @@ export default function StoryViewer({ startUid, onClose }: StoryViewerProps) {
             </span>
           </div>
         </div>
-        <button className="story-viewer-close" onClick={onClose}>
+        <button className="story-viewer-close" onClick={onClose} aria-label="Fermer">
           ✕
         </button>
       </div>
@@ -301,8 +304,8 @@ export default function StoryViewer({ startUid, onClose }: StoryViewerProps) {
       )}
 
       {/* Tap hints */}
-      <div className="story-tap-hint-left" />
-      <div className="story-tap-hint-right" />
+      <div className="story-tap-hint-left" aria-hidden="true" />
+      <div className="story-tap-hint-right" aria-hidden="true" />
     </div>
   );
 }

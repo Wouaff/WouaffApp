@@ -298,7 +298,7 @@ export default function GroupInfoModal({ gid, onClose }: GroupInfoModalProps) {
               </div>
             </div>
           </div>
-          <button className="grp-close" onClick={onClose}>
+          <button className="grp-close" onClick={onClose} aria-label="Fermer">
             <X size={16} />
           </button>
         </div>
