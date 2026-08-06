@@ -8,6 +8,6 @@
     "lint:ci": "biome ci"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.4"
+    "@biomejs/biome": "2.5.6"
   }
 }
