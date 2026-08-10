@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { sendSqlInjectionAlert, type SqlMatch } from '../services/discordWebhook.js';
+import { type SqlMatch, sendSqlInjectionAlert } from '../services/discordWebhook.js';
 
 /*
  * Détection de tentatives d'injection SQL dans tous les champs textuels
@@ -26,7 +26,7 @@ const SQL_PATTERNS: Array<{ pattern: RegExp; name: string }> = [
   { pattern: /\bLOAD_FILE\s*\(/i, name: 'LOAD_FILE()' },
   { pattern: /\bINTO\s+OUTFILE\b/i, name: 'INTO OUTFILE' },
   { pattern: /\bINTO\s+DUMPFILE\b/i, name: 'INTO DUMPFILE' },
-  { pattern: /'?\s*OR\s+\d+\s*=\s*\d+/i, name: "OR 1=1" },
+  { pattern: /'?\s*OR\s+\d+\s*=\s*\d+/i, name: 'OR 1=1' },
   { pattern: /'?\s*OR\s+'[\s\S]*?'\s*=\s*'[\s\S]*?'/i, name: "OR 'x'='x'" },
   { pattern: /\bAND\s+\d+\s*=\s*\d+/i, name: 'AND 1=1' },
   { pattern: /\bOR\b[^\n]{0,40}\bLIKE\b/i, name: 'OR ... LIKE' },

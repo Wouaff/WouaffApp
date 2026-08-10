@@ -23,8 +23,8 @@ import {
   Menu,
   MessageCircle,
   MessageSquare,
-  Repeat2,
   RefreshCw,
+  Repeat2,
   Save,
   Search,
   Shield,
@@ -41,7 +41,6 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { admin as adminAPI, profiles } from '../services/api';
 import type {
   AdminCommentRow,
   AdminLoginHistoryRow,
@@ -52,6 +51,7 @@ import type {
   AdminUserReportRow,
   AdminVideoRow,
 } from '../services/api';
+import { admin as adminAPI, profiles } from '../services/api';
 import type { UserProfile } from '../types';
 
 type Tab = 'dashboard' | 'moderation' | 'groups' | 'reports' | 'users' | 'staff' | 'logs';
@@ -131,16 +131,28 @@ const STAT_CARDS: AdminStat[] = [
   { key: 'chats', label: 'Conversations', icon: <MessageSquare size={18} />, color: '#8b5cf6', group: 'general' },
   { key: 'messages', label: 'Messages', icon: <Mail size={18} />, color: '#06b6d4', group: 'general' },
   { key: 'posts', label: 'Posts', icon: <Edit3 size={18} />, color: '#3b82f6', group: 'social' },
-  { key: 'postLikes', label: 'J\'aime (posts)', icon: <Heart size={18} />, color: '#ef4444', group: 'social' },
+  { key: 'postLikes', label: "J'aime (posts)", icon: <Heart size={18} />, color: '#ef4444', group: 'social' },
   { key: 'postReposts', label: 'Reposts', icon: <Repeat2 size={18} />, color: '#10b981', group: 'social' },
   { key: 'postComments', label: 'Commentaires', icon: <MessageCircle size={18} />, color: '#f59e0b', group: 'social' },
   { key: 'follows', label: 'Abonnements', icon: <UserPlus size={18} />, color: '#ec4899', group: 'social' },
   { key: 'videos', label: 'Vidéos', icon: <Film size={18} />, color: '#a855f7', group: 'social' },
-  { key: 'videoLikes', label: 'J\'aime (vidéos)', icon: <Heart size={18} />, color: '#fb7185', group: 'social' },
-  { key: 'videoComments', label: 'Commentaires vidéos', icon: <MessageCircle size={18} />, color: '#f97316', group: 'social' },
+  { key: 'videoLikes', label: "J'aime (vidéos)", icon: <Heart size={18} />, color: '#fb7185', group: 'social' },
+  {
+    key: 'videoComments',
+    label: 'Commentaires vidéos',
+    icon: <MessageCircle size={18} />,
+    color: '#f97316',
+    group: 'social',
+  },
   { key: 'userReports', label: 'Signalements users', icon: <Flag size={18} />, color: '#f43f5e', group: 'moderation' },
   { key: 'postReports', label: 'Posts signalés', icon: <Flag size={18} />, color: '#fb7185', group: 'moderation' },
-  { key: 'reportedGroups', label: 'Groupes signalés', icon: <ShieldAlert size={18} />, color: '#e11d48', group: 'moderation' },
+  {
+    key: 'reportedGroups',
+    label: 'Groupes signalés',
+    icon: <ShieldAlert size={18} />,
+    color: '#e11d48',
+    group: 'moderation',
+  },
   { key: 'logins', label: 'Connexions (IP)', icon: <Globe size={18} />, color: '#6366f1', group: 'moderation' },
   { key: 'badges', label: 'Badges', icon: <Award size={18} />, color: '#f59e0b', group: 'general' },
   { key: 'wouaffIds', label: 'Identifiants', icon: <Link2 size={18} />, color: '#ec4899', group: 'general' },
@@ -172,11 +184,7 @@ function formatDate(ts: number): string {
 function avatar(avatar?: string | null, pseudo?: string | null, size = 36): React.ReactNode {
   return (
     <div className="admin-user-avatar" style={size !== 36 ? { width: size, height: size } : undefined}>
-      {avatar ? (
-        <img src={avatar} alt="" />
-      ) : (
-        <span>{(pseudo || '?')[0]?.toUpperCase() || '?'}</span>
-      )}
+      {avatar ? <img src={avatar} alt="" /> : <span>{(pseudo || '?')[0]?.toUpperCase() || '?'}</span>}
     </div>
   );
 }
@@ -284,7 +292,9 @@ export default function AdminPage() {
   const [loginHistoryLoading, setLoginHistoryLoading] = useState(false);
 
   /* Staff state */
-  const [staffList, setStaffList] = useState<Record<string, { role: string; addedAt: number; profile?: UserProfile }>>({});
+  const [staffList, setStaffList] = useState<Record<string, { role: string; addedAt: number; profile?: UserProfile }>>(
+    {},
+  );
   const [staffUidInput, setStaffUidInput] = useState('');
   const [staffMsg, setStaffMsg] = useState('');
 
@@ -936,7 +946,12 @@ export default function AdminPage() {
   return (
     <div className={`admin-page${mobileOpen ? ' drawer-open' : ''}`}>
       <div className="admin-mobile-header">
-        <button type="button" className="admin-mobile-hamburger" onClick={() => setMobileOpen(true)} aria-label="Ouvrir le menu">
+        <button
+          type="button"
+          className="admin-mobile-hamburger"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Ouvrir le menu"
+        >
           <Menu size={20} />
         </button>
         <span className="admin-mobile-title">Panneau d'administration</span>
@@ -949,7 +964,12 @@ export default function AdminPage() {
 
       <div className="admin-layout">
         <aside className={`admin-sidebar${mobileOpen ? ' open' : ''}`}>
-          <button type="button" className="admin-drawer-close" onClick={() => setMobileOpen(false)} aria-label="Fermer le menu">
+          <button
+            type="button"
+            className="admin-drawer-close"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Fermer le menu"
+          >
             <X size={18} />
           </button>
           <div className="admin-sidebar-brand">
@@ -1033,11 +1053,21 @@ export default function AdminPage() {
                   onChange={(e) => setGlobalQ(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && runGlobalSearch()}
                 />
-                <button className="admin-btn admin-btn-primary" onClick={() => runGlobalSearch()} disabled={globalLoading}>
+                <button
+                  className="admin-btn admin-btn-primary"
+                  onClick={() => runGlobalSearch()}
+                  disabled={globalLoading}
+                >
                   {globalLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                 </button>
                 {globalResults && (
-                  <button className="admin-btn admin-btn-secondary" onClick={() => { setGlobalResults(null); setGlobalQ(''); }}>
+                  <button
+                    className="admin-btn admin-btn-secondary"
+                    onClick={() => {
+                      setGlobalResults(null);
+                      setGlobalQ('');
+                    }}
+                  >
                     <X size={16} />
                   </button>
                 )}
@@ -1050,12 +1080,22 @@ export default function AdminPage() {
                   </div>
                   {globalResults.users.length > 0 && (
                     <>
-                      <div className="admin-section-divider"><span>Utilisateurs</span></div>
+                      <div className="admin-section-divider">
+                        <span>Utilisateurs</span>
+                      </div>
                       <div className="admin-user-list">
                         {globalResults.users.map((u) => (
-                          <div key={u.uid as string} className="admin-user-item" onClick={() => clickUser(u.uid as string)}>
+                          <div
+                            key={u.uid as string}
+                            className="admin-user-item"
+                            onClick={() => clickUser(u.uid as string)}
+                          >
                             <div className="admin-user-avatar">
-                              {u.avatar ? <img src={u.avatar as string} alt="" /> : <span>{(u.pseudo as string)?.[0]?.toUpperCase() || '?'}</span>}
+                              {u.avatar ? (
+                                <img src={u.avatar as string} alt="" />
+                              ) : (
+                                <span>{(u.pseudo as string)?.[0]?.toUpperCase() || '?'}</span>
+                              )}
                             </div>
                             <div className="admin-user-info">
                               <div className="admin-user-name">{(u.pseudo as string) || 'Utilisateur'}</div>
@@ -1069,7 +1109,9 @@ export default function AdminPage() {
                   )}
                   {globalResults.posts.length > 0 && (
                     <>
-                      <div className="admin-section-divider"><span>Posts</span></div>
+                      <div className="admin-section-divider">
+                        <span>Posts</span>
+                      </div>
                       <div className="admin-mod-list">
                         {globalResults.posts.map((p) => (
                           <div key={p.id as string} className="admin-mod-item">
@@ -1081,7 +1123,10 @@ export default function AdminPage() {
                               </div>
                               <p className="admin-mod-text">{(p.text as string) || '(sans texte)'}</p>
                             </div>
-                            <button className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]" onClick={() => deletePost(p.id as string)}>
+                            <button
+                              className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                              onClick={() => deletePost(p.id as string)}
+                            >
                               <Trash2 size={12} /> Supprimer
                             </button>
                           </div>
@@ -1091,11 +1136,22 @@ export default function AdminPage() {
                   )}
                   {globalResults.groups.length > 0 && (
                     <>
-                      <div className="admin-section-divider"><span>Groupes</span></div>
+                      <div className="admin-section-divider">
+                        <span>Groupes</span>
+                      </div>
                       <div className="admin-user-list">
                         {globalResults.groups.map((g) => (
-                          <div key={g.gid as string} className="admin-user-item" onClick={() => { setActiveTab('groups'); openGroupDetail(g.gid as string); }}>
-                            <div className="admin-user-avatar"><Users size={16} /></div>
+                          <div
+                            key={g.gid as string}
+                            className="admin-user-item"
+                            onClick={() => {
+                              setActiveTab('groups');
+                              openGroupDetail(g.gid as string);
+                            }}
+                          >
+                            <div className="admin-user-avatar">
+                              <Users size={16} />
+                            </div>
                             <div className="admin-user-info">
                               <div className="admin-user-name">{(g.name as string) || 'Groupe'}</div>
                               <div className="admin-user-id">{g.privacy as string}</div>
@@ -1108,11 +1164,15 @@ export default function AdminPage() {
                   )}
                   {globalResults.videos.length > 0 && (
                     <>
-                      <div className="admin-section-divider"><span>Vidéos</span></div>
+                      <div className="admin-section-divider">
+                        <span>Vidéos</span>
+                      </div>
                       <div className="admin-mod-list">
                         {globalResults.videos.map((v) => (
                           <div key={v.id as string} className="admin-mod-item">
-                            <div className="admin-user-avatar"><Film size={16} /></div>
+                            <div className="admin-user-avatar">
+                              <Film size={16} />
+                            </div>
                             <div className="admin-mod-body">
                               <div className="admin-mod-head">
                                 <span className="admin-mod-author">{(v.pseudo as string) || 'Utilisateur'}</span>
@@ -1120,7 +1180,10 @@ export default function AdminPage() {
                               </div>
                               <p className="admin-mod-text">{(v.caption as string) || '(sans description)'}</p>
                             </div>
-                            <button className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]" onClick={() => deleteVideo(v.id as string)}>
+                            <button
+                              className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                              onClick={() => deleteVideo(v.id as string)}
+                            >
                               <Trash2 size={12} /> Supprimer
                             </button>
                           </div>
@@ -1130,12 +1193,16 @@ export default function AdminPage() {
                   )}
                   {globalResults.messages.length > 0 && (
                     <>
-                      <div className="admin-section-divider"><span>Messages</span></div>
+                      <div className="admin-section-divider">
+                        <span>Messages</span>
+                      </div>
                       <div className="admin-mod-list">
                         {globalResults.messages.map((m, i) => (
                           // biome-ignore lint/suspicious/noArrayIndexKey: identifiants de message non uniques côté client
                           <div key={`${m.msgKey}-${i}`} className="admin-mod-item">
-                            <div className="admin-user-avatar"><MessageSquare size={16} /></div>
+                            <div className="admin-user-avatar">
+                              <MessageSquare size={16} />
+                            </div>
                             <div className="admin-mod-body">
                               <div className="admin-mod-head">
                                 <span className="admin-mod-author">{(m.fromUid as string).slice(0, 8)}...</span>
@@ -1148,9 +1215,12 @@ export default function AdminPage() {
                       </div>
                     </>
                   )}
-                  {globalResults.users.length + globalResults.posts.length + globalResults.videos.length + globalResults.groups.length + globalResults.messages.length === 0 && (
-                    <EmptyState icon={<Search size={26} />} text="Aucun résultat." />
-                  )}
+                  {globalResults.users.length +
+                    globalResults.posts.length +
+                    globalResults.videos.length +
+                    globalResults.groups.length +
+                    globalResults.messages.length ===
+                    0 && <EmptyState icon={<Search size={26} />} text="Aucun résultat." />}
                 </div>
               )}
 
@@ -1162,11 +1232,17 @@ export default function AdminPage() {
                     </div>
                     <div className="admin-stats-grid">
                       {STAT_CARDS.filter((s) => s.group === g.id).map((s) => (
-                        <div key={s.key} className="admin-stat-card" style={{ '--stat-color': s.color } as React.CSSProperties}>
+                        <div
+                          key={s.key}
+                          className="admin-stat-card"
+                          style={{ '--stat-color': s.color } as React.CSSProperties}
+                        >
                           <div className="admin-stat-icon" style={{ background: `${s.color}20`, color: s.color }}>
                             {s.icon}
                           </div>
-                          <div className={`admin-stat-value${s.online ? ' admin-stat-online' : ''}`}>{stats[s.key] ?? 0}</div>
+                          <div className={`admin-stat-value${s.online ? ' admin-stat-online' : ''}`}>
+                            {stats[s.key] ?? 0}
+                          </div>
                           <div className="admin-stat-label">{s.label}</div>
                         </div>
                       ))}
@@ -1192,7 +1268,13 @@ export default function AdminPage() {
                     <Link2 size={16} /> Migrer wouaffIds
                   </button>
                 )}
-                <button className="admin-btn admin-btn-secondary" onClick={() => { setActiveTab('reports'); loadReports('users'); }}>
+                <button
+                  className="admin-btn admin-btn-secondary"
+                  onClick={() => {
+                    setActiveTab('reports');
+                    loadReports('users');
+                  }}
+                >
                   <Flag size={16} /> Signalements
                 </button>
                 {isOwner && (
@@ -1218,7 +1300,11 @@ export default function AdminPage() {
                     onChange={(e) => setMaintenanceMsg(e.target.value)}
                     placeholder="Message optionnel affiché aux utilisateurs..."
                   />
-                  <button className="admin-btn admin-btn-primary mt-1" onClick={toggleMaintenance} disabled={maintenanceLoading}>
+                  <button
+                    className="admin-btn admin-btn-primary mt-1"
+                    onClick={toggleMaintenance}
+                    disabled={maintenanceLoading}
+                  >
                     <Save size={16} /> Appliquer
                   </button>
                 </div>
@@ -1227,69 +1313,103 @@ export default function AdminPage() {
               <div className="admin-section-divider">
                 <span>Analytics</span>
                 <div className="admin-analytics-toggle">
-                  <button type="button" className={`admin-subtab${analyticsDays === 7 ? ' active' : ''}`} onClick={() => loadAnalytics(7)}>7 jours</button>
-                  <button type="button" className={`admin-subtab${analyticsDays === 30 ? ' active' : ''}`} onClick={() => loadAnalytics(30)}>30 jours</button>
+                  <button
+                    type="button"
+                    className={`admin-subtab${analyticsDays === 7 ? ' active' : ''}`}
+                    onClick={() => loadAnalytics(7)}
+                  >
+                    7 jours
+                  </button>
+                  <button
+                    type="button"
+                    className={`admin-subtab${analyticsDays === 30 ? ' active' : ''}`}
+                    onClick={() => loadAnalytics(30)}
+                  >
+                    30 jours
+                  </button>
                 </div>
               </div>
 
               {analytics && (
                 <div className="admin-analytics-grid">
                   <div className="admin-card admin-analytics-card">
-                    <div className="admin-card-title"><TrendingUp size={16} /> Inscriptions / jour</div>
+                    <div className="admin-card-title">
+                      <TrendingUp size={16} /> Inscriptions / jour
+                    </div>
                     <BarChart data={analytics.registrations} color="var(--brand)" />
                   </div>
-                    <div className="admin-card admin-analytics-card">
-                      <div className="admin-card-title"><Edit3 size={16} /> Posts / jour</div>
-                      <BarChart data={analytics.posts} color="#3b82f6" />
+                  <div className="admin-card admin-analytics-card">
+                    <div className="admin-card-title">
+                      <Edit3 size={16} /> Posts / jour
                     </div>
-                    <div className="admin-card admin-analytics-card">
-                      <div className="admin-card-title"><MessageSquare size={16} /> Messages / jour</div>
-                      <BarChart data={analytics.messages} color="#06b6d4" />
+                    <BarChart data={analytics.posts} color="#3b82f6" />
+                  </div>
+                  <div className="admin-card admin-analytics-card">
+                    <div className="admin-card-title">
+                      <MessageSquare size={16} /> Messages / jour
                     </div>
-                    <div className="admin-card admin-analytics-card">
-                      <div className="admin-card-title"><Heart size={16} /> Top posts</div>
-                      <div className="admin-mod-list">
-                        {analytics.topPosts.length === 0 && <p className="admin-muted">Aucun post.</p>}
-                        {analytics.topPosts.slice(0, 5).map((p) => (
-                          <div key={p.id as string} className="admin-mod-item">
-                            {avatar(p.avatar as string, p.pseudo as string)}
-                            <div className="admin-mod-body">
-                              <div className="admin-mod-head">
-                                <span className="admin-mod-author">{(p.pseudo as string) || 'Utilisateur'}</span>
-                                <span className="admin-mod-time">{timeAgo(p.createdAt as number)}</span>
-                              </div>
-                              <p className="admin-mod-text">{(p.text as string) || '(sans texte)'}</p>
-                              <div className="admin-mod-meta">
-                                <span><Heart size={12} /> {p.likesCount as number}</span>
-                                <span><MessageCircle size={12} /> {p.commentsCount as number}</span>
-                              </div>
+                    <BarChart data={analytics.messages} color="#06b6d4" />
+                  </div>
+                  <div className="admin-card admin-analytics-card">
+                    <div className="admin-card-title">
+                      <Heart size={16} /> Top posts
+                    </div>
+                    <div className="admin-mod-list">
+                      {analytics.topPosts.length === 0 && <p className="admin-muted">Aucun post.</p>}
+                      {analytics.topPosts.slice(0, 5).map((p) => (
+                        <div key={p.id as string} className="admin-mod-item">
+                          {avatar(p.avatar as string, p.pseudo as string)}
+                          <div className="admin-mod-body">
+                            <div className="admin-mod-head">
+                              <span className="admin-mod-author">{(p.pseudo as string) || 'Utilisateur'}</span>
+                              <span className="admin-mod-time">{timeAgo(p.createdAt as number)}</span>
+                            </div>
+                            <p className="admin-mod-text">{(p.text as string) || '(sans texte)'}</p>
+                            <div className="admin-mod-meta">
+                              <span>
+                                <Heart size={12} /> {p.likesCount as number}
+                              </span>
+                              <span>
+                                <MessageCircle size={12} /> {p.commentsCount as number}
+                              </span>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="admin-card admin-analytics-card">
-                      <div className="admin-card-title"><Users size={16} /> Utilisateurs actifs</div>
-                      <div className="admin-mod-list">
-                        {analytics.topUsers.length === 0 && <p className="admin-muted">Aucun utilisateur.</p>}
-                        {analytics.topUsers.slice(0, 5).map((u) => (
-                          <div key={u.uid as string} className="admin-mod-item" onClick={() => clickUser(u.uid as string)}>
-                            {avatar(u.avatar as string, u.pseudo as string)}
-                            <div className="admin-mod-body">
-                              <div className="admin-mod-head">
-                                <span className="admin-mod-author">{(u.pseudo as string) || 'Utilisateur'}</span>
-                                <span className="admin-mod-time">{u.postCount as number} posts</span>
-                              </div>
-                              <div className="admin-mod-meta">
-                                <span><UserPlus size={12} /> {u.followersCount as number} abonnés</span>
-                                <span><Repeat2 size={12} /> {u.followingCount as number} abonnements</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
+                  <div className="admin-card admin-analytics-card">
+                    <div className="admin-card-title">
+                      <Users size={16} /> Utilisateurs actifs
+                    </div>
+                    <div className="admin-mod-list">
+                      {analytics.topUsers.length === 0 && <p className="admin-muted">Aucun utilisateur.</p>}
+                      {analytics.topUsers.slice(0, 5).map((u) => (
+                        <div
+                          key={u.uid as string}
+                          className="admin-mod-item"
+                          onClick={() => clickUser(u.uid as string)}
+                        >
+                          {avatar(u.avatar as string, u.pseudo as string)}
+                          <div className="admin-mod-body">
+                            <div className="admin-mod-head">
+                              <span className="admin-mod-author">{(u.pseudo as string) || 'Utilisateur'}</span>
+                              <span className="admin-mod-time">{u.postCount as number} posts</span>
+                            </div>
+                            <div className="admin-mod-meta">
+                              <span>
+                                <UserPlus size={12} /> {u.followersCount as number} abonnés
+                              </span>
+                              <span>
+                                <Repeat2 size={12} /> {u.followingCount as number} abonnements
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -1303,13 +1423,34 @@ export default function AdminPage() {
               </div>
 
               <div className="admin-subtabs">
-                <button type="button" className={`admin-subtab${modSubTab === 'posts' ? ' active' : ''}`} onClick={() => { setModSubTab('posts'); loadModeration('posts', postFilter || undefined); }}>
+                <button
+                  type="button"
+                  className={`admin-subtab${modSubTab === 'posts' ? ' active' : ''}`}
+                  onClick={() => {
+                    setModSubTab('posts');
+                    loadModeration('posts', postFilter || undefined);
+                  }}
+                >
                   <Edit3 size={15} /> Posts
                 </button>
-                <button type="button" className={`admin-subtab${modSubTab === 'comments' ? ' active' : ''}`} onClick={() => { setModSubTab('comments'); loadModeration('comments'); }}>
+                <button
+                  type="button"
+                  className={`admin-subtab${modSubTab === 'comments' ? ' active' : ''}`}
+                  onClick={() => {
+                    setModSubTab('comments');
+                    loadModeration('comments');
+                  }}
+                >
                   <MessageCircle size={15} /> Commentaires
                 </button>
-                <button type="button" className={`admin-subtab${modSubTab === 'videos' ? ' active' : ''}`} onClick={() => { setModSubTab('videos'); loadModeration('videos'); }}>
+                <button
+                  type="button"
+                  className={`admin-subtab${modSubTab === 'videos' ? ' active' : ''}`}
+                  onClick={() => {
+                    setModSubTab('videos');
+                    loadModeration('videos');
+                  }}
+                >
                   <Film size={15} /> Vidéos
                 </button>
               </div>
@@ -1326,10 +1467,18 @@ export default function AdminPage() {
                       onChange={(e) => setPostFilter(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && loadModeration('posts', postFilter.trim() || undefined)}
                     />
-                    <button className="admin-btn admin-btn-primary" onClick={() => loadModeration('posts', postFilter.trim() || undefined)} disabled={modLoading}>
+                    <button
+                      className="admin-btn admin-btn-primary"
+                      onClick={() => loadModeration('posts', postFilter.trim() || undefined)}
+                      disabled={modLoading}
+                    >
                       <Search size={16} />
                     </button>
-                    <button className="admin-btn admin-btn-secondary" onClick={() => loadModeration('posts')} title="Réinitialiser">
+                    <button
+                      className="admin-btn admin-btn-secondary"
+                      onClick={() => loadModeration('posts')}
+                      title="Réinitialiser"
+                    >
                       <RefreshCw size={16} />
                     </button>
                   </div>
@@ -1343,20 +1492,38 @@ export default function AdminPage() {
                           <div className="admin-mod-head">
                             <span className="admin-mod-author">{p.pseudo || 'Utilisateur'}</span>
                             {p.staffUid && <ShieldCheck size={13} className="admin-mod-verified" />}
-                            <span className="admin-mod-handle">@{((p.wouaffId as string) || p.uid).replace(/^@/, '')}</span>
+                            <span className="admin-mod-handle">
+                              @{((p.wouaffId as string) || p.uid).replace(/^@/, '')}
+                            </span>
                             <span className="admin-mod-time">{timeAgo(p.createdAt)}</span>
                           </div>
                           <p className="admin-mod-text">{p.text}</p>
                           {p.image && (
-                            <img src={p.image} alt="" className="admin-mod-thumb" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                            <img
+                              src={p.image}
+                              alt=""
+                              className="admin-mod-thumb"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
                           )}
                           <div className="admin-mod-meta">
-                            <span><Heart size={12} /> {p.likesCount}</span>
-                            <span><Repeat2 size={12} /> {p.repostsCount}</span>
-                            <span><MessageCircle size={12} /> {p.commentsCount}</span>
+                            <span>
+                              <Heart size={12} /> {p.likesCount}
+                            </span>
+                            <span>
+                              <Repeat2 size={12} /> {p.repostsCount}
+                            </span>
+                            <span>
+                              <MessageCircle size={12} /> {p.commentsCount}
+                            </span>
                           </div>
                         </div>
-                        <button className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]" onClick={() => deletePost(p.id, p.pseudo)}>
+                        <button
+                          className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                          onClick={() => deletePost(p.id, p.pseudo)}
+                        >
                           <Trash2 size={12} /> Supprimer
                         </button>
                       </div>
@@ -1367,7 +1534,9 @@ export default function AdminPage() {
 
               {!modLoading && modSubTab === 'comments' && (
                 <div className="admin-mod-list">
-                  {modComments.length === 0 && <EmptyState icon={<MessageCircle size={26} />} text="Aucun commentaire." />}
+                  {modComments.length === 0 && (
+                    <EmptyState icon={<MessageCircle size={26} />} text="Aucun commentaire." />
+                  )}
                   {modComments.map((c) => (
                     <div key={c.id} className="admin-mod-item">
                       {avatar(c.avatar, c.pseudo)}
@@ -1379,7 +1548,10 @@ export default function AdminPage() {
                         <p className="admin-mod-text">{c.text}</p>
                         {c.postText && <div className="admin-mod-reply">sur : « {c.postText} »</div>}
                       </div>
-                      <button className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]" onClick={() => deleteComment(c.id)}>
+                      <button
+                        className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                        onClick={() => deleteComment(c.id)}
+                      >
                         <Trash2 size={12} /> Supprimer
                       </button>
                     </div>
@@ -1394,7 +1566,9 @@ export default function AdminPage() {
                     <div key={v.id} className="admin-video-card">
                       <div className="admin-video-preview">
                         <video src={v.videoPath} preload="metadata" muted playsInline />
-                        <div className="admin-video-overlay"><Film size={28} /></div>
+                        <div className="admin-video-overlay">
+                          <Film size={28} />
+                        </div>
                       </div>
                       <div className="admin-video-info">
                         <div className="admin-mod-head">
@@ -1403,11 +1577,18 @@ export default function AdminPage() {
                         </div>
                         {v.caption && <p className="admin-mod-text">{v.caption}</p>}
                         <div className="admin-mod-meta">
-                          <span><Heart size={12} /> {v.likesCount}</span>
-                          <span><MessageCircle size={12} /> {v.commentsCount}</span>
+                          <span>
+                            <Heart size={12} /> {v.likesCount}
+                          </span>
+                          <span>
+                            <MessageCircle size={12} /> {v.commentsCount}
+                          </span>
                         </div>
                       </div>
-                      <button className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]" onClick={() => deleteVideo(v.id, v.pseudo || undefined)}>
+                      <button
+                        className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                        onClick={() => deleteVideo(v.id, v.pseudo || undefined)}
+                      >
                         <Trash2 size={12} /> Supprimer
                       </button>
                     </div>
@@ -1433,7 +1614,11 @@ export default function AdminPage() {
                   onChange={(e) => setGroupQ(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && loadGroups(groupQ.trim() || undefined)}
                 />
-                <button className="admin-btn admin-btn-primary" onClick={() => loadGroups(groupQ.trim() || undefined)} disabled={groupsLoading}>
+                <button
+                  className="admin-btn admin-btn-primary"
+                  onClick={() => loadGroups(groupQ.trim() || undefined)}
+                  disabled={groupsLoading}
+                >
                   <Search size={16} />
                 </button>
                 <button className="admin-btn admin-btn-secondary" onClick={() => loadGroups()}>
@@ -1447,19 +1632,36 @@ export default function AdminPage() {
                 <div className="admin-card">
                   <div className="admin-card-title">
                     <Users size={16} /> {groupDetail.name as string}
-                    <button className="admin-card-close" onClick={() => setGroupDetail(null)}><X size={14} /></button>
+                    <button className="admin-card-close" onClick={() => setGroupDetail(null)}>
+                      <X size={14} />
+                    </button>
                   </div>
                   <div className="admin-field">
                     <label htmlFor="groupName">Nom</label>
-                    <input id="groupName" className="admin-input" value={groupEdit.name} onChange={(e) => setGroupEdit((p) => ({ ...p, name: e.target.value }))} />
+                    <input
+                      id="groupName"
+                      className="admin-input"
+                      value={groupEdit.name}
+                      onChange={(e) => setGroupEdit((p) => ({ ...p, name: e.target.value }))}
+                    />
                   </div>
                   <div className="admin-field">
                     <label htmlFor="groupDesc">Description</label>
-                    <textarea id="groupDesc" className="admin-input admin-textarea" value={groupEdit.description} onChange={(e) => setGroupEdit((p) => ({ ...p, description: e.target.value }))} />
+                    <textarea
+                      id="groupDesc"
+                      className="admin-input admin-textarea"
+                      value={groupEdit.description}
+                      onChange={(e) => setGroupEdit((p) => ({ ...p, description: e.target.value }))}
+                    />
                   </div>
                   <div className="admin-field">
                     <label htmlFor="groupPrivacy">Confidentialité</label>
-                    <select id="groupPrivacy" className="admin-input" value={groupEdit.privacy} onChange={(e) => setGroupEdit((p) => ({ ...p, privacy: e.target.value }))}>
+                    <select
+                      id="groupPrivacy"
+                      className="admin-input"
+                      value={groupEdit.privacy}
+                      onChange={(e) => setGroupEdit((p) => ({ ...p, privacy: e.target.value }))}
+                    >
                       <option value="public">Public</option>
                       <option value="private">Privé</option>
                     </select>
@@ -1467,16 +1669,21 @@ export default function AdminPage() {
                   <button className="admin-btn admin-btn-primary" onClick={saveGroup}>
                     <Save size={16} /> Enregistrer
                   </button>
-                  <button className="admin-btn admin-btn-danger mr-2" onClick={() => deleteGroupAdmin(groupDetail.gid as string, groupDetail.name as string)}>
+                  <button
+                    className="admin-btn admin-btn-danger mr-2"
+                    onClick={() => deleteGroupAdmin(groupDetail.gid as string, groupDetail.name as string)}
+                  >
                     <Trash2 size={16} /> Supprimer le groupe
                   </button>
 
-                  <div className="admin-section-divider"><span>Membres ({Object.keys(memberMap).length})</span></div>
+                  <div className="admin-section-divider">
+                    <span>Membres ({Object.keys(memberMap).length})</span>
+                  </div>
                   <div className="admin-user-list">
                     {Object.entries(memberMap).map(([uid, m]) => (
                       <div key={uid} className="admin-user-item">
                         <div className="admin-user-avatar">
-                          <span>{(m.role === 'owner' ? '👑' : m.role === 'admin' ? '🛡' : '👤')}</span>
+                          <span>{m.role === 'owner' ? '👑' : m.role === 'admin' ? '🛡' : '👤'}</span>
                         </div>
                         <div className="admin-user-info">
                           <div className="admin-user-name">{uid.slice(0, 12)}...</div>
@@ -1484,16 +1691,25 @@ export default function AdminPage() {
                         </div>
                         <div className="admin-mod-actions">
                           {m.role !== 'owner' && (
-                            <button className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]" onClick={() => changeGroupMemberRole(groupDetail.gid as string, uid, 'owner')}>
+                            <button
+                              className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]"
+                              onClick={() => changeGroupMemberRole(groupDetail.gid as string, uid, 'owner')}
+                            >
                               <Shield size={12} /> Rendre owner
                             </button>
                           )}
                           {m.role !== 'admin' && m.role !== 'owner' && (
-                            <button className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]" onClick={() => changeGroupMemberRole(groupDetail.gid as string, uid, 'admin')}>
+                            <button
+                              className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]"
+                              onClick={() => changeGroupMemberRole(groupDetail.gid as string, uid, 'admin')}
+                            >
                               <Shield size={12} /> Rendre admin
                             </button>
                           )}
-                          <button className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]" onClick={() => kickGroupMember(groupDetail.gid as string, uid, uid.slice(0, 12))}>
+                          <button
+                            className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                            onClick={() => kickGroupMember(groupDetail.gid as string, uid, uid.slice(0, 12))}
+                          >
                             <UserMinus size={12} /> Exclure
                           </button>
                         </div>
@@ -1504,22 +1720,33 @@ export default function AdminPage() {
               )}
 
               <div className="admin-mod-list">
-                {groups.length === 0 && !groupsLoading && <EmptyState icon={<Users size={26} />} text="Aucun groupe." />}
+                {groups.length === 0 && !groupsLoading && (
+                  <EmptyState icon={<Users size={26} />} text="Aucun groupe." />
+                )}
                 {groups.map((g) => (
                   <div key={g.gid as string} className="admin-mod-item">
-                    <div className="admin-user-avatar">{g.icon ? <img src={g.icon as string} alt="" /> : <Users size={16} />}</div>
+                    <div className="admin-user-avatar">
+                      {g.icon ? <img src={g.icon as string} alt="" /> : <Users size={16} />}
+                    </div>
                     <div className="admin-mod-body">
                       <div className="admin-mod-head">
                         <span className="admin-mod-author">{(g.name as string) || 'Groupe'}</span>
-                        {g.reported === 1 && <ShieldAlert size={13} className="admin-mod-verified" style={{ color: 'var(--danger)' }} />}
+                        {g.reported === 1 && (
+                          <ShieldAlert size={13} className="admin-mod-verified" style={{ color: 'var(--danger)' }} />
+                        )}
                         <span className="admin-mod-handle">{g.privacy as string}</span>
                         <span className="admin-mod-time">{timeAgo(g.createdAt as number)}</span>
                       </div>
                       <div className="admin-mod-meta">
-                        <span><Users size={12} /> {g.memberCount as number} membres</span>
+                        <span>
+                          <Users size={12} /> {g.memberCount as number} membres
+                        </span>
                       </div>
                     </div>
-                    <button className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]" onClick={() => openGroupDetail(g.gid as string)}>
+                    <button
+                      className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]"
+                      onClick={() => openGroupDetail(g.gid as string)}
+                    >
                       <Edit3 size={12} /> Gérer
                     </button>
                   </div>
@@ -1537,22 +1764,54 @@ export default function AdminPage() {
               </div>
 
               <div className="admin-subtabs">
-                <button type="button" className={`admin-subtab${reportSubTab === 'users' ? ' active' : ''}`} onClick={() => { setReportSubTab('users'); loadReports('users'); }}>
+                <button
+                  type="button"
+                  className={`admin-subtab${reportSubTab === 'users' ? ' active' : ''}`}
+                  onClick={() => {
+                    setReportSubTab('users');
+                    loadReports('users');
+                  }}
+                >
                   <Flag size={15} /> Utilisateurs ({userReports.length})
                 </button>
-                <button type="button" className={`admin-subtab${reportSubTab === 'posts' ? ' active' : ''}`} onClick={() => { setReportSubTab('posts'); loadReports('posts'); }}>
+                <button
+                  type="button"
+                  className={`admin-subtab${reportSubTab === 'posts' ? ' active' : ''}`}
+                  onClick={() => {
+                    setReportSubTab('posts');
+                    loadReports('posts');
+                  }}
+                >
                   <Edit3 size={15} /> Posts ({postReports.length})
                 </button>
-                <button type="button" className={`admin-subtab${reportSubTab === 'groups' ? ' active' : ''}`} onClick={() => { setReportSubTab('groups'); loadReports('groups'); }}>
+                <button
+                  type="button"
+                  className={`admin-subtab${reportSubTab === 'groups' ? ' active' : ''}`}
+                  onClick={() => {
+                    setReportSubTab('groups');
+                    loadReports('groups');
+                  }}
+                >
                   <Users size={15} /> Groupes ({groupReports.length})
                 </button>
-                <button type="button" className={`admin-subtab${reportSubTab === 'history' ? ' active' : ''}`} onClick={() => { setReportSubTab('history'); loadReports('history'); }}>
+                <button
+                  type="button"
+                  className={`admin-subtab${reportSubTab === 'history' ? ' active' : ''}`}
+                  onClick={() => {
+                    setReportSubTab('history');
+                    loadReports('history');
+                  }}
+                >
                   <History size={15} /> Traités
                 </button>
               </div>
 
               <div className="admin-actions-row">
-                <button className="admin-btn admin-btn-secondary" onClick={() => loadReports(reportSubTab)} disabled={reportsLoading}>
+                <button
+                  className="admin-btn admin-btn-secondary"
+                  onClick={() => loadReports(reportSubTab)}
+                  disabled={reportsLoading}
+                >
                   {reportsLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Recharger
                 </button>
               </div>
@@ -1561,24 +1820,34 @@ export default function AdminPage() {
 
               {!reportsLoading && reportSubTab === 'users' && (
                 <div className="admin-mod-list">
-                  {userReports.length === 0 && <EmptyState icon={<Flag size={26} />} text="Aucun signalement utilisateur." />}
+                  {userReports.length === 0 && (
+                    <EmptyState icon={<Flag size={26} />} text="Aucun signalement utilisateur." />
+                  )}
                   {userReports.map((r) => (
                     <div key={r.id} className="admin-mod-item">
                       {avatar(r.reportedAvatar, r.reportedPseudo)}
                       <div className="admin-mod-body">
                         <div className="admin-mod-head">
                           <span className="admin-mod-author">{r.reportedPseudo || 'Compte'}</span>
-                          <span className="admin-mod-handle">@{((r.reportedWouaffId as string) || r.reportedUid).replace(/^@/, '')}</span>
+                          <span className="admin-mod-handle">
+                            @{((r.reportedWouaffId as string) || r.reportedUid).replace(/^@/, '')}
+                          </span>
                           <span className="admin-mod-time">{timeAgo(r.createdAt)}</span>
                         </div>
                         {r.reason && <p className="admin-mod-text">« {r.reason} »</p>}
                         <div className="admin-mod-reply">Signalé par {r.reporterPseudo || 'inconnu'}</div>
                       </div>
                       <div className="admin-mod-actions">
-                        <button className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]" onClick={() => openReportedUser(r.reportedUid)}>
+                        <button
+                          className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]"
+                          onClick={() => openReportedUser(r.reportedUid)}
+                        >
                           <Search size={12} /> Voir
                         </button>
-                        <button className="admin-btn admin-btn-primary px-2.5 py-1.5 text-[11px]" onClick={() => clearUserReport(r.id)}>
+                        <button
+                          className="admin-btn admin-btn-primary px-2.5 py-1.5 text-[11px]"
+                          onClick={() => clearUserReport(r.id)}
+                        >
                           <X size={12} /> Clôturer
                         </button>
                       </div>
@@ -1596,23 +1865,45 @@ export default function AdminPage() {
                       <div className="admin-mod-body">
                         <div className="admin-mod-head">
                           <span className="admin-mod-author">{r.postPseudo || 'Utilisateur'}</span>
-                          <span className="admin-mod-handle">@{((r.postWouaffId as string) || r.postAuthorUid).replace(/^@/, '')}</span>
+                          <span className="admin-mod-handle">
+                            @{((r.postWouaffId as string) || r.postAuthorUid).replace(/^@/, '')}
+                          </span>
                           <span className="admin-mod-time">{timeAgo(r.createdAt)}</span>
                         </div>
                         <p className="admin-mod-text">{r.postText || '(post supprimé)'}</p>
                         {r.postImage && (
-                          <img src={r.postImage} alt="" className="admin-mod-thumb" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                          <img
+                            src={r.postImage}
+                            alt=""
+                            className="admin-mod-thumb"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
                         )}
-                        {r.reason && <div className="admin-mod-reply">Motif : « {r.reason} » · signalé par {r.reporterPseudo || 'inconnu'}</div>}
+                        {r.reason && (
+                          <div className="admin-mod-reply">
+                            Motif : « {r.reason} » · signalé par {r.reporterPseudo || 'inconnu'}
+                          </div>
+                        )}
                       </div>
                       <div className="admin-mod-actions">
-                        <button className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]" onClick={() => openReportedUser(r.postAuthorUid)}>
+                        <button
+                          className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]"
+                          onClick={() => openReportedUser(r.postAuthorUid)}
+                        >
                           <Search size={12} /> Auteur
                         </button>
-                        <button className="admin-btn admin-btn-primary px-2.5 py-1.5 text-[11px]" onClick={() => clearPostReport(r.id)}>
+                        <button
+                          className="admin-btn admin-btn-primary px-2.5 py-1.5 text-[11px]"
+                          onClick={() => clearPostReport(r.id)}
+                        >
                           <X size={12} /> Clôturer
                         </button>
-                        <button className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]" onClick={() => deletePost(r.postId, r.postPseudo)}>
+                        <button
+                          className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                          onClick={() => deletePost(r.postId, r.postPseudo)}
+                        >
                           <Trash2 size={12} /> Supprimer
                         </button>
                       </div>
@@ -1626,7 +1917,9 @@ export default function AdminPage() {
                   {groupReports.length === 0 && <EmptyState icon={<Users size={26} />} text="Aucun groupe signalé." />}
                   {groupReports.map((r) => (
                     <div key={r.gid} className="admin-mod-item">
-                      <div className="admin-user-avatar"><Flag size={16} /></div>
+                      <div className="admin-user-avatar">
+                        <Flag size={16} />
+                      </div>
                       <div className="admin-mod-body">
                         <div className="admin-mod-head">
                           <span className="admin-mod-author">{r.name || 'Groupe sans nom'}</span>
@@ -1635,13 +1928,25 @@ export default function AdminPage() {
                         <div className="admin-mod-reply">Signalé par {r.reportedBy.slice(0, 10)}...</div>
                       </div>
                       <div className="admin-mod-actions">
-                        <button className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]" onClick={() => { setActiveTab('groups'); openGroupDetail(r.gid); }}>
+                        <button
+                          className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]"
+                          onClick={() => {
+                            setActiveTab('groups');
+                            openGroupDetail(r.gid);
+                          }}
+                        >
                           <Search size={12} /> Voir
                         </button>
-                        <button className="admin-btn admin-btn-primary px-2.5 py-1.5 text-[11px]" onClick={() => clearGroupReport(r.gid)}>
+                        <button
+                          className="admin-btn admin-btn-primary px-2.5 py-1.5 text-[11px]"
+                          onClick={() => clearGroupReport(r.gid)}
+                        >
                           <X size={12} /> Lever
                         </button>
-                        <button className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]" onClick={() => deleteGroupAdmin(r.gid, r.name)}>
+                        <button
+                          className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                          onClick={() => deleteGroupAdmin(r.gid, r.name)}
+                        >
                           <Trash2 size={12} /> Supprimer
                         </button>
                       </div>
@@ -1652,14 +1957,23 @@ export default function AdminPage() {
 
               {!reportsLoading && reportSubTab === 'history' && (
                 <div className="admin-log-list">
-                  {reportHistory.length === 0 && <EmptyState icon={<History size={26} />} text="Aucune action de modération enregistrée." />}
+                  {reportHistory.length === 0 && (
+                    <EmptyState icon={<History size={26} />} text="Aucune action de modération enregistrée." />
+                  )}
                   {reportHistory.map((h) => (
                     <div key={h.id} className="admin-log-item">
-                      <div className="admin-log-icon"><History size={14} /></div>
+                      <div className="admin-log-icon">
+                        <History size={14} />
+                      </div>
                       <div className="admin-log-info">
                         <div className="admin-log-action">
                           {h.action === 'deleted' ? 'Suppression' : 'Clôture'} · {h.reportType}
-                          {h.reportId && <> · <code>{h.reportId.slice(0, 12)}...</code></>}
+                          {h.reportId && (
+                            <>
+                              {' '}
+                              · <code>{h.reportId.slice(0, 12)}...</code>
+                            </>
+                          )}
                         </div>
                         <div className="admin-log-meta">par {h.adminPseudo || 'staff'}</div>
                       </div>
@@ -1687,7 +2001,11 @@ export default function AdminPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && searchProfile()}
                 />
-                <button className="admin-btn admin-btn-primary" onClick={() => searchProfile()} disabled={searchLoading}>
+                <button
+                  className="admin-btn admin-btn-primary"
+                  onClick={() => searchProfile()}
+                  disabled={searchLoading}
+                >
                   {searchLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                 </button>
                 <button
@@ -1708,7 +2026,10 @@ export default function AdminPage() {
                 <div className="admin-profile-section">
                   <div className="admin-profile-card">
                     {searchResult.profile.banner && (
-                      <div className="admin-profile-banner" style={{ backgroundImage: `url(${searchResult.profile.banner})` }} />
+                      <div
+                        className="admin-profile-banner"
+                        style={{ backgroundImage: `url(${searchResult.profile.banner})` }}
+                      />
                     )}
                     <div className="admin-profile-card-body">
                       <div className="admin-profile-avatar-wrap">
@@ -1717,7 +2038,9 @@ export default function AdminPage() {
                             className="admin-profile-avatar-img"
                             src={searchResult.profile.avatar}
                             alt=""
-                            onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
                           />
                         ) : (
                           <div className="admin-profile-avatar-fallback">{(searchResult.profile.pseudo || '?')[0]}</div>
@@ -1745,26 +2068,54 @@ export default function AdminPage() {
                   </div>
 
                   <div className="admin-card">
-                    <div className="admin-card-title"><Edit3 size={16} /> Modifier le profil</div>
+                    <div className="admin-card-title">
+                      <Edit3 size={16} /> Modifier le profil
+                    </div>
                     <div className="admin-field">
                       <label htmlFor="adminPseudo">Pseudo</label>
-                      <input id="adminPseudo" className="admin-input" value={editData.pseudo} onChange={(e) => setEditData((p) => ({ ...p, pseudo: e.target.value }))} />
+                      <input
+                        id="adminPseudo"
+                        className="admin-input"
+                        value={editData.pseudo}
+                        onChange={(e) => setEditData((p) => ({ ...p, pseudo: e.target.value }))}
+                      />
                     </div>
                     <div className="admin-field">
                       <label htmlFor="adminBio">Bio</label>
-                      <textarea id="adminBio" className="admin-input admin-textarea" value={editData.bio} onChange={(e) => setEditData((p) => ({ ...p, bio: e.target.value }))} />
+                      <textarea
+                        id="adminBio"
+                        className="admin-input admin-textarea"
+                        value={editData.bio}
+                        onChange={(e) => setEditData((p) => ({ ...p, bio: e.target.value }))}
+                      />
                     </div>
                     <div className="admin-field">
                       <label htmlFor="adminAvatar">Avatar URL</label>
-                      <input id="adminAvatar" className="admin-input" value={editData.avatar} onChange={(e) => setEditData((p) => ({ ...p, avatar: e.target.value }))} />
+                      <input
+                        id="adminAvatar"
+                        className="admin-input"
+                        value={editData.avatar}
+                        onChange={(e) => setEditData((p) => ({ ...p, avatar: e.target.value }))}
+                      />
                     </div>
                     <div className="admin-field">
                       <label htmlFor="adminBanner">Bannière URL</label>
-                      <input id="adminBanner" className="admin-input" value={editData.banner} onChange={(e) => setEditData((p) => ({ ...p, banner: e.target.value }))} />
+                      <input
+                        id="adminBanner"
+                        className="admin-input"
+                        value={editData.banner}
+                        onChange={(e) => setEditData((p) => ({ ...p, banner: e.target.value }))}
+                      />
                     </div>
                     <div className="admin-field">
                       <label htmlFor="adminWouaffId">Identifiant Wouaff</label>
-                      <input id="adminWouaffId" className="admin-input" value={editData.wouaffId} onChange={(e) => setEditData((p) => ({ ...p, wouaffId: e.target.value }))} placeholder="@identifiant" />
+                      <input
+                        id="adminWouaffId"
+                        className="admin-input"
+                        value={editData.wouaffId}
+                        onChange={(e) => setEditData((p) => ({ ...p, wouaffId: e.target.value }))}
+                        placeholder="@identifiant"
+                      />
                     </div>
                     <button className="admin-btn admin-btn-primary" onClick={saveProfile}>
                       <Save size={16} /> Enregistrer
@@ -1773,10 +2124,16 @@ export default function AdminPage() {
                   </div>
 
                   <div className="admin-card">
-                    <div className="admin-card-title"><Award size={16} /> Gestion des badges</div>
+                    <div className="admin-card-title">
+                      <Award size={16} /> Gestion des badges
+                    </div>
                     <div className="admin-badge-grid">
                       {Object.entries(badgeDefs).map(([id, b]) => (
-                        <div key={id} className={`admin-badge-opt${selectedBadges.includes(id) ? ' selected' : ''}`} onClick={() => toggleBadge(id)}>
+                        <div
+                          key={id}
+                          className={`admin-badge-opt${selectedBadges.includes(id) ? ' selected' : ''}`}
+                          onClick={() => toggleBadge(id)}
+                        >
                           {b.icon && <img src={b.icon} alt="" />}
                           <span>{b.name || id}</span>
                         </div>
@@ -1791,7 +2148,11 @@ export default function AdminPage() {
                   <div className="admin-card">
                     <div className="admin-card-title">
                       <Globe size={16} /> Historique de connexions
-                      <button className="admin-card-close" onClick={() => loadLoginHistory(searchResult.uid)} title="Recharger">
+                      <button
+                        className="admin-card-close"
+                        onClick={() => loadLoginHistory(searchResult.uid)}
+                        title="Recharger"
+                      >
                         <RefreshCw size={14} />
                       </button>
                     </div>
@@ -1803,11 +2164,17 @@ export default function AdminPage() {
                       <div className="admin-log-list">
                         {loginHistory.map((h) => (
                           <div key={h.id} className="admin-log-item">
-                            <div className="admin-log-icon"><KeyRound size={14} /></div>
+                            <div className="admin-log-icon">
+                              <KeyRound size={14} />
+                            </div>
                             <div className="admin-log-info">
-                              <div className="admin-log-action"><code>{h.ip || 'IP inconnue'}</code></div>
+                              <div className="admin-log-action">
+                                <code>{h.ip || 'IP inconnue'}</code>
+                              </div>
                               {h.userAgent && (
-                                <div className="admin-log-meta">{h.userAgent.length > 80 ? `${h.userAgent.slice(0, 80)}...` : h.userAgent}</div>
+                                <div className="admin-log-meta">
+                                  {h.userAgent.length > 80 ? `${h.userAgent.slice(0, 80)}...` : h.userAgent}
+                                </div>
                               )}
                             </div>
                             <div className="admin-log-time">{formatDate(h.createdAt)}</div>
@@ -1819,8 +2186,15 @@ export default function AdminPage() {
 
                   {isOwner && (
                     <div className="admin-card admin-card-danger">
-                      <div className="admin-card-title"><Ban size={16} /> Bannissement</div>
-                      <button className="admin-btn admin-btn-danger mr-2" onClick={() => setBanTarget({ uid: searchResult.uid, pseudo: searchResult.profile.pseudo || 'Utilisateur' })}>
+                      <div className="admin-card-title">
+                        <Ban size={16} /> Bannissement
+                      </div>
+                      <button
+                        className="admin-btn admin-btn-danger mr-2"
+                        onClick={() =>
+                          setBanTarget({ uid: searchResult.uid, pseudo: searchResult.profile.pseudo || 'Utilisateur' })
+                        }
+                      >
                         <Ban size={16} /> Bannir cet utilisateur
                       </button>
                       <div className="admin-msg">{actionMsg}</div>
@@ -1829,7 +2203,9 @@ export default function AdminPage() {
 
                   {isOwner && (
                     <div className="admin-card admin-card-danger">
-                      <div className="admin-card-title"><AlertTriangle size={16} /> Actions sur le compte</div>
+                      <div className="admin-card-title">
+                        <AlertTriangle size={16} /> Actions sur le compte
+                      </div>
                       <button className="admin-btn admin-btn-warning mr-2" onClick={resetWouaffId}>
                         <RefreshCw size={16} /> Réinitialiser l'ID
                       </button>
@@ -1856,13 +2232,18 @@ export default function AdminPage() {
                     <div className="admin-mod-body">
                       <div className="admin-mod-head">
                         <span className="admin-mod-author">{(b.pseudo as string) || (b.uid as string)}</span>
-                        <span className="admin-mod-time">{b.expiresAt ? `jusqu'au ${formatDate(b.expiresAt as number)}` : 'Permanent'}</span>
+                        <span className="admin-mod-time">
+                          {b.expiresAt ? `jusqu'au ${formatDate(b.expiresAt as number)}` : 'Permanent'}
+                        </span>
                       </div>
                       {b.reason ? <p className="admin-mod-text">« {b.reason as string} »</p> : null}
                       <div className="admin-mod-reply">Banni le {formatDate(b.createdAt as number)}</div>
                     </div>
                     {isOwner && (
-                      <button className="admin-btn admin-btn-primary px-2.5 py-1.5 text-[11px]" onClick={() => unban(b.uid as string)}>
+                      <button
+                        className="admin-btn admin-btn-primary px-2.5 py-1.5 text-[11px]"
+                        onClick={() => unban(b.uid as string)}
+                      >
                         <ShieldCheck size={12} /> Débannir
                       </button>
                     )}
@@ -1907,7 +2288,9 @@ export default function AdminPage() {
 
               {isOwner && (
                 <div className="admin-card">
-                  <div className="admin-card-title"><UserPlus size={16} /> Ajouter un membre</div>
+                  <div className="admin-card-title">
+                    <UserPlus size={16} /> Ajouter un membre
+                  </div>
                   <div className="admin-search-row">
                     <input
                       className="admin-input"
@@ -1924,10 +2307,14 @@ export default function AdminPage() {
                 </div>
               )}
 
-              <div className="admin-section-divider"><span>Membres du staff</span></div>
+              <div className="admin-section-divider">
+                <span>Membres du staff</span>
+              </div>
 
               <div className="admin-user-list">
-                {Object.keys(staffList).length === 0 && <p className="admin-muted p-3">Aucun membre. Cliquez sur "Charger".</p>}
+                {Object.keys(staffList).length === 0 && (
+                  <p className="admin-muted p-3">Aucun membre. Cliquez sur "Charger".</p>
+                )}
                 <button className="admin-btn admin-btn-secondary mb-2" onClick={loadStaff}>
                   <RefreshCw size={14} /> Charger la liste
                 </button>
@@ -1948,16 +2335,25 @@ export default function AdminPage() {
                     {isOwner && uid !== user?.uid && (
                       <div className="admin-mod-actions">
                         {s.role === 'moderator' && (
-                          <button className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]" onClick={() => setStaffRole(uid, 'owner')}>
+                          <button
+                            className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]"
+                            onClick={() => setStaffRole(uid, 'owner')}
+                          >
                             <Shield size={12} /> Promouvoir
                           </button>
                         )}
                         {s.role === 'owner' && (
-                          <button className="admin-btn admin-btn-warning px-2.5 py-1.5 text-[11px]" onClick={() => setStaffRole(uid, 'moderator')}>
+                          <button
+                            className="admin-btn admin-btn-warning px-2.5 py-1.5 text-[11px]"
+                            onClick={() => setStaffRole(uid, 'moderator')}
+                          >
                             <UserMinus size={12} /> Rétrograder
                           </button>
                         )}
-                        <button className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]" onClick={() => removeStaff(uid)}>
+                        <button
+                          className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                          onClick={() => removeStaff(uid)}
+                        >
                           <UserMinus size={12} /> Retirer
                         </button>
                       </div>
@@ -2014,10 +2410,20 @@ export default function AdminPage() {
       </div>
 
       {banTarget && (
-        <div className="modal-overlay active" onClick={(e) => { if (e.target === e.currentTarget) setBanTarget(null); }}>
+        <div
+          className="modal-overlay active"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setBanTarget(null);
+          }}
+        >
           <div className="flex flex-col w-full max-w-[440px] rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
             <div className="flex items-center gap-4 px-4 h-14 border-b border-[var(--border)]">
-              <button type="button" onClick={() => setBanTarget(null)} aria-label="Fermer" className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-primary)] border-none bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors">
+              <button
+                type="button"
+                onClick={() => setBanTarget(null)}
+                aria-label="Fermer"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-primary)] border-none bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+              >
                 <X size={18} />
               </button>
               <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">Bannir {banTarget.pseudo}</span>
@@ -2025,11 +2431,22 @@ export default function AdminPage() {
             <div className="px-5 py-4">
               <div className="admin-field">
                 <label htmlFor="banReason">Raison</label>
-                <textarea id="banReason" className="admin-input admin-textarea" value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Motif du bannissement..." />
+                <textarea
+                  id="banReason"
+                  className="admin-input admin-textarea"
+                  value={banReason}
+                  onChange={(e) => setBanReason(e.target.value)}
+                  placeholder="Motif du bannissement..."
+                />
               </div>
               <div className="admin-field">
                 <label htmlFor="banDuration">Durée</label>
-                <select id="banDuration" className="admin-input" value={banDuration} onChange={(e) => setBanDuration(e.target.value)}>
+                <select
+                  id="banDuration"
+                  className="admin-input"
+                  value={banDuration}
+                  onChange={(e) => setBanDuration(e.target.value)}
+                >
                   <option value="permanent">Permanent</option>
                   <option value="24">24 heures</option>
                   <option value="72">3 jours</option>
@@ -2038,7 +2455,11 @@ export default function AdminPage() {
                 </select>
               </div>
               <div className="flex items-center justify-end gap-2 mt-4">
-                <button type="button" className="px-4 py-2 rounded-full text-sm font-bold text-[var(--text-secondary)] border border-[var(--border)] bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors" onClick={() => setBanTarget(null)}>
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-full text-sm font-bold text-[var(--text-secondary)] border border-[var(--border)] bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+                  onClick={() => setBanTarget(null)}
+                >
                   Annuler
                 </button>
                 <button

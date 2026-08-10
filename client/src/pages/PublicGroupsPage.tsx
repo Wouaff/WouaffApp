@@ -110,7 +110,9 @@ export default function PublicGroupsPage() {
                 >
                   <div className="pubg-card-banner" style={g.icon ? { backgroundImage: `url(${g.icon})` } : {}}>
                     <div className="pubg-card-banner-overlay" />
-                    <div className="pubg-card-avatar">{g.icon ? <img src={g.icon} alt="" loading="lazy" decoding="async" /> : <Users size={24} />}</div>
+                    <div className="pubg-card-avatar">
+                      {g.icon ? <img src={g.icon} alt="" loading="lazy" decoding="async" /> : <Users size={24} />}
+                    </div>
                   </div>
                   <div className="pubg-card-body">
                     <div className="pubg-card-name">{g.name}</div>

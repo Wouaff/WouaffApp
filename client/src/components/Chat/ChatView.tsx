@@ -280,7 +280,7 @@ export default function ChatView({
     };
     load();
 
-    const onAdd = useCallback(async (ev: { convId: string; key: string; data: MessageData }) => {
+    const onAdd = async (ev: { convId: string; key: string; data: MessageData }) => {
       let msg = ev.data;
       if (msg.encrypted && msg.ct && msg.iv && partnerPubKey) {
         msg = (await decryptMessageData(
@@ -301,7 +301,7 @@ export default function ChatView({
           }
         }
       }
-    }, [user, partnerPubKey]);
+    };
     const onUpd = async (ev: { convId: string; key: string; data: MessageData }) => {
       let msg = ev.data;
       if (msg.encrypted && msg.ct && msg.iv && partnerPubKey) {

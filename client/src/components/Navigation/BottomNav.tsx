@@ -1,5 +1,5 @@
-import { memo } from 'react';
 import { Compass, Film, Home, MessageSquare, User } from 'lucide-react';
+import { memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface BottomNavProps {

@@ -65,12 +65,16 @@ router.get('/', async (req: Request, res: Response) => {
   for (const row of rows) {
     let location = row.location;
     if (typeof location === 'string') {
-      try { location = JSON.parse(location); } catch { location = null; }
+      try {
+        location = JSON.parse(location);
+      } catch {
+        location = null;
+      }
     }
     enriched.push({
       ...row,
       location: location as unknown as VideoData['location'],
-      pseudo: (row as unknown as Record<string, unknown>).pseudo as string || 'Inconnu',
+      pseudo: ((row as unknown as Record<string, unknown>).pseudo as string) || 'Inconnu',
       avatar: (row as unknown as Record<string, unknown>).avatar as string,
       liked: !!likesMap[row.id],
     });
@@ -206,7 +210,7 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
   for (const row of rows) {
     enriched.push({
       ...row,
-      pseudo: (row as unknown as Record<string, unknown>).pseudo as string || 'Inconnu',
+      pseudo: ((row as unknown as Record<string, unknown>).pseudo as string) || 'Inconnu',
       avatar: (row as unknown as Record<string, unknown>).avatar as string,
     });
   }

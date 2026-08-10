@@ -204,28 +204,41 @@ export function CallProvider({ children }: { children: ReactNode }) {
     voiceToggleCamera().then(setCameraOn);
   }, []);
 
-  const value = useMemo(() => ({
-    state,
-    remoteStream,
-    localStream: localStreamRef.current,
-    callerInfo,
-    muted,
-    deafened,
-    cameraOn,
-    startCall,
-    acceptCall,
-    rejectCall,
-    endCall,
-    toggleMute,
-    toggleDeafen,
-    toggleCamera,
-  }), [state, remoteStream, callerInfo, muted, deafened, cameraOn, startCall, acceptCall, rejectCall, endCall, toggleMute, toggleDeafen, toggleCamera]);
-
-  return (
-    <CallContext.Provider value={value}>
-      {children}
-    </CallContext.Provider>
+  const value = useMemo(
+    () => ({
+      state,
+      remoteStream,
+      localStream: localStreamRef.current,
+      callerInfo,
+      muted,
+      deafened,
+      cameraOn,
+      startCall,
+      acceptCall,
+      rejectCall,
+      endCall,
+      toggleMute,
+      toggleDeafen,
+      toggleCamera,
+    }),
+    [
+      state,
+      remoteStream,
+      callerInfo,
+      muted,
+      deafened,
+      cameraOn,
+      startCall,
+      acceptCall,
+      rejectCall,
+      endCall,
+      toggleMute,
+      toggleDeafen,
+      toggleCamera,
+    ],
   );
+
+  return <CallContext.Provider value={value}>{children}</CallContext.Provider>;
 }
 
 export function useCall(): CallContextValue {

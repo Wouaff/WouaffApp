@@ -117,13 +117,15 @@
     }
   }
 
-  /* biome-ignore lint/complexity/noImportantStyles: required for WCAG prefers-reduced-motion */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
+      /* biome-ignore lint/complexity/noImportantStyles: required for WCAG prefers-reduced-motion */
       animation-duration: 0.01ms !important;
+      /* biome-ignore lint/complexity/noImportantStyles: required for WCAG prefers-reduced-motion */
       animation-iteration-count: 1 !important;
+      /* biome-ignore lint/complexity/noImportantStyles: required for WCAG prefers-reduced-motion */
       transition-duration: 0.01ms !important;
     }
   }

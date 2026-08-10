@@ -58,7 +58,9 @@ const MessageBubble = memo(function MessageBubble({
   return (
     <div className={`msg-wrapper ${isSent ? 'sent' : 'recv'} ${groupClass || ''}`} data-mid={mid}>
       {!isSent && !prevSame && (
-        <div className="msg-avatar">{p?.avatar ? <img src={p.avatar} alt="" loading="lazy" decoding="async" /> : <span>{initial}</span>}</div>
+        <div className="msg-avatar">
+          {p?.avatar ? <img src={p.avatar} alt="" loading="lazy" decoding="async" /> : <span>{initial}</span>}
+        </div>
       )}
       {!isSent && prevSame && <div className="msg-avatar-placeholder" />}
       <div

@@ -88,7 +88,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
       onCommentDelta(post.id, 1);
       setText('');
     } catch {
-      showToast('Erreur lors de l\'envoi du commentaire', 'error');
+      showToast("Erreur lors de l'envoi du commentaire", 'error');
     } finally {
       setSending(false);
     }
@@ -142,12 +142,18 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
 
         <div className="px-4 pt-4 pb-2 flex gap-3 flex-shrink-0">
           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
-            {post.avatar ? <img src={post.avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
+            {post.avatar ? (
+              <img src={post.avatar} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span>{initial}</span>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1 flex-wrap">
               <span className="font-bold text-[var(--text-primary)] text-[15px]">{post.pseudo}</span>
-              {post.verified && <BadgeCheck size={17} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />}
+              {post.verified && (
+                <BadgeCheck size={17} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />
+              )}
               <span className="text-[var(--text-muted)] text-[15px]">·</span>
               <span className="text-[var(--text-muted)] text-[15px]">{post.handle}</span>
               <span className="text-[var(--text-muted)] text-[15px]">·</span>
@@ -161,7 +167,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
             {post.image && (
               <img
                 src={post.image}
-                alt="Image du post"
+                alt="Post"
                 className="mt-2 rounded-2xl border border-[var(--border)] max-h-[480px] w-full object-cover"
                 loading="lazy"
                 decoding="async"
@@ -193,12 +199,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
             <Heart size={17} fill={post.liked ? 'currentColor' : 'none'} />
             <span>{post.likes}</span>
           </button>
-          <button
-            type="button"
-            className={actionBtn}
-            aria-label="Partager"
-            title="Partager (bientôt)"
-          >
+          <button type="button" className={actionBtn} aria-label="Partager" title="Partager (bientôt)">
             <Share2 size={17} />
           </button>
           {!isOwn && (
@@ -231,7 +232,11 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
               {comments.map((c) => (
                 <li key={c.id} className="flex gap-3 py-3 border-b border-[var(--border)] last:border-b-0">
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
-                    {c.avatar ? <img src={c.avatar} alt="" className="w-full h-full object-cover" /> : <span>{(c.pseudo || '?')[0]?.toUpperCase() || '?'}</span>}
+                    {c.avatar ? (
+                      <img src={c.avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{(c.pseudo || '?')[0]?.toUpperCase() || '?'}</span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1 flex-wrap">

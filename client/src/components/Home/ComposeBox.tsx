@@ -152,7 +152,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
               accept="image/*"
               onChange={onFileChange}
               className="hidden"
-              aria-hidden="true"
+              tabIndex={-1}
             />
             <div className="relative" ref={emojiPickerRef}>
               <button

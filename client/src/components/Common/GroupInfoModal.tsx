@@ -277,7 +277,12 @@ export default function GroupInfoModal({ gid, onClose }: GroupInfoModalProps) {
           <div className="grp-banner-content">
             <div className={`grp-avatar ${editing ? 'grp-avatar-editable' : ''}`}>
               {editIcon || groupIcon ? (
-                <img src={editing ? editIcon || groupIcon : groupIcon || editIcon} alt="" loading="lazy" decoding="async" />
+                <img
+                  src={editing ? editIcon || groupIcon : groupIcon || editIcon}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
               ) : (
                 <Users size={28} />
               )}
@@ -394,7 +399,11 @@ export default function GroupInfoModal({ gid, onClose }: GroupInfoModalProps) {
             {sortedMembers.map((m) => (
               <div key={m.uid} className={`grp-member ${m.uid === user?.uid ? 'is-me' : ''}`}>
                 <div className="grp-member-avatar">
-                  {m.avatar ? <img src={m.avatar} alt="" loading="lazy" decoding="async" /> : <span>{m.pseudo[0]?.toUpperCase() || '?'}</span>}
+                  {m.avatar ? (
+                    <img src={m.avatar} alt="" loading="lazy" decoding="async" />
+                  ) : (
+                    <span>{m.pseudo[0]?.toUpperCase() || '?'}</span>
+                  )}
                 </div>
                 <div className="grp-member-info">
                   <div className="grp-member-name">

@@ -1,5 +1,5 @@
-import { memo } from 'react';
 import { Heart, MessageCircle, Play } from 'lucide-react';
+import { memo } from 'react';
 import type { VideoData } from '../../types';
 import { resolveMediaUrl } from '../../utils/media';
 
@@ -52,7 +52,11 @@ const FeedCard = memo(function FeedCard({ video, onLike, onOpen }: Props) {
       <div className="feed-card-body">
         <div className="feed-card-author">
           <div className="feed-card-avatar">
-            {video.avatar ? <img src={video.avatar} alt="" loading="lazy" decoding="async" /> : <span>{(video.pseudo || '?')[0]}</span>}
+            {video.avatar ? (
+              <img src={video.avatar} alt="" loading="lazy" decoding="async" />
+            ) : (
+              <span>{(video.pseudo || '?')[0]}</span>
+            )}
           </div>
           <span className="feed-card-pseudo">{video.pseudo || 'Inconnu'}</span>
         </div>

@@ -333,8 +333,24 @@ export const admin = {
       registrations: Array<{ date: string; count: number }>;
       posts: Array<{ date: string; count: number }>;
       messages: Array<{ date: string; count: number }>;
-      topPosts: Array<{ id: string; text: string; likesCount: number; commentsCount: number; createdAt: number; pseudo: string; avatar?: string }>;
-      topUsers: Array<{ uid: string; pseudo: string; avatar?: string; wouaffId?: string; postCount: number; followingCount: number; followersCount: number }>;
+      topPosts: Array<{
+        id: string;
+        text: string;
+        likesCount: number;
+        commentsCount: number;
+        createdAt: number;
+        pseudo: string;
+        avatar?: string;
+      }>;
+      topUsers: Array<{
+        uid: string;
+        pseudo: string;
+        avatar?: string;
+        wouaffId?: string;
+        postCount: number;
+        followingCount: number;
+        followersCount: number;
+      }>;
     }>('GET', `/admin/analytics?days=${days}`),
   search: (q: string) =>
     request<{

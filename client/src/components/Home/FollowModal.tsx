@@ -2,7 +2,7 @@ import { BadgeCheck, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { profiles as profilesAPI, publicProfile, type FollowUser } from '../../services/api';
+import { type FollowUser, profiles as profilesAPI, publicProfile } from '../../services/api';
 
 interface FollowModalProps {
   wouaffId: string;
@@ -107,13 +107,16 @@ export default function FollowModal({ wouaffId, kind, onClose, onChange }: Follo
           ) : users.length === 0 ? (
             <div className="py-10 text-center">
               <p className="m-0 text-[var(--text-secondary)]">
-                {kind === 'followers' ? "Aucun abonné pour le moment." : "Aucun abonnement pour le moment."}
+                {kind === 'followers' ? 'Aucun abonné pour le moment.' : 'Aucun abonnement pour le moment.'}
               </p>
             </div>
           ) : (
             <ul className="list-none m-0 p-0">
               {users.map((u) => (
-                <li key={u.uid} className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] last:border-b-0">
+                <li
+                  key={u.uid}
+                  className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] last:border-b-0"
+                >
                   <button
                     type="button"
                     onClick={() => openProfile(u)}
@@ -128,7 +131,9 @@ export default function FollowModal({ wouaffId, kind, onClose, onChange }: Follo
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1">
-                        <span className="font-bold text-[var(--text-primary)] text-[14px] truncate">{u.pseudo || 'Utilisateur'}</span>
+                        <span className="font-bold text-[var(--text-primary)] text-[14px] truncate">
+                          {u.pseudo || 'Utilisateur'}
+                        </span>
                         {u.isMe && <BadgeCheck size={15} className="text-brand flex-shrink-0" aria-label="Vous" />}
                       </div>
                       <span className="text-[var(--text-muted)] text-[13px]">

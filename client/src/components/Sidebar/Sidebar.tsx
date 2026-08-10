@@ -380,18 +380,21 @@ export default function Sidebar({
     };
   }, [user, loadPending]);
 
-  const filtered = useMemo(() => (
-    search.trim()
-      ? convs.filter((c) => {
-          const name = c.type === 'dm' ? c.profile?.pseudo || '' : c.group?.name || '';
-          return name.toLowerCase().includes(search.toLowerCase());
-        })
-      : convs
-  ).sort((a, b) => {
-    const aPinned = pinned.includes(a.id) ? 1 : 0;
-    const bPinned = pinned.includes(b.id) ? 1 : 0;
-    return bPinned - aPinned;
-  }), [convs, search, pinned]);
+  const filtered = useMemo(
+    () =>
+      (search.trim()
+        ? convs.filter((c) => {
+            const name = c.type === 'dm' ? c.profile?.pseudo || '' : c.group?.name || '';
+            return name.toLowerCase().includes(search.toLowerCase());
+          })
+        : convs
+      ).sort((a, b) => {
+        const aPinned = pinned.includes(a.id) ? 1 : 0;
+        const bPinned = pinned.includes(b.id) ? 1 : 0;
+        return bPinned - aPinned;
+      }),
+    [convs, search, pinned],
+  );
 
   const handleDeleteConv = useCallback(async (uid: string) => {
     try {
@@ -512,7 +515,11 @@ export default function Sidebar({
               <div
                 className={`story-avatar ${su.hasStories ? (su.allViewed ? 'story-ring viewed' : 'story-ring') : ''}`}
               >
-                {su.avatar ? <img src={su.avatar} alt={su.pseudo} loading="lazy" decoding="async" /> : <span>{su.initials}</span>}
+                {su.avatar ? (
+                  <img src={su.avatar} alt={su.pseudo} loading="lazy" decoding="async" />
+                ) : (
+                  <span>{su.initials}</span>
+                )}
               </div>
               <div className="story-name">{su.isMe ? 'Votre story' : su.pseudo}</div>
             </div>
@@ -549,7 +556,11 @@ export default function Sidebar({
                 return (
                   <div key={r.fromUid} className="pending-item">
                     <div className="pending-item-avatar">
-                      {r.profile.avatar ? <img src={r.profile.avatar} alt="" loading="lazy" decoding="async" /> : <span>{initial}</span>}
+                      {r.profile.avatar ? (
+                        <img src={r.profile.avatar} alt="" loading="lazy" decoding="async" />
+                      ) : (
+                        <span>{initial}</span>
+                      )}
                     </div>
                     <div className="pending-item-name">{r.profile.pseudo || '?'}</div>
                     <div className="pending-item-actions">
@@ -670,7 +681,11 @@ export default function Sidebar({
                       onOpenUserProfile?.(c.id);
                     }}
                   >
-                    {p.avatar ? <img src={p.avatar} alt={p.pseudo} loading="lazy" decoding="async" /> : <span>{initial}</span>}
+                    {p.avatar ? (
+                      <img src={p.avatar} alt={p.pseudo} loading="lazy" decoding="async" />
+                    ) : (
+                      <span>{initial}</span>
+                    )}
                     <div className={`status-dot ${isOnline ? 'online' : 'offline'}`} />
                   </div>
                   <div className="conv-info">

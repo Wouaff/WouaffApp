@@ -36,7 +36,14 @@ async function getFollowList(
   viewerUid: string | null,
   kind: 'followers' | 'following',
 ): Promise<
-  Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null; isFollowing: boolean; isMe: boolean }>
+  Array<{
+    uid: string;
+    pseudo: string;
+    avatar: string | null;
+    wouaffId: string | null;
+    isFollowing: boolean;
+    isMe: boolean;
+  }>
 > {
   const rows = await query<Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>>(
     kind === 'followers'

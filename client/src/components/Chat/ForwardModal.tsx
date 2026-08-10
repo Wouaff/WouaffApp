@@ -10,7 +10,13 @@ interface ForwardModalProps {
   onClose: () => void;
 }
 
-const ForwardModal = memo(function ForwardModal({ msg, user, currentChatWith, currentGroupId, onClose }: ForwardModalProps) {
+const ForwardModal = memo(function ForwardModal({
+  msg,
+  user,
+  currentChatWith,
+  currentGroupId,
+  onClose,
+}: ForwardModalProps) {
   const [contacts, setContacts] = useState<Record<string, { pseudo?: string; avatar?: string }>>({});
   const [groups, setGroups] = useState<Record<string, { group: { name: string; icon?: string } }>>({});
 
@@ -91,7 +97,11 @@ const ForwardModal = memo(function ForwardModal({ msg, user, currentChatWith, cu
               return (
                 <button key={gid} type="button" className="forward-item" onClick={() => doForward(undefined, gid)}>
                   <div className="forward-item-avatar">
-                    {g.group.icon ? <img src={g.group.icon} alt="" loading="lazy" decoding="async" /> : <span>{(g.group.name || 'G')[0]}</span>}
+                    {g.group.icon ? (
+                      <img src={g.group.icon} alt="" loading="lazy" decoding="async" />
+                    ) : (
+                      <span>{(g.group.name || 'G')[0]}</span>
+                    )}
                   </div>
                   <span className="forward-item-name">{g.group.name}</span>
                 </button>
@@ -107,7 +117,11 @@ const ForwardModal = memo(function ForwardModal({ msg, user, currentChatWith, cu
               return (
                 <button key={uid} type="button" className="forward-item" onClick={() => doForward(uid)}>
                   <div className="forward-item-avatar">
-                    {c.avatar ? <img src={c.avatar} alt="" loading="lazy" decoding="async" /> : <span>{(c.pseudo || '?')[0]}</span>}
+                    {c.avatar ? (
+                      <img src={c.avatar} alt="" loading="lazy" decoding="async" />
+                    ) : (
+                      <span>{(c.pseudo || '?')[0]}</span>
+                    )}
                   </div>
                   <span className="forward-item-name">{c.pseudo || uid}</span>
                 </button>

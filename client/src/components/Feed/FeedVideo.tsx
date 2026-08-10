@@ -155,7 +155,11 @@ const FeedVideo = memo(function FeedVideo({ video, isVisible, onLike }: Props) {
                 comments.map((c) => (
                   <div key={c.id} className="feed-comment-item">
                     <div className="feed-comment-avatar">
-                      {c.avatar ? <img src={c.avatar} alt="" loading="lazy" decoding="async" /> : <span>{(c.pseudo || '?')[0]}</span>}
+                      {c.avatar ? (
+                        <img src={c.avatar} alt="" loading="lazy" decoding="async" />
+                      ) : (
+                        <span>{(c.pseudo || '?')[0]}</span>
+                      )}
                     </div>
                     <div className="feed-comment-body">
                       <div className="feed-comment-pseudo">{c.pseudo || 'Inconnu'}</div>
