@@ -1,6 +1,6 @@
 # Wouaff
 
-Secure instant messaging application — chat, calls, stories, and video feed.
+Le premier réseau social **français** et **souverain**. Conçu en France, hébergé en France, pour les Français.
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)
 ![React](https://img.shields.io/badge/React-18.3-61DAFB)
@@ -8,19 +8,28 @@ Secure instant messaging application — chat, calls, stories, and video feed.
 ![License](https://img.shields.io/badge/License-Custom-blue)
 ![Electron](https://img.shields.io/badge/Electron-33-47848F)
 
-## Features
+## 🇫🇷 La souveraineté Wouaff
 
-- **End-to-end encrypted messaging** (ECDH P-256 + AES-256-GCM)
-- **Voice & video calls** via WebRTC
-- **Stories** with music overlay (expire after 12h)
-- **TikTok-like video feed** with likes, comments, and location
-- **Group chats** with roles, permissions, and invite links
-- **Ephemeral messages** with auto-destruction (5s to 24h)
-- **File sharing** with image, voice, and document support
-- **Rich text** with Markdown rendering and link previews
-- **Cross-platform**: Web (PWA), Desktop (Electron), Mobile (PWA)
-- **Custom themes** including dark/light mode
-- **Admin panel** for moderation and user management
+À l'origine une application de messagerie, Wouaff se transforme en réseau social souverain, sans équivalent en France. Les engagements sont clairs :
+
+- **Hébergement 100% français** — tout est hébergé en France, aucune donnée ne quitte le territoire.
+- **RGPD & lois européennes** — le droit français et européen s'applique, sans compromis.
+- **Politique zéro log** — nous ne traçons pas votre activité.
+
+Le projet suit une approche « privacy by design » : la souveraineté numérique n'est pas une option, c'est le socle du produit.
+
+## ✨ Fonctionnalités
+
+### Actuelles
+- **Page d'accueil façon réseau social** (Twitter / Instagram / Mastodon) : fil d'actualité, boîte de publication, tendances en France, suggestions de comptes.
+- **Connexion & inscription** — email, mot de passe sécurisé, vérification d'email.
+- **Thèmes** clair / sombre.
+- **Cross-platform** : Web (PWA), Desktop (Electron), Mobile (PWA).
+
+### À venir
+- **Messagerie** — réintégrée au réseau social, comme sur Instagram ou Twitter (actuellement accessible sur `/chat`).
+- **Fil d'actualité connecté au backend** — le front-end est en place, le back-end arrive.
+- Appels, stories, groupes, etc.
 
 ## Stack
 
@@ -39,7 +48,7 @@ Secure instant messaging application — chat, calls, stories, and video feed.
 
 - Node.js 18+
 - MySQL 8+
-- npm
+- npm (ou pnpm)
 
 ### Installation
 
@@ -74,7 +83,7 @@ cd client
 npm run dev
 ```
 
-The client dev server runs on `http://localhost:5173` and proxies API requests to the server on `http://localhost:7284`.
+The client dev server runs on `http://localhost:5173` and proxies API requests to the server on `http://localhost:7284`. Une fois connecté, vous arrivez sur la page d'accueil ; l'ancienne messagerie reste accessible sur `/chat`.
 
 ### Production Build
 
@@ -100,6 +109,11 @@ wouaff/
 ├── client/          # React SPA (Vite + TypeScript)
 │   ├── src/
 │   │   ├── components/   # UI components
+│   │   │   ├── Home/         # Page d'accueil (fil social)
+│   │   │   ├── Auth/         # Connexion / inscription
+│   │   │   ├── Chat/         # Messagerie (à réintégrer)
+│   │   │   └── ...
+│   │   ├── data/         # Données de démonstration (tendances, suggestions)
 │   │   ├── hooks/        # React contexts (Auth, Call, Theme)
 │   │   ├── pages/        # Route pages
 │   │   ├── services/     # API client, Socket.IO, E2EE, WebRTC
@@ -125,7 +139,7 @@ wouaff/
 - **Rate limiting**: Per-endpoint protection against abuse
 - **XSS prevention**: HTML sanitization on rendered content
 - **CSRF**: SameSite cookies
-- **Ephemeral messages**: Server-enforced auto-deletion
+- **Zéro log**: Aucune donnée d'activité n'est conservée ni partagée
 
 ## Contributing
 
