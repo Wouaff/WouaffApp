@@ -475,3 +475,12 @@ export function onBlockChanged(cb: (data: { by: string; blocked: boolean }) => v
 export function offBlockChanged(cb: (data: { by: string; blocked: boolean }) => void): void {
   socket?.off('block:changed', cb);
 }
+
+/* ── Ban events ── */
+
+export function onAccountBanned(cb: (data: { reason: string | null; expiresAt: number | null }) => void): void {
+  socket?.on('account:banned', cb);
+}
+export function offAccountBanned(cb: (data: { reason: string | null; expiresAt: number | null }) => void): void {
+  socket?.off('account:banned', cb);
+}
