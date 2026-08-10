@@ -4,7 +4,6 @@ import LeftNav from '../components/Home/LeftNav';
 import PostCard from '../components/Home/PostCard';
 import RightSidebar from '../components/Home/RightSidebar';
 import { showToast, default as Toast } from '../components/Common/Toast';
-import { MOCK_POSTS } from '../data/mockFeed';
 import { useAuth } from '../hooks/useAuth';
 import type { SocialPost } from '../types';
 
@@ -13,7 +12,7 @@ type FeedTab = 'forYou' | 'following';
 export default function HomePage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<FeedTab>('forYou');
-  const [posts, setPosts] = useState<SocialPost[]>(MOCK_POSTS);
+  const [posts, setPosts] = useState<SocialPost[]>([]);
 
   const handlePost = useCallback(
     (text: string) => {
