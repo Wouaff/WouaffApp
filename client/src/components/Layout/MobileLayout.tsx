@@ -78,7 +78,7 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
     <div className="flex flex-col h-full" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {children}
       <div className={`swipe-hint${!isChat && !isAdmin && !swipeHint.current ? ' show' : ''}`}>
-        Balayez vers la droite pour revenir aux discussions
+        Balayez vers la droite pour revenir à l'accueil
       </div>
       {user && !isAdmin && (
         <>

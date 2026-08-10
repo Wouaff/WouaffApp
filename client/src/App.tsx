@@ -17,6 +17,7 @@ import ChatPage from './pages/ChatPage';
 import DownloadPage from './pages/DownloadPage';
 import FeedPage from './pages/FeedPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import HomePage from './pages/HomePage';
 import MaintenancePage from './pages/MaintenancePage';
 import ProfilePage from './pages/ProfilePage';
 import PublicGroupsPage from './pages/PublicGroupsPage';
@@ -27,6 +28,7 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 const PAGE_MAP = {
   '/auth': 'login',
   '/auth?mode=register': 'register',
+  '/': 'home',
   '/settings': 'settings',
   '/admin': 'settings',
 };
@@ -42,9 +44,21 @@ function DiscordPresenceTracker() {
         return;
       }
     }
-    window.electronAPI.updateDiscordPresence('chat');
+    window.electronAPI.updateDiscordPresence('home');
   }, [loc]);
   return null;
+}
+
+function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <MaintenanceGuard>
+        <MobileLayout>
+          <ChatGuard>{children}</ChatGuard>
+        </MobileLayout>
+      </MaintenanceGuard>
+    </ProtectedRoute>
+  );
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -78,17 +92,7 @@ function MaintenanceGuard({ children, skip }: { children: React.ReactNode; skip?
 function CatchAll() {
   const loc = useLocation();
   if (loc.pathname.match(/^\/@(.+)/)) return <ProfilePage />;
-  return (
-    <ProtectedRoute>
-      <MaintenanceGuard>
-        <MobileLayout>
-          <ChatGuard>
-            <ChatPage />
-          </ChatGuard>
-        </MobileLayout>
-      </MaintenanceGuard>
-    </ProtectedRoute>
-  );
+  return <Navigate to="/" replace />;
 }
 
 export default function App() {
@@ -111,6 +115,8 @@ export default function App() {
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
+                  <Route path="/" element={<AppShell><HomePage /></AppShell>} />
+                  <Route path="/chat" element={<AppShell><ChatPage /></AppShell>} />
                   <Route
                     path="/settings"
                     element={

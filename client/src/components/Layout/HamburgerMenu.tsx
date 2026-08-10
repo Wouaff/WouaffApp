@@ -1,4 +1,4 @@
-import { Compass, Film, MessageSquare, Settings, Users } from 'lucide-react';
+import { Compass, Film, Home, MessageSquare, Settings, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface HamburgerMenuProps {
@@ -11,38 +11,23 @@ export default function HamburgerMenu({ open, onClose, storyBadge }: HamburgerMe
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isChat = location.pathname === '/' || location.pathname === '' || location.pathname.match(/^\/@/);
+  const isHome = location.pathname === '/' || location.pathname === '';
+  const isChat = location.pathname === '/chat';
   const isSettings = location.pathname === '/settings';
   const isExplore = location.pathname === '/explore';
   const isFeed = location.pathname === '/feed';
 
   const items = [
-    { path: '/', label: 'Discussions', active: isChat, icon: MessageSquare },
-    {
-      path: '/',
-      label: 'Stories',
-      active: isChat,
-      icon: Users,
-      badge: storyBadge,
-      onClick: () => {
-        navigate('/');
-        setTimeout(() => {
-          const el = document.getElementById('storiesBar') || document.querySelector('.stories-bar');
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 100);
-      },
-    },
+    { path: '/', label: 'Accueil', active: isHome, icon: Home },
+    { path: '/chat', label: 'Messages', active: isChat, icon: MessageSquare },
     { path: '/explore', label: 'Explorer', active: isExplore, icon: Compass },
-    { path: '/feed', label: 'Feed', active: isFeed, icon: Film },
+    { path: '/feed', label: 'Feed', active: isFeed, icon: Film, badge: storyBadge },
+    { path: '/settings', label: 'Profil', active: isSettings, icon: User },
     { path: '/settings', label: 'Paramètres', active: isSettings, icon: Settings },
   ];
 
   const handleNav = (item: (typeof items)[0]) => {
-    if (item.onClick) {
-      item.onClick();
-    } else {
-      navigate(item.path);
-    }
+    navigate(item.path);
     onClose();
   };
 
