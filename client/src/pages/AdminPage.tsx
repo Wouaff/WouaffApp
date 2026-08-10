@@ -18,6 +18,7 @@ import {
   Lock,
   LogOut,
   Mail,
+  Menu,
   MessageCircle,
   MessageSquare,
   Repeat2,
@@ -159,6 +160,31 @@ function avatar(avatar?: string | null, pseudo?: string | null, size = 36): Reac
       ) : (
         <span>{(pseudo || '?')[0]?.toUpperCase() || '?'}</span>
       )}
+    </div>
+  );
+}
+
+function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return (
+    <div className="admin-empty">
+      <div className="admin-empty-icon">{icon}</div>
+      <p className="admin-muted">{text}</p>
+    </div>
+  );
+}
+
+function SkeletonRows({ count = 4 }: { count?: number }) {
+  return (
+    <div className="admin-skeleton-list">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="admin-skeleton-row">
+          <div className="admin-skeleton-avatar" />
+          <div className="admin-skeleton-lines">
+            <div className="admin-skeleton-line" style={{ width: '40%' }} />
+            <div className="admin-skeleton-line" style={{ width: '85%' }} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -697,9 +723,39 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="admin-page">
+    <div className={`admin-page${mobileOpen ? ' drawer-open' : ''}`}>
+      <div className="admin-mobile-header">
+        <button
+          type="button"
+          className="admin-mobile-hamburger"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Ouvrir le menu"
+        >
+          <Menu size={20} />
+        </button>
+        <span className="admin-mobile-title">Panneau d'administration</span>
+        <button
+          type="button"
+          className="admin-mobile-back"
+          onClick={() => navigate('/')}
+          aria-label="Retour"
+        >
+          <ArrowLeft size={18} />
+        </button>
+      </div>
+
+      <div className="admin-backdrop" onClick={() => setMobileOpen(false)} />
+
       <div className="admin-layout">
         <aside className={`admin-sidebar${mobileOpen ? ' open' : ''}`}>
+          <button
+            type="button"
+            className="admin-drawer-close"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Fermer le menu"
+          >
+            <X size={18} />
+          </button>
           <div className="admin-sidebar-brand">
             <div className="admin-brand-icon">
               <Shield size={20} />
@@ -902,14 +958,9 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {modLoading && (
-                <div className="admin-muted" style={{ padding: '20px 0' }}>
-                  <Loader2 size={16} className="animate-spin" style={{ display: 'inline-block', marginRight: 8 }} />
-                  Chargement...
-                </div>
-              )}
+              {modLoading && <SkeletonRows count={5} />}
 
-              {modSubTab === 'posts' && (
+              {!modLoading && modSubTab === 'posts' && (
                 <>
                   <div className="admin-search-row">
                     <input
@@ -936,7 +987,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className="admin-mod-list">
-                    {modPosts.length === 0 && !modLoading && <p className="admin-muted">Aucun post.</p>}
+                    {modPosts.length === 0 && <EmptyState icon={<Edit3 size={26} />} text="Aucun post à modérer." />}
                     {modPosts.map((p) => (
                       <div key={p.id as string} className="admin-mod-item">
                         {avatar(p.avatar as string, p.pseudo as string)}
@@ -984,9 +1035,9 @@ export default function AdminPage() {
                 </>
               )}
 
-              {modSubTab === 'comments' && (
+              {!modLoading && modSubTab === 'comments' && (
                 <div className="admin-mod-list">
-                  {modComments.length === 0 && !modLoading && <p className="admin-muted">Aucun commentaire.</p>}
+                  {modComments.length === 0 && <EmptyState icon={<MessageCircle size={26} />} text="Aucun commentaire." />}
                   {modComments.map((c) => (
                     <div key={c.id as number} className="admin-mod-item">
                       {avatar(c.avatar as string, c.pseudo as string)}
@@ -1011,9 +1062,9 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {modSubTab === 'videos' && (
+              {!modLoading && modSubTab === 'videos' && (
                 <div className="admin-mod-grid">
-                  {modVideos.length === 0 && !modLoading && <p className="admin-muted">Aucune vidéo.</p>}
+                  {modVideos.length === 0 && <EmptyState icon={<Film size={26} />} text="Aucune vidéo." />}
                   {modVideos.map((v) => (
                     <div key={v.id as string} className="admin-video-card">
                       <div className="admin-video-preview">
@@ -1092,9 +1143,13 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {reportSubTab === 'users' && (
+              {reportsLoading && <SkeletonRows count={4} />}
+
+              {!reportsLoading && reportSubTab === 'users' && (
                 <div className="admin-mod-list">
-                  {userReports.length === 0 && !reportsLoading && <p className="admin-muted">Aucun signalement.</p>}
+                  {userReports.length === 0 && (
+                    <EmptyState icon={<Flag size={26} />} text="Aucun signalement utilisateur." />
+                  )}
                   {userReports.map((r) => (
                     <div key={r.id as number} className="admin-mod-item">
                       {avatar(r.reportedAvatar as string, r.reportedPseudo as string)}
@@ -1128,9 +1183,11 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {reportSubTab === 'groups' && (
+              {!reportsLoading && reportSubTab === 'groups' && (
                 <div className="admin-mod-list">
-                  {groupReports.length === 0 && !reportsLoading && <p className="admin-muted">Aucun signalement.</p>}
+                  {groupReports.length === 0 && (
+                    <EmptyState icon={<Users size={26} />} text="Aucun groupe signalé." />
+                  )}
                   {groupReports.map((r) => (
                     <div key={r.gid as string} className="admin-mod-item">
                       <div className="admin-user-avatar">
