@@ -23,7 +23,7 @@ import {
   getGroup,
   getLoginHistory,
   getMaintenanceMode,
-  getProfile,
+  getProfiles,
   getRecentUsers,
   getReportActions,
   getReportedGroups,
@@ -86,10 +86,10 @@ router.post('/bootstrap', async (req: Request, res: Response) => {
 router.get('/staff', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const staff = await getAllStaff();
+  const profiles = await getProfiles(Object.keys(staff));
   const result: Record<string, { role: string; addedAt: number; profile?: Record<string, unknown> }> = {};
   for (const [uid, info] of Object.entries(staff)) {
-    const profile = await getProfile(uid);
-    result[uid] = { role: info.role, addedAt: info.addedAt, profile: profile || undefined };
+    result[uid] = { role: info.role, addedAt: info.addedAt, profile: profiles.get(uid) || undefined };
   }
   res.json(result);
 });

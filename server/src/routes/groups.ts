@@ -12,6 +12,7 @@ import {
   getGroupInvite,
   getGroupInviteByGroup,
   getProfile,
+  getProfiles,
   getPublicGroups,
   isGroupInvited,
   removeGroupInvite,
@@ -169,15 +170,15 @@ router.post('/:gid/members', async (req: Request, res: Response) => {
     return;
   }
   const io: Server = req.app.get('io');
+  const profiles = await getProfiles(uids);
   for (const uid of uids) {
     await addGroupMember(req.params.gid, uid);
     if (io) {
-      const profile = await getProfile(uid);
       io.to(`user:${uid}`).emit('group:member:added', {
         gid: req.params.gid,
         name: (group as Record<string, string>).name || '',
       });
-      emitToGroup(io, req.params.gid, 'group:member:added', { gid: req.params.gid, uid, profile });
+      emitToGroup(io, req.params.gid, 'group:member:added', { gid: req.params.gid, uid, profile: profiles.get(uid) });
     }
   }
   res.json({ success: true, added: uids.length });

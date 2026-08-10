@@ -183,22 +183,37 @@ router.post('/:uid/seen', async (req: Request, res: Response) => {
 /* POST /messages/group/:gid/seen — marquer des messages comme vus dans un groupe */
 router.post('/group/:gid/seen', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const { msgKeys } = req.body as { msgKeys: string[] };
-  if (!msgKeys?.length) {
+  const msgKeys = (req.body as { msgKeys?: string[] }).msgKeys || [];
+  if (!msgKeys.length) {
     res.json({ success: true });
     return;
   }
-  for (const msgKey of msgKeys) {
-    const row = await getOne<{ seenBy: string | null }>('SELECT seenBy FROM group_messages WHERE gid=? AND msgKey=?', [
-      req.params.gid,
-      msgKey,
-    ]);
-    if (!row) continue;
+  const keys = [...new Set(msgKeys)].slice(0, 100);
+  const placeholders = keys.map(() => '?').join(',');
+  const rows = await query<Array<{ msgKey: string; seenBy: string | null }>>(
+    `SELECT msgKey, seenBy FROM group_messages WHERE gid = ? AND msgKey IN (${placeholders})`,
+    [req.params.gid, ...keys],
+  );
+  const updates: Array<{ msgKey: string; seenBy: string[] }> = [];
+  for (const row of rows) {
     const seenBy: string[] = row.seenBy ? JSON.parse(row.seenBy) : [];
     if (!seenBy.includes(authReq.uid!)) {
       seenBy.push(authReq.uid!);
-      await updateGroupMessage(req.params.gid, msgKey, { seenBy } as unknown as Record<string, unknown>);
+      updates.push({ msgKey: row.msgKey, seenBy });
     }
+  }
+  if (updates.length > 0) {
+    const cases = updates.map(() => 'WHEN ? THEN ?').join(' ');
+    const params: Array<string> = [];
+    for (const u of updates) {
+      params.push(u.msgKey, JSON.stringify(u.seenBy));
+    }
+    const keyPlaceholders = updates.map(() => '?').join(',');
+    params.push(req.params.gid, ...updates.map((u) => u.msgKey));
+    await query(
+      `UPDATE group_messages SET seenBy = CASE msgKey ${cases} END WHERE gid = ? AND msgKey IN (${keyPlaceholders})`,
+      params,
+    );
   }
   const io = req.app.get('io');
   if (io) io.to(`group:${req.params.gid}`).emit('seen:group', { gid: req.params.gid, by: authReq.uid!, msgKeys });

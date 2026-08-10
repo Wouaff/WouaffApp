@@ -430,10 +430,8 @@ export async function searchGroupMessages(gid: string, searchQuery: string): Pro
 
 /* ── Profiles ── */
 
-export async function getProfile(uid: string): Promise<Record<string, unknown> | null> {
-  const row = await getOne<Record<string, unknown>>('SELECT * FROM users WHERE uid = ?', [uid]);
-  if (!row) return null;
-  const { publicKey, ...profile } = row;
+function sanitizeProfile(row: Record<string, unknown>): Record<string, unknown> {
+  const { publicKey, passwordHash, ...profile } = row;
   const result = profile as Record<string, unknown>;
   if (publicKey) {
     try {
@@ -442,6 +440,13 @@ export async function getProfile(uid: string): Promise<Record<string, unknown> |
       result.publicKey = publicKey;
     }
   }
+  return result;
+}
+
+export async function getProfile(uid: string): Promise<Record<string, unknown> | null> {
+  const row = await getOne<Record<string, unknown>>('SELECT * FROM users WHERE uid = ?', [uid]);
+  if (!row) return null;
+  const result = sanitizeProfile(row);
   const badgeRows = await query<Array<{ badgeId: string }>>(
     'SELECT badgeId FROM user_badges WHERE uid=? ORDER BY sortOrder ASC',
     [uid],
@@ -450,6 +455,33 @@ export async function getProfile(uid: string): Promise<Record<string, unknown> |
     result.ownedBadges = badgeRows.map((r) => r.badgeId);
   }
   return result;
+}
+
+export async function getProfiles(uids: string[]): Promise<Map<string, Record<string, unknown>>> {
+  const map = new Map<string, Record<string, unknown>>();
+  const unique = [...new Set(uids.filter((u): u is string => !!u))];
+  if (unique.length === 0) return map;
+  const placeholders = unique.map(() => '?').join(',');
+  const rows = await query<Array<Record<string, unknown>>>(
+    `SELECT * FROM users WHERE uid IN (${placeholders})`,
+    unique,
+  );
+  for (const row of rows) {
+    const uid = row.uid as string;
+    map.set(uid, sanitizeProfile(row));
+  }
+  const badges = await query<Array<{ uid: string; badgeId: string }>>(
+    `SELECT uid, badgeId FROM user_badges WHERE uid IN (${placeholders}) ORDER BY sortOrder ASC`,
+    unique,
+  );
+  for (const badge of badges) {
+    const profile = map.get(badge.uid);
+    if (!profile) continue;
+    const current = (profile.ownedBadges as string[] | undefined) || [];
+    current.push(badge.badgeId);
+    profile.ownedBadges = current;
+  }
+  return map;
 }
 
 const PROFILE_COLUMNS = new Set([
@@ -1601,22 +1633,29 @@ export async function cleanExpiredEphemeralMessages(): Promise<
   const now = Date.now();
   const deleted: Array<{ type: 'dm' | 'group'; convId: string; key: string }> = [];
 
-  const dmRows = await query<Array<{ convId: string; msgKey: string }>>(
-    'SELECT convId, msgKey FROM messages WHERE ephemeralDuration IS NOT NULL AND (time + ephemeralDuration) < ?',
-    [now],
+  /* `time < now` permet d'utiliser idx_messages_time au lieu de scanner toute la table */
+  const dmRows = await query<Array<{ id: number; convId: string; msgKey: string }>>(
+    'SELECT id, convId, msgKey FROM messages WHERE time < ? AND ephemeralDuration IS NOT NULL AND (time + ephemeralDuration) < ? LIMIT 1000',
+    [now, now],
   );
-  for (const row of dmRows) {
-    await query('DELETE FROM messages WHERE convId=? AND msgKey=?', [row.convId, row.msgKey]);
-    deleted.push({ type: 'dm', convId: row.convId, key: row.msgKey });
+  for (let i = 0; i < dmRows.length; i += 500) {
+    const batch = dmRows.slice(i, i + 500);
+    const ids = batch.map((r) => r.id);
+    const placeholders = ids.map(() => '?').join(',');
+    await query(`DELETE FROM messages WHERE id IN (${placeholders})`, ids);
+    for (const row of batch) deleted.push({ type: 'dm', convId: row.convId, key: row.msgKey });
   }
 
-  const groupRows = await query<Array<{ gid: string; msgKey: string }>>(
-    'SELECT gid, msgKey FROM group_messages WHERE ephemeralDuration IS NOT NULL AND (time + ephemeralDuration) < ?',
-    [now],
+  const groupRows = await query<Array<{ id: number; gid: string; msgKey: string }>>(
+    'SELECT id, gid, msgKey FROM group_messages WHERE time < ? AND ephemeralDuration IS NOT NULL AND (time + ephemeralDuration) < ? LIMIT 1000',
+    [now, now],
   );
-  for (const row of groupRows) {
-    await query('DELETE FROM group_messages WHERE gid=? AND msgKey=?', [row.gid, row.msgKey]);
-    deleted.push({ type: 'group', convId: row.gid, key: row.msgKey });
+  for (let i = 0; i < groupRows.length; i += 500) {
+    const batch = groupRows.slice(i, i + 500);
+    const ids = batch.map((r) => r.id);
+    const placeholders = ids.map(() => '?').join(',');
+    await query(`DELETE FROM group_messages WHERE id IN (${placeholders})`, ids);
+    for (const row of batch) deleted.push({ type: 'group', convId: row.gid, key: row.msgKey });
   }
 
   return deleted;

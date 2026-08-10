@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
-import { getProfile, searchByWouaffId } from '../services/rtdb.js';
+import { getProfile, getProfiles, searchByWouaffId } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
 
 const router: Router = Router();
@@ -23,10 +23,10 @@ router.get('/users', async (req: Request, res: Response) => {
     [searchPattern, searchPattern, authReq.uid!, limit],
   );
   const results: Array<{ uid: string; wouaffId: string; profile: Record<string, unknown> | null }> = [];
+  const profiles = await getProfiles(rows.map((r) => r.uid));
   for (const row of rows) {
     const displayId = row.wouaffId.startsWith('@') ? row.wouaffId : `@${row.wouaffId}`;
-    const profile = await getProfile(row.uid);
-    results.push({ uid: row.uid, wouaffId: displayId, profile });
+    results.push({ uid: row.uid, wouaffId: displayId, profile: profiles.get(row.uid) || null });
   }
   res.json({ results });
 });

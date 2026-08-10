@@ -7,6 +7,7 @@ import {
   getContacts,
   getPendingRequests,
   getProfile,
+  getProfiles,
   getSentRequests,
   isBlocked,
   rejectContactRequest,
@@ -23,10 +24,10 @@ router.use(verifyToken);
 router.get('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const contacts = await getContacts(authReq.uid!);
+  const profiles = await getProfiles(Object.keys(contacts));
   const result: Record<string, unknown> = {};
-  for (const uid of Object.keys(contacts)) {
-    const profile = await getProfile(uid);
-    if (profile) result[uid] = profile;
+  for (const [uid, profile] of profiles) {
+    result[uid] = profile;
   }
   res.json(result);
 });
@@ -35,18 +36,10 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/pending', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const [incoming, outgoing] = await Promise.all([getPendingRequests(authReq.uid!), getSentRequests(authReq.uid!)]);
-  const incomingProfiles = await Promise.all(
-    incoming.map(async (r) => {
-      const profile = await getProfile(r.fromUid);
-      return { fromUid: r.fromUid, profile, createdAt: r.createdAt };
-    }),
-  );
-  const outgoingProfiles = await Promise.all(
-    outgoing.map(async (r) => {
-      const profile = await getProfile(r.toUid);
-      return { toUid: r.toUid, profile, createdAt: r.createdAt };
-    }),
-  );
+  const uids = [...incoming.map((r) => r.fromUid), ...outgoing.map((r) => r.toUid)];
+  const profiles = await getProfiles(uids);
+  const incomingProfiles = incoming.map((r) => ({ fromUid: r.fromUid, profile: profiles.get(r.fromUid) || null, createdAt: r.createdAt }));
+  const outgoingProfiles = outgoing.map((r) => ({ toUid: r.toUid, profile: profiles.get(r.toUid) || null, createdAt: r.createdAt }));
   res.json({ incoming: incomingProfiles, outgoing: outgoingProfiles });
 });
 
