@@ -178,6 +178,13 @@ export interface TrendItem {
   posts: string;
 }
 
+export interface MentionUser {
+  uid: string;
+  pseudo: string;
+  handle: string;
+  avatar?: string;
+}
+
 export interface SuggestedUser {
   pseudo: string;
   handle: string;
@@ -209,4 +216,21 @@ export interface FeedItem {
   key: string;
   post: SocialPost;
   repost?: RepostInfo;
+}
+
+export type NotificationType = 'follow' | 'like' | 'repost' | 'comment';
+
+export interface NotificationItem {
+  id: number;
+  type: NotificationType;
+  actorUid: string;
+  actorPseudo: string;
+  actorHandle: string;
+  actorAvatar?: string;
+  postId?: string | null;
+  postText?: string | null;
+  postImage?: string | null;
+  commentId?: number | null;
+  read: boolean;
+  createdAt: number;
 }

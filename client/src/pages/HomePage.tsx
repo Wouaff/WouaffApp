@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { showToast, default as Toast } from '../components/Common/Toast';
 import ComposeBox from '../components/Home/ComposeBox';
 import LeftNav from '../components/Home/LeftNav';
@@ -33,11 +34,14 @@ function toPostItem(post: SocialPost): FeedItem {
 
 export default function HomePage() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<FeedTab>('forYou');
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [pendingPostId, setPendingPostId] = useState<string | null>(null);
 
   const selectedPost = items.find((i) => i.post.id === selectedPostId)?.post || null;
 
@@ -58,6 +62,39 @@ export default function HomePage() {
   useEffect(() => {
     loadPosts();
   }, [loadPosts]);
+
+  /* Ouverture d'un post depuis une notification (événement ou ?post=ID) */
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const postId = params.get('post');
+    if (postId) {
+      setPendingPostId(postId);
+      navigate(location.pathname, { replace: true });
+    }
+    const handler = (e: Event) => {
+      const { postId: pid } = (e as CustomEvent<{ postId: string }>).detail;
+      if (pid) setPendingPostId(pid);
+    };
+    window.addEventListener('wouaff:open-post', handler);
+    return () => window.removeEventListener('wouaff:open-post', handler);
+  }, [location.search, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!pendingPostId) return;
+    if (items.some((i) => i.post.id === pendingPostId)) {
+      setSelectedPostId(pendingPostId);
+      setPendingPostId(null);
+    } else {
+      postsAPI
+        .get(pendingPostId)
+        .then((post) => {
+          setItems((prev) => (prev.some((i) => i.post.id === post.id) ? prev : [toPostItem(post), ...prev]));
+          setSelectedPostId(pendingPostId);
+        })
+        .catch((e) => console.error(e))
+        .finally(() => setPendingPostId(null));
+    }
+  }, [pendingPostId, items]);
 
   useEffect(() => {
     if (!user) return;

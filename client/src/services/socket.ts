@@ -1,5 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
-import type { CallPayload, FeedItem, PostComment, SocialPost, SocketMessageEvent } from '../types';
+import type { CallPayload, FeedItem, NotificationItem, PostComment, SocialPost, SocketMessageEvent } from '../types';
 import { getSessionId } from './auth';
 
 const SOCKET_URL = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL
@@ -474,6 +474,15 @@ export function onBlockChanged(cb: (data: { by: string; blocked: boolean }) => v
 }
 export function offBlockChanged(cb: (data: { by: string; blocked: boolean }) => void): void {
   socket?.off('block:changed', cb);
+}
+
+/* ── Notification events ── */
+
+export function onNotificationNew(cb: (item: NotificationItem) => void): void {
+  socket?.on('notification:new', cb);
+}
+export function offNotificationNew(cb: (item: NotificationItem) => void): void {
+  socket?.off('notification:new', cb);
 }
 
 /* ── Ban events ── */

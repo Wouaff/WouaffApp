@@ -1,10 +1,14 @@
 import { BadgeCheck, Flag, Heart, MessageCircle, Repeat2, Share2, Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
 import { posts as postsAPI } from '../../services/api';
 import { offPostComment, offPostDeleted, onPostComment, onPostDeleted } from '../../services/socket';
-import type { PostComment, SocialPost } from '../../types';
+import type { MentionUser, PostComment, SocialPost } from '../../types';
+import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
 import { showToast } from '../Common/Toast';
+import MentionSuggestions from './MentionSuggestions';
+import PostText from './PostText';
 import ReportPostModal from './ReportPostModal';
 
 interface PostModalProps {
@@ -34,7 +38,22 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const commentInputRef = useRef<HTMLInputElement>(null);
   const isOwn = !!user && post.uid === user.uid;
+
+  const applyMention = useCallback((mentionUser: MentionUser, token: MentionToken) => {
+    setText((prev) => replaceMentionAt(prev, token, `${mentionUser.handle} `));
+    requestAnimationFrame(() => {
+      const el = commentInputRef.current;
+      if (el) {
+        el.focus();
+        const pos = token.start + mentionUser.handle.length + 1;
+        el.setSelectionRange(pos, pos);
+      }
+    });
+  }, []);
+
+  const mention = useMentionAutocomplete(applyMention);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,7 +180,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
             </div>
             {post.text && (
               <p className="m-0 mt-1 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
-                {post.text}
+                <PostText text={post.text} />
               </p>
             )}
             {post.image && (
@@ -255,7 +274,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
                       )}
                     </div>
                     <p className="m-0 mt-0.5 text-[14px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
-                      {c.text}
+                      <PostText text={c.text} />
                     </p>
                   </div>
                 </li>
@@ -265,18 +284,33 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
         </div>
 
         <div className="flex items-center gap-2 px-4 py-3 border-t border-[var(--border)] flex-shrink-0">
-          <input
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submitComment();
-            }}
-            placeholder="Répondre..."
-            maxLength={280}
-            aria-label="Répondre au post"
-            className="flex-1 min-w-0 bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
-          />
+          <div className="relative flex-1 min-w-0">
+            <input
+              ref={commentInputRef}
+              type="text"
+              value={text}
+              onChange={(e) => {
+                const value = e.target.value;
+                setText(value);
+                mention.handleChange(value, e.target.selectionStart ?? value.length);
+              }}
+              onKeyDown={(e) => {
+                if (mention.handleKeyDown(e)) return;
+                if (e.key === 'Enter') submitComment();
+              }}
+              placeholder="Répondre..."
+              maxLength={280}
+              aria-label="Répondre au post"
+              className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
+            />
+            <MentionSuggestions
+              open={mention.open}
+              query={mention.query}
+              results={mention.results}
+              activeIndex={mention.activeIndex}
+              onSelect={mention.selectActive}
+            />
+          </div>
           <button
             type="button"
             onClick={submitComment}

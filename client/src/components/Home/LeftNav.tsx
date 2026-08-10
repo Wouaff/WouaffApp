@@ -2,6 +2,7 @@ import { Bell, Bookmark, Compass, Film, Home, MessageSquare, Settings, User } fr
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { offNotificationNew, onNotificationNew } from '../../services/socket';
 
 interface NavItem {
   path: string;
@@ -13,7 +14,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { path: '/', label: 'Accueil', icon: Home },
   { path: '/explore', label: 'Explorer', icon: Compass },
-  { path: '/notifications', label: 'Notifications', icon: Bell, soon: true },
+  { path: '/notifications', label: 'Notifications', icon: Bell },
   { path: '/chat', label: 'Messages', icon: MessageSquare },
   { path: '/feed', label: 'Feed', icon: Film },
   { path: '/bookmarks', label: 'Signets', icon: Bookmark, soon: true },
@@ -30,6 +31,30 @@ export default function LeftNav() {
   const { user } = useAuth();
   const [avatar, setAvatar] = useState('');
   const [myHandle, setMyHandle] = useState('');
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/notifications/unread-count')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d && typeof d.count === 'number') setUnread(d.count);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const onUnread = (e: Event) => {
+      const { count } = (e as CustomEvent<{ count: number }>).detail;
+      if (typeof count === 'number') setUnread(count);
+    };
+    const onNew = () => setUnread((u) => u + 1);
+    window.addEventListener('wouaff:unread-count', onUnread);
+    onNotificationNew(onNew);
+    return () => {
+      window.removeEventListener('wouaff:unread-count', onUnread);
+      offNotificationNew(onNew);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +120,11 @@ export default function LeftNav() {
               >
                 <Icon size={24} strokeWidth={active ? 2.4 : 2} />
                 <span className={`text-[17px] ${active ? 'font-extrabold' : 'font-medium'}`}>{item.label}</span>
+                {item.path === '/notifications' && unread > 0 && (
+                  <span className="ml-auto bg-brand text-white text-[11px] font-bold rounded-full min-w-[18px] h-[18px] px-1.5 flex items-center justify-center">
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
                 {item.soon && (
                   <span className="ml-auto text-[10px] font-bold text-[var(--text-muted)] border border-[var(--border)] rounded-full px-2 py-0.5">
                     Bientôt

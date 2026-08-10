@@ -31,6 +31,37 @@ router.get('/users', async (req: Request, res: Response) => {
   res.json({ results });
 });
 
+/* GET /search/mentions?q= — suggestions de mentions @ (léger) */
+router.get('/mentions', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const raw = ((req.query.q as string) || '').trim().replace(/^@/, '').toLowerCase();
+  if (!raw) {
+    res.json({ results: [] });
+    return;
+  }
+  const limit = Math.min(15, Math.max(1, parseInt(req.query.limit as string, 10) || 10));
+  const pattern = `%${raw}%`;
+  const rows = await query<Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>>(
+    `SELECT uid, pseudo, avatar, wouaffId FROM users
+     WHERE (wouaffId LIKE ? OR REPLACE(COALESCE(wouaffId, ''), '@', '') LIKE ? OR pseudo LIKE ?)
+       AND uid != ?
+     ORDER BY lastSeen DESC
+     LIMIT ?`,
+    [pattern, pattern, pattern, authReq.uid!, limit],
+  );
+  const results = rows.map((r) => ({
+    uid: r.uid,
+    pseudo: r.pseudo || 'Utilisateur',
+    handle: r.wouaffId
+      ? r.wouaffId.startsWith('@')
+        ? r.wouaffId
+        : `@${r.wouaffId}`
+      : `@${(r.pseudo || 'utilisateur').toLowerCase()}`,
+    avatar: r.avatar,
+  }));
+  res.json({ results });
+});
+
 /* GET /search/users/:wouaffId — recherche exacte par @ */
 router.get('/users/:wouaffId', async (req: Request, res: Response) => {
   let wouaffId = req.params.wouaffId;

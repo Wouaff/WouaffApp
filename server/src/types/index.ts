@@ -118,3 +118,20 @@ export interface PostFeedItem {
   post: PostData;
   repost?: RepostInfo;
 }
+
+export type NotificationType = 'follow' | 'like' | 'repost' | 'comment';
+
+export interface NotificationItem {
+  id: number;
+  type: NotificationType;
+  actorUid: string;
+  actorPseudo: string;
+  actorHandle: string;
+  actorAvatar?: string;
+  postId?: string | null;
+  postText?: string | null;
+  postImage?: string | null;
+  commentId?: number | null;
+  read: boolean;
+  createdAt: number;
+}

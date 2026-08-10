@@ -1,9 +1,13 @@
 import { Image, Smile, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
+import type { MentionUser } from '../../types';
 import { compressImage } from '../../utils/audio';
+import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
 import EmojiPicker from '../Chat/EmojiPicker';
 import { showToast } from '../Common/Toast';
+import MentionSuggestions from './MentionSuggestions';
 
 const MAX_LENGTH = 280;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
@@ -21,6 +25,20 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+  const applyMention = useCallback((mentionUser: MentionUser, token: MentionToken) => {
+    setText((prev) => replaceMentionAt(prev, token, `${mentionUser.handle} `));
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) {
+        el.focus();
+        const pos = token.start + mentionUser.handle.length + 1;
+        el.setSelectionRange(pos, pos);
+      }
+    });
+  }, []);
+
+  const mention = useMentionAutocomplete(applyMention);
 
   useEffect(() => {
     const handler = () => textareaRef.current?.focus();
@@ -107,16 +125,32 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
         <span>{initial}</span>
       </div>
       <div className="flex-1 min-w-0">
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Quoi de neuf ?"
-          maxLength={MAX_LENGTH}
-          rows={2}
-          aria-label="Rédiger un post"
-          className="w-full bg-transparent resize-none outline-none text-[19px] leading-snug text-[var(--text-primary)] placeholder-[var(--text-muted)] font-sans border-none py-1"
-        />
+        <div className="relative">
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => {
+              const value = e.target.value;
+              setText(value);
+              mention.handleChange(value, e.target.selectionStart ?? value.length);
+            }}
+            onKeyDown={(e) => {
+              if (mention.handleKeyDown(e)) return;
+            }}
+            placeholder="Quoi de neuf ?"
+            maxLength={MAX_LENGTH}
+            rows={2}
+            aria-label="Rédiger un post"
+            className="w-full bg-transparent resize-none outline-none text-[19px] leading-snug text-[var(--text-primary)] placeholder-[var(--text-muted)] font-sans border-none py-1"
+          />
+          <MentionSuggestions
+            open={mention.open}
+            query={mention.query}
+            results={mention.results}
+            activeIndex={mention.activeIndex}
+            onSelect={mention.selectActive}
+          />
+        </div>
 
         {image && (
           <div className="relative mt-2">

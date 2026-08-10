@@ -19,6 +19,7 @@ import FeedPage from './pages/FeedPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import HomePage from './pages/HomePage';
 import MaintenancePage from './pages/MaintenancePage';
+import NotificationsPage from './pages/NotificationsPage';
 import ProfilePage from './pages/ProfilePage';
 import PublicGroupsPage from './pages/PublicGroupsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -147,6 +148,14 @@ export default function App() {
                       element={
                         <AppShell>
                           <ChatPage />
+                        </AppShell>
+                      }
+                    />
+                    <Route
+                      path="/notifications"
+                      element={
+                        <AppShell>
+                          <NotificationsPage />
                         </AppShell>
                       }
                     />

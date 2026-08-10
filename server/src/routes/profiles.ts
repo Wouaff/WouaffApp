@@ -3,6 +3,7 @@ import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
+import { createNotification } from '../services/notifications.js';
 import {
   deleteUserProfile,
   getMutualContacts,
@@ -65,10 +66,16 @@ router.post('/:uid/follow', async (req: Request, res: Response) => {
     res.status(404).json({ error: 'Utilisateur introuvable' });
     return;
   }
-  await query(
+  const result = await query<{ affectedRows: number }>(
     'INSERT INTO follows (followerUid, followedUid, createdAt) VALUES (?,?,?) ON DUPLICATE KEY UPDATE createdAt=VALUES(createdAt)',
     [authReq.uid!, req.params.uid, Date.now()],
   );
+  if (result.affectedRows === 1) {
+    const io: Server = req.app.get('io');
+    if (io) {
+      await createNotification(io, { uid: req.params.uid, actorUid: authReq.uid!, type: 'follow' });
+    }
+  }
   res.json({ following: true });
 });
 

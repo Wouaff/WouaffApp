@@ -4,9 +4,11 @@ import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
+import { createNotification } from '../services/notifications.js';
 import { getProfile, reportPost } from '../services/rtdb.js';
 import type { AuthRequest, PostComment, PostData, PostFeedItem } from '../types/index.js';
 import { extractHashtags } from '../utils/hashtags.js';
+import { insertCommentMentions, insertPostMentions } from '../utils/mentions.js';
 
 const MAX_LENGTH = 280;
 
@@ -145,6 +147,7 @@ router.post('/', async (req: Request, res: Response) => {
       [id, authReq.uid!, content, img || null, now],
     );
     if (content) await insertHashtags(id, authReq.uid!, 'post', now, content);
+    if (content) await insertPostMentions(id, content);
     const profile = await getProfile(authReq.uid!);
     const verified = await isVerified(authReq.uid!);
     const wouaffId = (profile?.wouaffId as string) || '';
@@ -302,6 +305,13 @@ router.delete('/:id', async (req: Request, res: Response) => {
   await query('DELETE FROM post_reposts WHERE postId = ?', [req.params.id]);
   await query('DELETE FROM post_comments WHERE postId = ?', [req.params.id]);
   await query('DELETE FROM hashtag_occurrences WHERE postId = ?', [req.params.id]);
+  await query('DELETE FROM post_mentions WHERE postId = ?', [req.params.id]);
+  const comments = await query<Array<{ id: number }>>('SELECT id FROM post_comments WHERE postId = ?', [req.params.id]);
+  if (comments.length > 0) {
+    const ids = comments.map((c) => c.id);
+    const placeholders = ids.map(() => '?').join(',');
+    await query(`DELETE FROM comment_mentions WHERE commentId IN (${placeholders})`, ids);
+  }
   const io: Server = req.app.get('io');
   if (io) io.emit('post:deleted', { postId: req.params.id });
   res.json({ success: true });
@@ -334,6 +344,10 @@ router.post('/:id/like', async (req: Request, res: Response) => {
     ]);
     const io: Server = req.app.get('io');
     if (io) io.emit('post:liked', { postId: req.params.id, uid: authReq.uid!, liked: true, likes: row.likesCount });
+    const [author] = await query<Array<{ uid: string }>>('SELECT uid FROM posts WHERE id = ?', [req.params.id]);
+    if (io && author && author.uid !== authReq.uid) {
+      await createNotification(io, { uid: author.uid, actorUid: authReq.uid!, type: 'like', postId: req.params.id });
+    }
     res.json({ liked: true, likes: row.likesCount });
   }
 });
@@ -383,6 +397,10 @@ router.post('/:id/repost', async (req: Request, res: Response) => {
       io.emit('post:reposted', { postId: req.params.id, uid: authReq.uid!, reposted: true, reposts: row.repostsCount });
     const item = await getRepostItem(authReq.uid!, req.params.id, authReq.uid);
     if (io && item) io.emit('post:repost', item);
+    const [author] = await query<Array<{ uid: string }>>('SELECT uid FROM posts WHERE id = ?', [req.params.id]);
+    if (io && author && author.uid !== authReq.uid) {
+      await createNotification(io, { uid: author.uid, actorUid: authReq.uid!, type: 'repost', postId: req.params.id });
+    }
     res.json({ reposted: true, reposts: row.repostsCount, item });
   }
 });
@@ -415,7 +433,7 @@ router.post('/:id/comments', async (req: Request, res: Response) => {
     res.status(400).json({ error: `Maximum ${MAX_LENGTH} caractères` });
     return;
   }
-  const post = await getOne<{ id: string }>('SELECT id FROM posts WHERE id = ?', [req.params.id]);
+  const post = await getOne<{ id: string; uid: string }>('SELECT id, uid FROM posts WHERE id = ?', [req.params.id]);
   if (!post) {
     res.status(404).json({ error: 'Post introuvable' });
     return;
@@ -425,10 +443,12 @@ router.post('/:id/comments', async (req: Request, res: Response) => {
     'INSERT INTO post_comments (postId, uid, text, createdAt) VALUES (?,?,?,?)',
     [req.params.id, authReq.uid!, content, now],
   );
+  const commentId = (result as unknown as { insertId?: number }).insertId || 0;
   await query('UPDATE posts SET commentsCount = commentsCount + 1 WHERE id = ?', [req.params.id]);
+  if (commentId) await insertCommentMentions(commentId, content);
   const profile = await getProfile(authReq.uid!);
   const comment: PostComment = {
-    id: (result as unknown as { insertId?: number }).insertId || 0,
+    id: commentId,
     postId: req.params.id,
     uid: authReq.uid!,
     text: content,
@@ -438,6 +458,15 @@ router.post('/:id/comments', async (req: Request, res: Response) => {
   };
   const io: Server = req.app.get('io');
   if (io) io.emit('post:comment', { postId: req.params.id, comment });
+  if (io && post.uid !== authReq.uid) {
+    await createNotification(io, {
+      uid: post.uid,
+      actorUid: authReq.uid!,
+      type: 'comment',
+      postId: req.params.id,
+      commentId,
+    });
+  }
   res.json(comment);
 });
 
@@ -473,6 +502,7 @@ router.delete('/comments/:commentId', async (req: Request, res: Response) => {
     return;
   }
   await query('DELETE FROM post_comments WHERE id = ?', [req.params.commentId]);
+  await query('DELETE FROM comment_mentions WHERE commentId = ?', [req.params.commentId]);
   await query('UPDATE posts SET commentsCount = GREATEST(0, commentsCount - 1) WHERE id = ?', [comment.postId]);
   res.json({ success: true });
 });

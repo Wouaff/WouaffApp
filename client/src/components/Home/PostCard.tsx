@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { RepostInfo, SocialPost } from '../../types';
+import PostText from './PostText';
 import ReportPostModal from './ReportPostModal';
 
 interface PostCardProps {
@@ -39,27 +40,7 @@ export default function PostCard({ post, repostInfo, onLike, onRepost, onOpen }:
       ? `/@${repostInfo.handle.replace(/^@/, '')}`
       : null;
 
-  const renderText = (text: string) => {
-    let tagOccurrence = 0;
-    const parts = text.split(/(#[\p{L}\p{N}_]+)/gu);
-    return parts.map((part) => {
-      if (part.length > 1 && part.startsWith('#')) {
-        tagOccurrence += 1;
-        const tag = part.slice(1);
-        return (
-          <Link
-            key={`${tag}-${tagOccurrence}`}
-            to={`/hashtag/${encodeURIComponent(tag)}`}
-            className="text-brand hover:underline"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {part}
-          </Link>
-        );
-      }
-      return part;
-    });
-  };
+  const renderText = (text: string) => <PostText text={text} />;
 
   return (
     <article

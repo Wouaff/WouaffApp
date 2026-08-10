@@ -2,6 +2,8 @@ import type {
   FeedItem,
   GroupData,
   GroupEntry,
+  MentionUser,
+  NotificationItem,
   PostComment,
   SearchResult,
   SocialPost,
@@ -167,6 +169,14 @@ export const stories = {
 
 /* ── Notifications ── */
 export const notifications = {
+  list: (limit = 50, before?: number) => {
+    let path = `/notifications?limit=${limit}`;
+    if (before) path += `&before=${before}`;
+    return request<{ items: NotificationItem[]; unread: number }>('GET', path);
+  },
+  unreadCount: () => request<{ count: number }>('GET', '/notifications/unread-count'),
+  markRead: (id: number) => request<{ success: boolean }>('POST', `/notifications/${id}/read`),
+  markAllRead: () => request<{ success: boolean }>('POST', '/notifications/read-all'),
   setFcmToken: (token: string) => request<{ success: boolean }>('POST', '/notifications/fcm-token', { token }),
   removeFcmToken: (token: string) => request<{ success: boolean }>('DELETE', '/notifications/fcm-token', { token }),
 };
@@ -174,6 +184,7 @@ export const notifications = {
 /* ── Search ── */
 export const search = {
   users: (q: string) => request<{ results: SearchResult[] }>('GET', `/search/users?q=${encodeURIComponent(q)}`),
+  mentions: (q: string) => request<{ results: MentionUser[] }>('GET', `/search/mentions?q=${encodeURIComponent(q)}`),
   userByWouaffId: (wouaffId: string) =>
     request<{ uid: string; profile: UserProfile }>('GET', `/search/users/${wouaffId.replace('@', '')}`),
 };
