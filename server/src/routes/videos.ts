@@ -49,7 +49,7 @@ router.get('/', async (req: Request, res: Response) => {
   const limit = Math.min(20, Math.max(1, parseInt(req.query.limit as string, 10) || 10));
   const offset = (page - 1) * limit;
   const rows = await query<Array<VideoData & { uid: string }>>(
-    'SELECT v.*, p.pseudo, p.avatar FROM videos v LEFT JOIN profiles p ON p.uid = v.uid ORDER BY v.createdAt DESC LIMIT ? OFFSET ?',
+    'SELECT v.*, p.pseudo, p.avatar FROM videos v LEFT JOIN users p ON p.uid = v.uid ORDER BY v.createdAt DESC LIMIT ? OFFSET ?',
     [limit, offset],
   );
   const videoIds = rows.map((r) => r.id);
@@ -199,7 +199,7 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
   const offset = Math.max(0, parseInt(req.query.offset as string, 10) || 0);
   const rows = await query<Array<VideoComment & { uid: string }>>(
-    'SELECT c.*, p.pseudo, p.avatar FROM video_comments c LEFT JOIN profiles p ON p.uid = c.uid WHERE c.videoId = ? ORDER BY c.createdAt ASC LIMIT ? OFFSET ?',
+    'SELECT c.*, p.pseudo, p.avatar FROM video_comments c LEFT JOIN users p ON p.uid = c.uid WHERE c.videoId = ? ORDER BY c.createdAt ASC LIMIT ? OFFSET ?',
     [req.params.id, limit, offset],
   );
   const enriched: VideoComment[] = [];

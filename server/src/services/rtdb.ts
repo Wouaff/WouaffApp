@@ -24,7 +24,7 @@ export async function getConversationsForUser(uid: string): Promise<Record<strin
             m.forwardedFrom, m.ephemeralDuration, m.reactions, m.type,
             m.pendingFrom, m.senderName, m.seen
      FROM contacts c
-     JOIN profiles p ON p.uid = c.contactUid
+     JOIN users p ON p.uid = c.contactUid
      LEFT JOIN messages m ON m.msgKey = (
        SELECT m2.msgKey FROM messages m2
        WHERE m2.convId = CONCAT(LEAST(c.uid, c.contactUid), '_', GREATEST(c.uid, c.contactUid))
@@ -375,7 +375,7 @@ export async function searchGroupMessages(gid: string, searchQuery: string): Pro
 /* ── Profiles ── */
 
 export async function getProfile(uid: string): Promise<Record<string, unknown> | null> {
-  const row = await getOne<Record<string, unknown>>('SELECT * FROM profiles WHERE uid = ?', [uid]);
+  const row = await getOne<Record<string, unknown>>('SELECT * FROM users WHERE uid = ?', [uid]);
   if (!row) return null;
   const { publicKey, ...profile } = row;
   const result = profile as Record<string, unknown>;
@@ -414,7 +414,7 @@ const PROFILE_COLUMNS = new Set([
 export async function updateProfile(uid: string, data: Record<string, unknown>): Promise<void> {
   if (data.wouaffId !== undefined) {
     const newId = data.wouaffId as string;
-    const oldRow = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM profiles WHERE uid = ?', [uid]);
+    const oldRow = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM users WHERE uid = ?', [uid]);
     const oldId = oldRow?.wouaffId || '';
     if (newId !== oldId) {
       if (oldId) await query('DELETE FROM wouaff_id_index WHERE wouaffId = ?', [oldId]);
@@ -443,11 +443,11 @@ export async function updateProfile(uid: string, data: Record<string, unknown>):
   }
   if (fields.length === 0) return;
   params.push(uid);
-  await query(`UPDATE profiles SET ${fields.join(',')} WHERE uid=?`, params);
+  await query(`UPDATE users SET ${fields.join(',')} WHERE uid=?`, params);
 }
 
 export async function getPublicKey(uid: string): Promise<Record<string, unknown> | null> {
-  const row = await getOne<{ publicKey: string | null }>('SELECT publicKey FROM profiles WHERE uid = ?', [uid]);
+  const row = await getOne<{ publicKey: string | null }>('SELECT publicKey FROM users WHERE uid = ?', [uid]);
   if (!row?.publicKey) return null;
   try {
     return JSON.parse(row.publicKey);
@@ -620,7 +620,7 @@ export async function getMutualContacts(
     `SELECT c2.contactUid AS uid, p.pseudo, p.avatar
      FROM contacts c1
      INNER JOIN contacts c2 ON c1.contactUid = c2.contactUid
-     LEFT JOIN profiles p ON c2.contactUid = p.uid
+     LEFT JOIN users p ON c2.contactUid = p.uid
      WHERE c1.uid = ? AND c2.uid = ? AND c2.contactUid NOT IN (?, ?)`,
     [uid1, uid2, uid1, uid2],
   );
@@ -634,7 +634,7 @@ export async function searchByWouaffId(wouaffId: string): Promise<string | null>
   const row = await getOne<{ uid: string }>('SELECT uid FROM wouaff_id_index WHERE wouaffId=?', [wouaffId]);
   if (row) return row.uid;
   const profile = await getOne<{ uid: string; wouaffId: string | null }>(
-    'SELECT uid, wouaffId FROM profiles WHERE wouaffId=?',
+    'SELECT uid, wouaffId FROM users WHERE wouaffId=?',
     [wouaffId],
   );
   if (profile?.uid) {
@@ -866,10 +866,10 @@ export async function getAdminStats(): Promise<{
   wouaffIds: number;
 }> {
   const [[{ users }], [{ chats }], [{ messages }], [{ online }], [{ badges }], [{ ids }]] = await Promise.all([
-    query<[{ users: number }]>('SELECT COUNT(*) as users FROM profiles'),
+    query<[{ users: number }]>('SELECT COUNT(*) as users FROM users'),
     query<[{ chats: number }]>('SELECT COUNT(DISTINCT convId) as chats FROM messages'),
     query<[{ messages: number }]>('SELECT COUNT(*) as messages FROM messages'),
-    query<[{ online: number }]>("SELECT COUNT(*) as online FROM profiles WHERE status='online'"),
+    query<[{ online: number }]>("SELECT COUNT(*) as online FROM users WHERE status='online'"),
     query<[{ badges: number }]>('SELECT COUNT(*) as badges FROM badges'),
     query<[{ ids: number }]>('SELECT COUNT(*) as ids FROM wouaff_id_index'),
   ]);
@@ -878,7 +878,7 @@ export async function getAdminStats(): Promise<{
 
 export async function getRecentUsers(limit = 20): Promise<Record<string, Record<string, unknown>>> {
   const rows = await query<Array<{ uid: string } & Record<string, unknown>>>(
-    'SELECT * FROM profiles ORDER BY createdAt DESC LIMIT ?',
+    'SELECT * FROM users ORDER BY createdAt DESC LIMIT ?',
     [limit],
   );
   const result: Record<string, Record<string, unknown>> = {};
@@ -892,7 +892,7 @@ export async function getRecentUsers(limit = 20): Promise<Record<string, Record<
 export async function updateProfileByAdmin(uid: string, data: Record<string, unknown>): Promise<void> {
   if (data.wouaffId !== undefined) {
     const newId = data.wouaffId as string;
-    const oldRow = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM profiles WHERE uid=?', [uid]);
+    const oldRow = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM users WHERE uid=?', [uid]);
     const oldId = oldRow?.wouaffId || '';
     if (newId !== oldId) {
       if (oldId) await query('DELETE FROM wouaff_id_index WHERE wouaffId=?', [oldId]);
@@ -916,7 +916,7 @@ export async function updateProfileByAdmin(uid: string, data: Record<string, unk
   }
   if (fields.length === 0) return;
   params.push(uid);
-  await query(`UPDATE profiles SET ${fields.join(',')} WHERE uid=?`, params);
+  await query(`UPDATE users SET ${fields.join(',')} WHERE uid=?`, params);
 }
 
 export async function setUserBadges(uid: string, badgeIds: string[]): Promise<void> {
@@ -927,13 +927,13 @@ export async function setUserBadges(uid: string, badgeIds: string[]): Promise<vo
 }
 
 export async function resetUserWouaffId(uid: string): Promise<void> {
-  const row = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM profiles WHERE uid=?', [uid]);
+  const row = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM users WHERE uid=?', [uid]);
   if (row?.wouaffId) await query('DELETE FROM wouaff_id_index WHERE wouaffId=?', [row.wouaffId]);
-  await query('UPDATE profiles SET wouaffId=NULL WHERE uid=?', [uid]);
+  await query('UPDATE users SET wouaffId=NULL WHERE uid=?', [uid]);
 }
 
 export async function deleteUserProfile(uid: string): Promise<void> {
-  const row = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM profiles WHERE uid=?', [uid]);
+  const row = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM users WHERE uid=?', [uid]);
   if (row?.wouaffId) await query('DELETE FROM wouaff_id_index WHERE wouaffId=?', [row.wouaffId]);
   await query('DELETE FROM contacts WHERE uid=? OR contactUid=?', [uid, uid]);
   await query('DELETE FROM user_badges WHERE uid=?', [uid]);
@@ -943,7 +943,7 @@ export async function deleteUserProfile(uid: string): Promise<void> {
   await query('DELETE FROM fcm_tokens WHERE uid=?', [uid]);
   await query('DELETE FROM deleted_convs WHERE uid=?', [uid]);
   await query('DELETE FROM stories WHERE uid=?', [uid]);
-  await query('DELETE FROM profiles WHERE uid=?', [uid]);
+  await query('DELETE FROM users WHERE uid=?', [uid]);
 }
 
 /* ── Contact Requests ── */
@@ -1033,11 +1033,11 @@ export async function reportUser(reportedUid: string, reporterUid: string, reaso
 /* ── Status ── */
 
 export async function setUserOnline(uid: string): Promise<void> {
-  await query("UPDATE profiles SET status='online', lastSeen=? WHERE uid=?", [Date.now(), uid]);
+  await query("UPDATE users SET status='online', lastSeen=? WHERE uid=?", [Date.now(), uid]);
 }
 
 export async function setUserOffline(uid: string): Promise<void> {
-  await query("UPDATE profiles SET status='offline', lastSeen=? WHERE uid=?", [Date.now(), uid]);
+  await query("UPDATE users SET status='offline', lastSeen=? WHERE uid=?", [Date.now(), uid]);
 }
 
 /* ── Typing (in-memory via Socket.IO, stub for compatibility) ── */
@@ -1151,7 +1151,7 @@ export async function setMaintenanceMode(enabled: boolean, message?: string): Pr
 
 export async function migrateWouaffIds(): Promise<{ migrated: number }> {
   const rows = await query<Array<{ uid: string; wouaffId: string | null }>>(
-    "SELECT uid, wouaffId FROM profiles WHERE wouaffId IS NOT NULL AND wouaffId != ''",
+    "SELECT uid, wouaffId FROM users WHERE wouaffId IS NOT NULL AND wouaffId != ''",
   );
   let count = 0;
   for (const row of rows) {

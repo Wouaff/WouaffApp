@@ -39,7 +39,7 @@ router.post('/register', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Mot de passe trop court (6 caractères minimum)' });
       return;
     }
-    const existing = await getOne<{ uid: string }>('SELECT uid FROM profiles WHERE email = ?', [email]);
+    const existing = await getOne<{ uid: string }>('SELECT uid FROM users WHERE email = ?', [email]);
     if (existing) {
       res.status(409).json({ error: 'Cet email est déjà utilisé' });
       return;
@@ -49,7 +49,7 @@ router.post('/register', async (req: Request, res: Response) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const wouaffId = `@${finalPseudo}`;
     await query(
-      'INSERT INTO profiles (uid, pseudo, email, passwordHash, wouaffId, createdAt, emailVerified) VALUES (?,?,?,?,?,?,?)',
+      'INSERT INTO users (uid, pseudo, email, passwordHash, wouaffId, createdAt, emailVerified) VALUES (?,?,?,?,?,?,?)',
       [uid, finalPseudo, email, passwordHash, wouaffId, Date.now(), 0],
     );
     await query('INSERT INTO wouaff_id_index (wouaffId, uid) VALUES (?,?) ON DUPLICATE KEY UPDATE uid=VALUES(uid)', [
@@ -86,7 +86,7 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
     const profile = await getOne<{ uid: string; pseudo: string; passwordHash: string | null; avatar: string | null }>(
-      'SELECT uid, pseudo, passwordHash, avatar FROM profiles WHERE email = ?',
+      'SELECT uid, pseudo, passwordHash, avatar FROM users WHERE email = ?',
       [email],
     );
     if (!profile) {
@@ -115,7 +115,7 @@ router.post('/login', async (req: Request, res: Response) => {
 router.get('/me', verifyToken, async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const profile = await getOne<Record<string, unknown>>(
-    'SELECT uid, pseudo, email, avatar, banner, bio, wouaffId, status, lastSeen, createdAt, emailVerified FROM profiles WHERE uid = ?',
+    'SELECT uid, pseudo, email, avatar, banner, bio, wouaffId, status, lastSeen, createdAt, emailVerified FROM users WHERE uid = ?',
     [authReq.uid!],
   );
   if (!profile) {
@@ -132,7 +132,7 @@ router.post('/logout', async (req: Request, res: Response) => {
   if (sessionId) {
     const session = await getOne<{ uid: string }>('SELECT uid FROM sessions WHERE sessionId = ?', [sessionId]);
     if (session) {
-      await query("UPDATE profiles SET status='offline', lastSeen=? WHERE uid=?", [Date.now(), session.uid]);
+      await query("UPDATE users SET status='offline', lastSeen=? WHERE uid=?", [Date.now(), session.uid]);
     }
     await query('DELETE FROM sessions WHERE sessionId = ?', [sessionId]);
   }
@@ -148,7 +148,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Email requis' });
       return;
     }
-    const profile = await getOne<{ uid: string }>('SELECT uid FROM profiles WHERE email = ?', [email]);
+    const profile = await getOne<{ uid: string }>('SELECT uid FROM users WHERE email = ?', [email]);
     if (!profile) {
       /* Don't reveal if email exists */
       res.json({ success: true });
@@ -191,7 +191,7 @@ router.post('/reset-password', async (req: Request, res: Response) => {
       return;
     }
     const passwordHash = await bcrypt.hash(password, 10);
-    await query('UPDATE profiles SET passwordHash=? WHERE uid=?', [passwordHash, row.uid]);
+    await query('UPDATE users SET passwordHash=? WHERE uid=?', [passwordHash, row.uid]);
     await query('UPDATE email_tokens SET used=1 WHERE id=?', [row.id]);
     /* Destroy all existing sessions for security */
     await query('DELETE FROM sessions WHERE uid=?', [row.uid]);
@@ -207,7 +207,7 @@ router.post('/send-verification', verifyToken, async (req: Request, res: Respons
   try {
     const authReq = req as AuthRequest;
     const profile = await getOne<{ email: string | null; emailVerified: number }>(
-      'SELECT email, emailVerified FROM profiles WHERE uid=?',
+      'SELECT email, emailVerified FROM users WHERE uid=?',
       [authReq.uid!],
     );
     if (!profile?.email) {
@@ -250,7 +250,7 @@ router.post('/verify-email', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Token invalide ou expiré' });
       return;
     }
-    await query('UPDATE profiles SET emailVerified=1 WHERE uid=?', [row.uid]);
+    await query('UPDATE users SET emailVerified=1 WHERE uid=?', [row.uid]);
     await query('UPDATE email_tokens SET used=1 WHERE id=?', [row.id]);
     res.json({ success: true });
   } catch (err) {

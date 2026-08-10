@@ -117,7 +117,7 @@ router.get('/', async (req: Request, res: Response) => {
     `SELECT p.id, p.uid, p.text, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
      FROM posts p
-     LEFT JOIN profiles pr ON pr.uid = p.uid
+     LEFT JOIN users pr ON pr.uid = p.uid
      LEFT JOIN staff s ON s.uid = p.uid
      ORDER BY p.createdAt DESC
      LIMIT ? OFFSET ?`,
@@ -139,7 +139,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     `SELECT p.id, p.uid, p.text, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
      FROM posts p
-     LEFT JOIN profiles pr ON pr.uid = p.uid
+     LEFT JOIN users pr ON pr.uid = p.uid
      LEFT JOIN staff s ON s.uid = p.uid
      WHERE p.id = ?`,
     [req.params.id],
@@ -284,7 +284,7 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
   const offset = Math.max(0, parseInt(req.query.offset as string, 10) || 0);
   const rows = await query<Array<PostComment & { uid: string }>>(
-    'SELECT c.*, p.pseudo, p.avatar FROM post_comments c LEFT JOIN profiles p ON p.uid = c.uid WHERE c.postId = ? ORDER BY c.createdAt ASC LIMIT ? OFFSET ?',
+    'SELECT c.*, p.pseudo, p.avatar FROM post_comments c LEFT JOIN users p ON p.uid = c.uid WHERE c.postId = ? ORDER BY c.createdAt ASC LIMIT ? OFFSET ?',
     [req.params.id, limit, offset],
   );
   const enriched: PostComment[] = [];
