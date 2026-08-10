@@ -99,9 +99,14 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
 });
 
+/* API 404 — JSON, not the SPA fallback */
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'Not Found' });
+});
+
 /* Frontend static files (built React app) */
 const clientDist = resolve(__dirname, '../../client/dist');
-app.use(express.static(clientDist, { maxAge: '7d', immutable: true }));
+app.use(express.static(clientDist, { maxAge: '7d', immutable: true, index: false }));
 
 /* Downloads (installer, etc.) */
 const downloadsDir = resolve(__dirname, '../downloads');
@@ -112,6 +117,7 @@ const uploadsDir = resolve(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadsDir));
 
 app.get('*', (_req, res) => {
+  res.set('Cache-Control', 'no-cache');
   res.sendFile(resolve(clientDist, 'index.html'));
 });
 
