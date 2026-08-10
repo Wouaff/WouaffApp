@@ -4,7 +4,7 @@ import { getSessionId } from './auth';
 
 const SOCKET_URL = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL
   ? (import.meta as unknown as { env: Record<string, string> }).env.VITE_API_URL
-  : 'https://wouaff-app.com';
+  : 'https://wouaff.app';
 
 let socket: Socket | null = null;
 const pendingListeners: Array<{ event: string; cb: (...args: unknown[]) => void }> = [];

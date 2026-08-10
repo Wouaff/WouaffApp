@@ -1,4 +1,4 @@
-# <img src="https://wouaff-app.com/assets/logo/logo.png" alt="Wouaff Logo" width="30" height="30" align="left" style="margin-right: 9px; margin-top: 5px;"> Wouaff — t'as capté 🐺
+# <img src="https://wouaff.app/assets/logo/logo.png" alt="Wouaff Logo" width="30" height="30" align="left" style="margin-right: 9px; margin-top: 5px;"> Wouaff — t'as capté 🐺
 
 *Le premier réseau social **français** et **souverain***  
 *Conçu en France, hébergé en France, pour les Français.*
@@ -195,5 +195,5 @@ Voir [CONTRIBUTING.md](CONTRIBUTING.md).
 ---
 
 <p align="center">
-  <sub>Fait avec ❤️ en France · <a href="https://wouaff-app.com">wouaff-app.com</a></sub>
+  <sub>Fait avec ❤️ en France · <a href="https://wouaff.app">wouaff.app</a></sub>
 </p>
