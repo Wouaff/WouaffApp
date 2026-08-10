@@ -80,7 +80,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/simple-peer": "^9.11.9",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^6.0.5",
     "autoprefixer": "^10.5.2",
     "concurrently": "^9.1.0",
     "cross-env": "^7.0.3",
