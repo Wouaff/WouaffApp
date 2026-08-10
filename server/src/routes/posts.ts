@@ -5,7 +5,7 @@ import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
 import { getProfile } from '../services/rtdb.js';
-import type { AuthRequest, PostComment, PostData } from '../types/index.js';
+import type { AuthRequest, PostComment, PostData, PostFeedItem } from '../types/index.js';
 
 const MAX_LENGTH = 280;
 
@@ -63,6 +63,41 @@ async function fetchRepostedMap(uid: string, ids: string[]): Promise<Set<string>
   return set;
 }
 
+const REPOST_SELECT = `SELECT r.uid AS repostedByUid, r.createdAt AS repostedAt,
+            p.id, p.uid, p.text, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+            pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid,
+            ru.pseudo AS reposterPseudo, ru.avatar AS reposterAvatar, ru.wouaffId AS reposterWouaffId,
+            rs.uid AS reposterStaffUid
+     FROM post_reposts r
+     JOIN posts p ON p.id = r.postId
+     LEFT JOIN users pr ON pr.uid = p.uid
+     LEFT JOIN staff s ON s.uid = p.uid
+     LEFT JOIN users ru ON ru.uid = r.uid
+     LEFT JOIN staff rs ON rs.uid = r.uid`;
+
+async function getRepostItem(repostedByUid: string, postId: string, viewerUid?: string): Promise<PostFeedItem | null> {
+  const row = await getOne<Record<string, unknown>>(`${REPOST_SELECT} WHERE r.uid = ? AND r.postId = ?`, [
+    repostedByUid,
+    postId,
+  ]);
+  if (!row) return null;
+  const likedMap = viewerUid ? await fetchLikedMap(viewerUid, [postId]) : undefined;
+  const repostedMap = viewerUid ? await fetchRepostedMap(viewerUid, [postId]) : undefined;
+  return {
+    type: 'repost',
+    key: `repost:${repostedByUid}:${postId}`,
+    post: await toPostData(row, likedMap, repostedMap),
+    repost: {
+      uid: repostedByUid,
+      pseudo: (row.reposterPseudo as string) || 'Utilisateur',
+      handle: (row.reposterWouaffId as string) ? `@${row.reposterWouaffId}` : '@inconnu',
+      avatar: row.reposterAvatar as string,
+      verified: !!row.reposterStaffUid,
+      time: row.repostedAt as number,
+    },
+  };
+}
+
 router.post('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { text } = req.body as { text?: string };
@@ -114,32 +149,81 @@ router.get('/', async (req: Request, res: Response) => {
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
   const offset = (page - 1) * limit;
   const uidFilter = (req.query.uid as string) || '';
-  const params: Array<string | number> = [];
-  let where = '';
+  const window = Math.max(limit, limit * 3);
+
+  const postParams: Array<string | number> = [];
+  let postWhere = '';
   if (uidFilter) {
-    where = 'WHERE p.uid = ?';
-    params.push(uidFilter);
+    postWhere = 'WHERE p.uid = ?';
+    postParams.push(uidFilter);
   }
-  params.push(limit, offset);
-  const rows = await query<Array<Record<string, unknown>>>(
+  postParams.push(window, offset);
+  const postRows = await query<Array<Record<string, unknown>>>(
     `SELECT p.id, p.uid, p.text, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
      FROM posts p
      LEFT JOIN users pr ON pr.uid = p.uid
      LEFT JOIN staff s ON s.uid = p.uid
-     ${where}
+     ${postWhere}
      ORDER BY p.createdAt DESC
      LIMIT ? OFFSET ?`,
-    params,
+    postParams,
   );
-  const ids = rows.map((r) => r.id as string);
+
+  const repostParams: Array<string | number> = [];
+  let repostWhere = '';
+  if (uidFilter) {
+    repostWhere = 'WHERE r.uid = ?';
+    repostParams.push(uidFilter);
+  }
+  repostParams.push(window, offset);
+  const repostRows = await query<Array<Record<string, unknown>>>(
+    `SELECT r.uid AS repostedByUid, r.createdAt AS repostedAt,
+            p.id, p.uid, p.text, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+            pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid,
+            ru.pseudo AS reposterPseudo, ru.avatar AS reposterAvatar, ru.wouaffId AS reposterWouaffId,
+            rs.uid AS reposterStaffUid
+     FROM post_reposts r
+     JOIN posts p ON p.id = r.postId
+     LEFT JOIN users pr ON pr.uid = p.uid
+     LEFT JOIN staff s ON s.uid = p.uid
+     LEFT JOIN users ru ON ru.uid = r.uid
+     LEFT JOIN staff rs ON rs.uid = r.uid
+     ${repostWhere}
+     ORDER BY r.createdAt DESC
+     LIMIT ? OFFSET ?`,
+    repostParams,
+  );
+
+  const ids = [...postRows, ...repostRows].map((r) => r.id as string);
   const likedMap = authReq.uid ? await fetchLikedMap(authReq.uid, ids) : undefined;
   const repostedMap = authReq.uid ? await fetchRepostedMap(authReq.uid, ids) : undefined;
-  const enriched: PostData[] = [];
-  for (const row of rows) {
-    enriched.push(await toPostData(row, likedMap, repostedMap));
+
+  const items: PostFeedItem[] = [];
+  for (const row of postRows) {
+    items.push({ type: 'post', key: `post:${row.id}`, post: await toPostData(row, likedMap, repostedMap) });
   }
-  res.json(enriched);
+  for (const row of repostRows) {
+    items.push({
+      type: 'repost',
+      key: `repost:${row.repostedByUid}:${row.id}`,
+      post: await toPostData(row, likedMap, repostedMap),
+      repost: {
+        uid: row.repostedByUid as string,
+        pseudo: (row.reposterPseudo as string) || 'Utilisateur',
+        handle: (row.reposterWouaffId as string) ? `@${row.reposterWouaffId}` : '@inconnu',
+        avatar: row.reposterAvatar as string,
+        verified: !!row.reposterStaffUid,
+        time: row.repostedAt as number,
+      },
+    });
+  }
+  items.sort((a, b) => {
+    const ta = a.type === 'repost' && a.repost ? a.repost.time : a.post.time;
+    const tb = b.type === 'repost' && b.repost ? b.repost.time : b.post.time;
+    return tb - ta;
+  });
+  res.json(items.slice(0, limit));
 });
 
 router.get('/:id', async (req: Request, res: Response) => {
@@ -219,13 +303,13 @@ router.post('/:id/repost', async (req: Request, res: Response) => {
     authReq.uid!,
     req.params.id,
   ]);
+  const io: Server = req.app.get('io');
   if (existing) {
     await query('DELETE FROM post_reposts WHERE uid = ? AND postId = ?', [authReq.uid!, req.params.id]);
     await query('UPDATE posts SET repostsCount = GREATEST(0, repostsCount - 1) WHERE id = ?', [req.params.id]);
     const [row] = await query<Array<{ repostsCount: number }>>('SELECT repostsCount FROM posts WHERE id = ?', [
       req.params.id,
     ]);
-    const io: Server = req.app.get('io');
     if (io)
       io.emit('post:reposted', {
         postId: req.params.id,
@@ -233,6 +317,7 @@ router.post('/:id/repost', async (req: Request, res: Response) => {
         reposted: false,
         reposts: row.repostsCount,
       });
+    if (io) io.emit('post:unrepost', { postId: req.params.id, uid: authReq.uid! });
     res.json({ reposted: false, reposts: row.repostsCount });
   } else {
     await query('INSERT INTO post_reposts (uid, postId, createdAt) VALUES (?,?,?)', [
@@ -244,10 +329,11 @@ router.post('/:id/repost', async (req: Request, res: Response) => {
     const [row] = await query<Array<{ repostsCount: number }>>('SELECT repostsCount FROM posts WHERE id = ?', [
       req.params.id,
     ]);
-    const io: Server = req.app.get('io');
     if (io)
       io.emit('post:reposted', { postId: req.params.id, uid: authReq.uid!, reposted: true, reposts: row.repostsCount });
-    res.json({ reposted: true, reposts: row.repostsCount });
+    const item = await getRepostItem(authReq.uid!, req.params.id, authReq.uid);
+    if (io && item) io.emit('post:repost', item);
+    res.json({ reposted: true, reposts: row.repostsCount, item });
   }
 });
 

@@ -192,3 +192,19 @@ export interface PostComment {
   pseudo?: string;
   avatar?: string;
 }
+
+export interface RepostInfo {
+  uid: string;
+  pseudo: string;
+  handle: string;
+  avatar?: string;
+  verified?: boolean;
+  time: number;
+}
+
+export interface FeedItem {
+  type: 'post' | 'repost';
+  key: string;
+  post: SocialPost;
+  repost?: RepostInfo;
+}

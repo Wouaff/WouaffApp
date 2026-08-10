@@ -1,13 +1,13 @@
 import { BadgeCheck, ChevronLeft, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import PostCard from '../components/Home/PostCard';
 import LeftNav from '../components/Home/LeftNav';
+import PostCard from '../components/Home/PostCard';
 import PostModal from '../components/Home/PostModal';
 import RightSidebar from '../components/Home/RightSidebar';
 import { useAuth } from '../hooks/useAuth';
 import { posts as postsAPI, profiles as profilesAPI } from '../services/api';
-import type { SocialPost } from '../types';
+import type { FeedItem, SocialPost } from '../types';
 import { PLATFORMS, parseSocialLinks } from '../utils/socialLinks';
 
 interface BadgeDef {
@@ -39,14 +39,14 @@ export default function ProfilePage() {
   const [state, setState] = useState<PageState>('loading');
   const [errorMsg, setErrorMsg] = useState('');
   const [data, setData] = useState<ProfileData | null>(null);
-  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [posts, setPosts] = useState<FeedItem[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [following, setFollowing] = useState(false);
   const [followers, setFollowers] = useState(0);
   const [followPending, setFollowPending] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
-  const selectedPost = posts.find((p) => p.id === selectedPostId) || null;
+  const selectedPost = posts.find((i) => i.post.id === selectedPostId)?.post || null;
 
   const loadProfile = useCallback(async () => {
     if (!wouaffId || wouaffId === '@') {
@@ -123,33 +123,52 @@ export default function ProfilePage() {
     }
   }, [data, following, user, navigate]);
 
-  const handleLike = useCallback(async (id: string) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) } : p)),
-    );
-    try {
-      const res = await postsAPI.like(id);
-      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, liked: res.liked, likes: res.likes } : p)));
-    } catch (e) {
-      console.error(e);
-    }
+  const updatePost = useCallback((id: string, fn: (p: SocialPost) => SocialPost) => {
+    setPosts((prev) => prev.map((i) => (i.post.id === id ? { ...i, post: fn(i.post) } : i)));
   }, []);
 
-  const handleRepost = useCallback(async (id: string) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, reposted: !p.reposted, reposts: p.reposts + (p.reposted ? -1 : 1) } : p)),
-    );
-    try {
-      const res = await postsAPI.repost(id);
-      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, reposted: res.reposted, reposts: res.reposts } : p)));
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
+  const handleLike = useCallback(
+    async (id: string) => {
+      updatePost(id, (p) => ({ ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }));
+      try {
+        const res = await postsAPI.like(id);
+        updatePost(id, (p) => ({ ...p, liked: res.liked, likes: res.likes }));
+      } catch (e) {
+        console.error(e);
+        updatePost(id, (p) => ({ ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }));
+      }
+    },
+    [updatePost],
+  );
 
-  const handleCommentDelta = useCallback((id: string, delta: number) => {
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, comments: Math.max(0, p.comments + delta) } : p)));
-  }, []);
+  const handleRepost = useCallback(
+    async (id: string) => {
+      const wasReposted = posts.find((i) => i.post.id === id)?.post.reposted;
+      updatePost(id, (p) => ({ ...p, reposted: !p.reposted, reposts: p.reposts + (p.reposted ? -1 : 1) }));
+      try {
+        const res = await postsAPI.repost(id);
+        updatePost(id, (p) => ({ ...p, reposted: res.reposted, reposts: res.reposts }));
+        if (res.reposted && res.item) {
+          setPosts((prev) => (prev.some((i) => i.key === res.item!.key) ? prev : [res.item!, ...prev]));
+        } else if (!res.reposted) {
+          setPosts((prev) =>
+            prev.filter((i) => !(i.type === 'repost' && i.repost?.uid === user?.uid && i.post.id === id)),
+          );
+        }
+      } catch (e) {
+        console.error(e);
+        updatePost(id, (p) => ({ ...p, reposted: !!wasReposted, reposts: p.reposts + (p.reposted ? -1 : 1) }));
+      }
+    },
+    [updatePost, posts, user],
+  );
+
+  const handleCommentDelta = useCallback(
+    (id: string, delta: number) => {
+      updatePost(id, (p) => ({ ...p, comments: Math.max(0, p.comments + delta) }));
+    },
+    [updatePost],
+  );
 
   const goBack = () => {
     if (window.history.length > 1) navigate(-1);
@@ -240,146 +259,149 @@ export default function ProfilePage() {
       <LeftNav />
       <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
         <div className="mx-auto max-w-[600px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
-        <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
-          <div className="flex items-center gap-5 px-2 h-14">
+          <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
+            <div className="flex items-center gap-5 px-2 h-14">
+              <button
+                type="button"
+                onClick={goBack}
+                aria-label="Retour"
+                className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <div className="min-w-0">
+                <div className="font-extrabold text-[17px] text-[var(--text-primary)] leading-tight truncate">
+                  {pseudo}
+                </div>
+                <div className="text-[12px] text-[var(--text-muted)]">{data.postsCount} posts</div>
+              </div>
+            </div>
+          </header>
+
+          <div
+            className="h-40 bg-gradient-to-br from-brand to-brand-dark bg-cover bg-center flex-shrink-0"
+            style={banner ? { backgroundImage: `url(${banner})` } : undefined}
+          />
+
+          <div className="flex items-start justify-between px-4">
+            <div className="w-24 h-24 -mt-12 rounded-full border-4 border-[var(--bg-base)] bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-white font-extrabold text-3xl flex-shrink-0">
+              {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
+            </div>
+            <div className="mt-3">{actionBtn}</div>
+          </div>
+
+          <div className="px-4 pt-2 pb-3">
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">{pseudo}</h1>
+              {data.verified && <BadgeCheck size={20} className="text-brand" aria-label="Compte vérifié" />}
+            </div>
+            <div className="text-[15px] text-[var(--text-muted)]">@{handle}</div>
+
+            {bio && (
+              <p className="m-0 mt-3 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap">
+                {bio}
+              </p>
+            )}
+
+            {validBadges.length > 0 && (
+              <div className="flex items-center gap-1.5 mt-3">
+                {validBadges.map((b) => (
+                  <img
+                    key={b.icon}
+                    src={b.icon}
+                    alt={b.name || ''}
+                    title={b.name || ''}
+                    className="w-6 h-6 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {socialLinks.length > 0 && (
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                {socialLinks.map((link) => {
+                  const pf = PLATFORMS.find((p) => p.id === link.platform);
+                  return (
+                    <a
+                      key={link.url + (pf?.id || '')}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[13px] text-brand no-underline hover:underline"
+                      title={link.url}
+                    >
+                      {pf && (
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="w-4 h-4"
+                          dangerouslySetInnerHTML={{ __html: pf.svg }}
+                        />
+                      )}
+                      <span>{pf?.label || link.platform}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex items-center gap-4 mt-3">
+              <span className="text-[14px] text-[var(--text-primary)]">
+                <strong>{data.postsCount}</strong> <span className="text-[var(--text-muted)]">posts</span>
+              </span>
+              <span className="text-[14px] text-[var(--text-primary)]">
+                <strong>{followers}</strong> <span className="text-[var(--text-muted)]">abonnés</span>
+              </span>
+              <span className="text-[14px] text-[var(--text-primary)]">
+                <strong>{data.followingCount}</strong> <span className="text-[var(--text-muted)]">abonnements</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="border-b border-[var(--border)]">
             <button
               type="button"
-              onClick={goBack}
-              aria-label="Retour"
-              className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+              className="w-full relative flex items-center justify-center py-3.5 border-none bg-transparent cursor-pointer text-[var(--text-primary)]"
+              aria-current="page"
             >
-              <ChevronLeft size={20} />
+              <span className="text-[15px] font-extrabold">Posts</span>
+              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-brand rounded-full" />
             </button>
-            <div className="min-w-0">
-              <div className="font-extrabold text-[17px] text-[var(--text-primary)] leading-tight truncate">
-                {pseudo}
+          </div>
+
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border)]">
+            <UserPlus size={16} className="text-[var(--text-muted)]" />
+            <span className="text-[13px] text-[var(--text-muted)]">Les posts de @{handle}</span>
+          </div>
+
+          {postsLoading ? (
+            <div className="py-12 flex justify-center">
+              <div className="spinner" />
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="py-16 px-6 text-center">
+              <div className="text-4xl mb-3" aria-hidden="true">
+                🐺
               </div>
-              <div className="text-[12px] text-[var(--text-muted)]">{data.postsCount} posts</div>
+              <p className="m-0 text-[var(--text-secondary)]">
+                {data.isMe ? "Vous n'avez pas encore publié de post." : `@${handle} n'a pas encore publié de post.`}
+              </p>
             </div>
-          </div>
-        </header>
-
-        <div
-          className="h-40 bg-gradient-to-br from-brand to-brand-dark bg-cover bg-center flex-shrink-0"
-          style={banner ? { backgroundImage: `url(${banner})` } : undefined}
-        />
-
-        <div className="flex items-start justify-between px-4">
-          <div className="w-24 h-24 -mt-12 rounded-full border-4 border-[var(--bg-base)] bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-white font-extrabold text-3xl flex-shrink-0">
-            {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
-          </div>
-          <div className="mt-3">{actionBtn}</div>
-        </div>
-
-        <div className="px-4 pt-2 pb-3">
-          <div className="flex items-center gap-1.5">
-            <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">{pseudo}</h1>
-            {data.verified && <BadgeCheck size={20} className="text-brand" aria-label="Compte vérifié" />}
-          </div>
-          <div className="text-[15px] text-[var(--text-muted)]">@{handle}</div>
-
-          {bio && (
-            <p className="m-0 mt-3 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap">{bio}</p>
+          ) : (
+            posts.map((item) => (
+              <PostCard
+                key={item.key}
+                post={item.post}
+                repostInfo={item.repost}
+                onLike={handleLike}
+                onRepost={handleRepost}
+                onOpen={(p) => setSelectedPostId(p.id)}
+              />
+            ))
           )}
-
-          {validBadges.length > 0 && (
-            <div className="flex items-center gap-1.5 mt-3">
-              {validBadges.map((b) => (
-                <img
-                  key={b.icon}
-                  src={b.icon}
-                  alt={b.name || ''}
-                  title={b.name || ''}
-                  className="w-6 h-6 object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          {socialLinks.length > 0 && (
-            <div className="flex items-center gap-2 mt-3 flex-wrap">
-              {socialLinks.map((link) => {
-                const pf = PLATFORMS.find((p) => p.id === link.platform);
-                return (
-                  <a
-                    key={link.url + (pf?.id || '')}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-[13px] text-brand no-underline hover:underline"
-                    title={link.url}
-                  >
-                    {pf && (
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        className="w-4 h-4"
-                        dangerouslySetInnerHTML={{ __html: pf.svg }}
-                      />
-                    )}
-                    <span>{pf?.label || link.platform}</span>
-                  </a>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="flex items-center gap-4 mt-3">
-            <span className="text-[14px] text-[var(--text-primary)]">
-              <strong>{data.postsCount}</strong> <span className="text-[var(--text-muted)]">posts</span>
-            </span>
-            <span className="text-[14px] text-[var(--text-primary)]">
-              <strong>{followers}</strong> <span className="text-[var(--text-muted)]">abonnés</span>
-            </span>
-            <span className="text-[14px] text-[var(--text-primary)]">
-              <strong>{data.followingCount}</strong> <span className="text-[var(--text-muted)]">abonnements</span>
-            </span>
-          </div>
-        </div>
-
-        <div className="border-b border-[var(--border)]">
-          <button
-            type="button"
-            className="w-full relative flex items-center justify-center py-3.5 border-none bg-transparent cursor-pointer text-[var(--text-primary)]"
-            aria-current="page"
-          >
-            <span className="text-[15px] font-extrabold">Posts</span>
-            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-brand rounded-full" />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border)]">
-          <UserPlus size={16} className="text-[var(--text-muted)]" />
-          <span className="text-[13px] text-[var(--text-muted)]">Les posts de @{handle}</span>
-        </div>
-
-        {postsLoading ? (
-          <div className="py-12 flex justify-center">
-            <div className="spinner" />
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="py-16 px-6 text-center">
-            <div className="text-4xl mb-3" aria-hidden="true">
-              🐺
-            </div>
-            <p className="m-0 text-[var(--text-secondary)]">
-              {data.isMe ? "Vous n'avez pas encore publié de post." : `@${handle} n'a pas encore publié de post.`}
-            </p>
-          </div>
-        ) : (
-          posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onLike={handleLike}
-              onRepost={handleRepost}
-              onOpen={(p) => setSelectedPostId(p.id)}
-            />
-          ))
-        )}
         </div>
       </main>
       <RightSidebar />

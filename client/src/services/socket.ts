@@ -1,5 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
-import type { CallPayload, PostComment, SocialPost, SocketMessageEvent } from '../types';
+import type { CallPayload, FeedItem, PostComment, SocialPost, SocketMessageEvent } from '../types';
 import { getSessionId } from './auth';
 
 const SOCKET_URL = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL
@@ -451,6 +451,20 @@ export function onPostDeleted(cb: (data: { postId: string }) => void): void {
 }
 export function offPostDeleted(cb: (data: { postId: string }) => void): void {
   socket?.off('post:deleted', cb);
+}
+
+export function onPostRepost(cb: (item: FeedItem) => void): void {
+  socket?.on('post:repost', cb);
+}
+export function offPostRepost(cb: (item: FeedItem) => void): void {
+  socket?.off('post:repost', cb);
+}
+
+export function onPostUnrepost(cb: (data: { postId: string; uid: string }) => void): void {
+  socket?.on('post:unrepost', cb);
+}
+export function offPostUnrepost(cb: (data: { postId: string; uid: string }) => void): void {
+  socket?.off('post:unrepost', cb);
 }
 
 /* ── Block events ── */

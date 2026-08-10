@@ -101,3 +101,19 @@ export interface PostComment {
   pseudo?: string;
   avatar?: string;
 }
+
+export interface RepostInfo {
+  uid: string;
+  pseudo: string;
+  handle: string;
+  avatar?: string;
+  verified?: boolean;
+  time: number;
+}
+
+export interface PostFeedItem {
+  type: 'post' | 'repost';
+  key: string;
+  post: PostData;
+  repost?: RepostInfo;
+}

@@ -12,33 +12,41 @@ import {
   offPostDeleted,
   offPostLiked,
   offPostNew,
+  offPostRepost,
   offPostReposted,
+  offPostUnrepost,
   onPostComment,
   onPostDeleted,
   onPostLiked,
   onPostNew,
+  onPostRepost,
   onPostReposted,
+  onPostUnrepost,
 } from '../services/socket';
-import type { PostComment, SocialPost } from '../types';
+import type { FeedItem, PostComment, SocialPost } from '../types';
 
 type FeedTab = 'forYou' | 'following';
+
+function toPostItem(post: SocialPost): FeedItem {
+  return { type: 'post', key: `post:${post.id}`, post };
+}
 
 export default function HomePage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<FeedTab>('forYou');
-  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
-  const selectedPost = posts.find((p) => p.id === selectedPostId) || null;
+  const selectedPost = items.find((i) => i.post.id === selectedPostId)?.post || null;
 
   const loadPosts = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       const data = await postsAPI.list(1, 50);
-      setPosts(data);
+      setItems(data);
     } catch (e) {
       console.error(e);
       setError((e as Error).message || 'Impossible de charger le fil');
@@ -54,86 +62,121 @@ export default function HomePage() {
   useEffect(() => {
     if (!user) return;
     const handleNew = (post: SocialPost) => {
-      setPosts((prev) => (prev.some((p) => p.id === post.id) ? prev : [post, ...prev]));
+      const item = toPostItem(post);
+      setItems((prev) => (prev.some((i) => i.key === item.key) ? prev : [item, ...prev]));
     };
     const handleLiked = (data: { postId: string; uid: string; liked: boolean; likes: number }) => {
       if (data.uid === user.uid) return;
-      setPosts((prev) => prev.map((p) => (p.id === data.postId ? { ...p, liked: data.liked, likes: data.likes } : p)));
+      setItems((prev) =>
+        prev.map((i) =>
+          i.post.id === data.postId ? { ...i, post: { ...i.post, liked: data.liked, likes: data.likes } } : i,
+        ),
+      );
     };
     const handleReposted = (data: { postId: string; uid: string; reposted: boolean; reposts: number }) => {
       if (data.uid === user.uid) return;
-      setPosts((prev) =>
-        prev.map((p) => (p.id === data.postId ? { ...p, reposted: data.reposted, reposts: data.reposts } : p)),
+      setItems((prev) =>
+        prev.map((i) =>
+          i.post.id === data.postId ? { ...i, post: { ...i.post, reposted: data.reposted, reposts: data.reposts } } : i,
+        ),
       );
     };
     const handleComment = (data: { postId: string; comment: PostComment }) => {
       if (data.comment.uid === user.uid) return;
-      setPosts((prev) => prev.map((p) => (p.id === data.postId ? { ...p, comments: p.comments + 1 } : p)));
+      setItems((prev) =>
+        prev.map((i) => (i.post.id === data.postId ? { ...i, post: { ...i.post, comments: i.post.comments + 1 } } : i)),
+      );
     };
     const handleDeleted = (data: { postId: string }) => {
-      setPosts((prev) => prev.filter((p) => p.id !== data.postId));
+      setItems((prev) => prev.filter((i) => i.post.id !== data.postId));
+    };
+    const handleRepost = (item: FeedItem) => {
+      setItems((prev) => (prev.some((i) => i.key === item.key) ? prev : [item, ...prev]));
+    };
+    const handleUnrepost = (data: { postId: string; uid: string }) => {
+      setItems((prev) =>
+        prev.filter((i) => !(i.type === 'repost' && i.repost?.uid === data.uid && i.post.id === data.postId)),
+      );
     };
     onPostNew(handleNew);
     onPostLiked(handleLiked);
     onPostReposted(handleReposted);
     onPostComment(handleComment);
     onPostDeleted(handleDeleted);
+    onPostRepost(handleRepost);
+    onPostUnrepost(handleUnrepost);
     return () => {
       offPostNew(handleNew);
       offPostLiked(handleLiked);
       offPostReposted(handleReposted);
       offPostComment(handleComment);
       offPostDeleted(handleDeleted);
+      offPostRepost(handleRepost);
+      offPostUnrepost(handleUnrepost);
     };
   }, [user]);
 
   const handlePost = useCallback(async (text: string) => {
     try {
       const post = await postsAPI.create(text);
-      setPosts((prev) => (prev.some((p) => p.id === post.id) ? prev : [post, ...prev]));
+      setItems((prev) => {
+        const item = toPostItem(post);
+        return prev.some((i) => i.key === item.key) ? prev : [item, ...prev];
+      });
       showToast('✅ Post publié !');
     } catch (e) {
       showToast((e as Error).message || 'Erreur lors de la publication', 'error');
     }
   }, []);
 
-  const handleLike = useCallback(async (id: string) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) } : p)),
-    );
-    try {
-      const res = await postsAPI.like(id);
-      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, liked: res.liked, likes: res.likes } : p)));
-    } catch (e) {
-      console.error(e);
-      setPosts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) } : p)),
-      );
-    }
+  const updatePost = useCallback((id: string, fn: (p: SocialPost) => SocialPost) => {
+    setItems((prev) => prev.map((i) => (i.post.id === id ? { ...i, post: fn(i.post) } : i)));
   }, []);
 
-  const handleRepost = useCallback(async (id: string) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, reposted: !p.reposted, reposts: p.reposts + (p.reposted ? -1 : 1) } : p)),
-    );
-    try {
-      const res = await postsAPI.repost(id);
-      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, reposted: res.reposted, reposts: res.reposts } : p)));
-    } catch (e) {
-      console.error(e);
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === id ? { ...p, reposted: !p.reposted, reposts: p.reposts + (p.reposted ? -1 : 1) } : p,
-        ),
-      );
-    }
-  }, []);
+  const handleLike = useCallback(
+    async (id: string) => {
+      updatePost(id, (p) => ({ ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }));
+      try {
+        const res = await postsAPI.like(id);
+        updatePost(id, (p) => ({ ...p, liked: res.liked, likes: res.likes }));
+      } catch (e) {
+        console.error(e);
+        updatePost(id, (p) => ({ ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }));
+      }
+    },
+    [updatePost],
+  );
 
-  const handleCommentDelta = useCallback((id: string, delta: number) => {
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, comments: Math.max(0, p.comments + delta) } : p)));
-  }, []);
+  const handleRepost = useCallback(
+    async (id: string) => {
+      const wasReposted = items.find((i) => i.post.id === id)?.post.reposted;
+      updatePost(id, (p) => ({ ...p, reposted: !p.reposted, reposts: p.reposts + (p.reposted ? -1 : 1) }));
+      try {
+        const res = await postsAPI.repost(id);
+        updatePost(id, (p) => ({ ...p, reposted: res.reposted, reposts: res.reposts }));
+        if (res.reposted && res.item) {
+          setItems((prev) => (prev.some((i) => i.key === res.item!.key) ? prev : [res.item!, ...prev]));
+        } else if (!res.reposted) {
+          setItems((prev) =>
+            prev.filter((i) => !(i.type === 'repost' && i.repost?.uid === user?.uid && i.post.id === id)),
+          );
+        }
+      } catch (e) {
+        console.error(e);
+        updatePost(id, (p) => ({ ...p, reposted: !!wasReposted, reposts: p.reposts + (p.reposted ? -1 : 1) }));
+      }
+    },
+    [updatePost, items, user],
+  );
 
-  const visiblePosts = useMemo(() => posts, [posts]);
+  const handleCommentDelta = useCallback(
+    (id: string, delta: number) => {
+      updatePost(id, (p) => ({ ...p, comments: Math.max(0, p.comments + delta) }));
+    },
+    [updatePost],
+  );
+
+  const visibleItems = useMemo(() => items, [items]);
 
   const tabs: Array<{ id: FeedTab; label: string }> = [
     { id: 'forYou', label: 'Pour toi' },
@@ -188,7 +231,7 @@ export default function HomePage() {
               Réessayer
             </button>
           </div>
-        ) : visiblePosts.length === 0 ? (
+        ) : visibleItems.length === 0 ? (
           <div className="py-16 px-6 text-center">
             <div className="text-4xl mb-3" aria-hidden="true">
               🐺
@@ -198,10 +241,11 @@ export default function HomePage() {
             </p>
           </div>
         ) : (
-          visiblePosts.map((post) => (
+          visibleItems.map((item) => (
             <PostCard
-              key={post.id}
-              post={post}
+              key={item.key}
+              post={item.post}
+              repostInfo={item.repost}
               onLike={handleLike}
               onRepost={handleRepost}
               onOpen={(p) => setSelectedPostId(p.id)}
