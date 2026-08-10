@@ -48,9 +48,26 @@ export async function verifyToken(req: Request, res: Response, next: NextFunctio
   next();
 }
 
-export async function createSession(uid: string): Promise<{ sessionId: string }> {
+export async function createSession(
+  uid: string,
+  opts: { ip?: string; userAgent?: string } = {},
+): Promise<{ sessionId: string }> {
   const sessionId = randomUUID().replace(/-/g, '');
-  await query('INSERT INTO sessions (sessionId, uid, createdAt) VALUES (?,?,?)', [sessionId, uid, Date.now()]);
+  const ip = opts.ip || null;
+  const userAgent = opts.userAgent || null;
+  await query('INSERT INTO sessions (sessionId, uid, createdAt, ip, userAgent) VALUES (?,?,?,?,?)', [
+    sessionId,
+    uid,
+    Date.now(),
+    ip,
+    userAgent,
+  ]);
+  await query('INSERT INTO login_history (uid, ip, userAgent, createdAt) VALUES (?,?,?,?)', [
+    uid,
+    ip,
+    userAgent,
+    Date.now(),
+  ]);
   setCachedSession(sessionId, uid);
   return { sessionId };
 }

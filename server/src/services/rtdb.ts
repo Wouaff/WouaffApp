@@ -415,6 +415,20 @@ const PROFILE_COLUMNS = new Set([
 ]);
 
 export async function updateProfile(uid: string, data: Record<string, unknown>): Promise<void> {
+  if (data.email !== undefined) {
+    const current = await getOne<{ email: string | null }>('SELECT email FROM users WHERE uid = ?', [uid]);
+    const newEmail = (data.email as string | null)?.trim().toLowerCase();
+    const currentEmail = (current?.email || '').trim().toLowerCase();
+    if (newEmail && newEmail !== currentEmail) {
+      const existing = await getOne<{ uid: string }>('SELECT uid FROM users WHERE email = ?', [newEmail]);
+      if (existing) {
+        const conflict = new Error('Cet email est déjà utilisé par un autre compte');
+        (conflict as Error & { status: number }).status = 409;
+        throw conflict;
+      }
+    }
+    data.email = newEmail || null;
+  }
   if (data.wouaffId !== undefined) {
     const newId = data.wouaffId as string;
     const oldRow = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM users WHERE uid = ?', [uid]);
@@ -1098,6 +1112,18 @@ export async function getAdminLogs(limit = 50): Promise<
   }>
 > {
   return query('SELECT * FROM admin_logs ORDER BY createdAt DESC LIMIT ?', [limit]);
+}
+
+/* ── Login history (modération) ── */
+
+export async function getLoginHistory(
+  uid: string,
+  limit = 50,
+): Promise<Array<{ id: number; uid: string; ip: string | null; userAgent: string | null; createdAt: number }>> {
+  return query('SELECT id, uid, ip, userAgent, createdAt FROM login_history WHERE uid=? ORDER BY createdAt DESC LIMIT ?', [
+    uid,
+    limit,
+  ]);
 }
 
 export async function getReportedGroups(): Promise<

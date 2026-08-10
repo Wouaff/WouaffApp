@@ -8,6 +8,7 @@ import {
   getAdminStats,
   getAllStaff,
   getBadges,
+  getLoginHistory,
   getMaintenanceMode,
   getProfile,
   getRecentUsers,
@@ -153,6 +154,13 @@ router.get('/logs', async (req: Request, res: Response) => {
   if (!(await requireStaff(req, res))) return;
   const logs = await getAdminLogs(100);
   res.json(logs);
+});
+
+/* GET /admin/login-history/:uid — historique des connexions d'un utilisateur */
+router.get('/login-history/:uid', async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const history = await getLoginHistory(req.params.uid, 100);
+  res.json(history);
 });
 
 /* POST /admin/log-action — logger une action depuis le frontend */

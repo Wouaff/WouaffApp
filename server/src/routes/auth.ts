@@ -60,7 +60,10 @@ router.post('/register', async (req: Request, res: Response) => {
       wouaffId,
       uid,
     ]);
-    const { sessionId } = await createSession(uid);
+    const { sessionId } = await createSession(uid, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] as string | undefined,
+    });
     setSessionCookie(res, sessionId);
 
     /* Send verification email */
@@ -106,7 +109,10 @@ router.post('/login', async (req: Request, res: Response) => {
       res.status(401).json({ error: 'Email ou mot de passe incorrect' });
       return;
     }
-    const { sessionId } = await createSession(profile.uid);
+    const { sessionId } = await createSession(profile.uid, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] as string | undefined,
+    });
     setSessionCookie(res, sessionId);
     res.json({ uid: profile.uid, pseudo: profile.pseudo, avatar: profile.avatar });
   } catch (err) {
