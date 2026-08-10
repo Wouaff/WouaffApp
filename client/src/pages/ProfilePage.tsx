@@ -2,7 +2,9 @@ import { BadgeCheck, ChevronLeft, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import PostCard from '../components/Home/PostCard';
+import LeftNav from '../components/Home/LeftNav';
 import PostModal from '../components/Home/PostModal';
+import RightSidebar from '../components/Home/RightSidebar';
 import { useAuth } from '../hooks/useAuth';
 import { posts as postsAPI, profiles as profilesAPI } from '../services/api';
 import type { SocialPost } from '../types';
@@ -156,26 +158,38 @@ export default function ProfilePage() {
 
   if (state === 'loading') {
     return (
-      <div className="h-full flex items-center justify-center bg-[var(--bg-deep)]">
-        <div className="spinner" />
+      <div className="flex h-full">
+        <LeftNav />
+        <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
+          <div className="h-full flex items-center justify-center">
+            <div className="spinner" />
+          </div>
+        </main>
+        <RightSidebar />
       </div>
     );
   }
 
   if (state === 'error') {
     return (
-      <div className="h-full flex items-center justify-center bg-[var(--bg-deep)] px-4">
-        <div className="text-center">
-          <div className="text-6xl mb-3">🐺</div>
-          <h1 className="text-2xl font-extrabold m-0 mb-1 text-[var(--text-primary)]">Profil introuvable</h1>
-          <p className="m-0 mb-5 text-[var(--text-secondary)]">{errorMsg}</p>
-          <Link
-            to="/"
-            className="inline-block bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 no-underline"
-          >
-            Retour à l'accueil
-          </Link>
-        </div>
+      <div className="flex h-full">
+        <LeftNav />
+        <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
+          <div className="h-full flex items-center justify-center px-4">
+            <div className="text-center">
+              <div className="text-6xl mb-3">🐺</div>
+              <h1 className="text-2xl font-extrabold m-0 mb-1 text-[var(--text-primary)]">Profil introuvable</h1>
+              <p className="m-0 mb-5 text-[var(--text-secondary)]">{errorMsg}</p>
+              <Link
+                to="/"
+                className="inline-block bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 no-underline"
+              >
+                Retour à l'accueil
+              </Link>
+            </div>
+          </div>
+        </main>
+        <RightSidebar />
       </div>
     );
   }
@@ -222,8 +236,10 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="h-full overflow-y-auto bg-[var(--bg-deep)]">
-      <div className="mx-auto max-w-[600px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
+    <div className="flex h-full">
+      <LeftNav />
+      <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
+        <div className="mx-auto max-w-[600px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
         <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
           <div className="flex items-center gap-5 px-2 h-14">
             <button
@@ -350,9 +366,7 @@ export default function ProfilePage() {
               🐺
             </div>
             <p className="m-0 text-[var(--text-secondary)]">
-              {data.isMe
-                ? "Vous n'avez pas encore publié de post."
-                : `@${handle} n'a pas encore publié de post.`}
+              {data.isMe ? "Vous n'avez pas encore publié de post." : `@${handle} n'a pas encore publié de post.`}
             </p>
           </div>
         ) : (
@@ -366,7 +380,9 @@ export default function ProfilePage() {
             />
           ))
         )}
-      </div>
+        </div>
+      </main>
+      <RightSidebar />
       {selectedPost && (
         <PostModal
           post={selectedPost}
