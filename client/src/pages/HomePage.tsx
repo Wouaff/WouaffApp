@@ -6,6 +6,7 @@ import LeftNav from '../components/Home/LeftNav';
 import PostCard from '../components/Home/PostCard';
 import PostModal from '../components/Home/PostModal';
 import RightSidebar from '../components/Home/RightSidebar';
+import WelcomeIntro from '../components/Home/WelcomeIntro';
 import { useAuth } from '../hooks/useAuth';
 import { posts as postsAPI } from '../services/api';
 import {
@@ -42,6 +43,12 @@ export default function HomePage() {
   const [error, setError] = useState('');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [pendingPostId, setPendingPostId] = useState<string | null>(null);
+  const [introOpen, setIntroOpen] = useState(() => !localStorage.getItem('wouaff_intro_seen'));
+
+  const closeIntro = useCallback(() => {
+    localStorage.setItem('wouaff_intro_seen', '1');
+    setIntroOpen(false);
+  }, []);
 
   const selectedPost = items.find((i) => i.post.id === selectedPostId)?.post || null;
 
@@ -303,6 +310,7 @@ export default function HomePage() {
         />
       )}
       <Toast />
+      {introOpen && <WelcomeIntro onDone={closeIntro} />}
     </div>
   );
 }

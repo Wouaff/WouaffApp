@@ -265,6 +265,7 @@ export default function NotificationsPage() {
                         <span className="text-[var(--text-primary)]">{notifVerb(item)}</span>
                         {!item.read && (
                           <span
+                            role="img"
                             className="ml-2 inline-block w-2 h-2 rounded-full bg-brand align-middle"
                             aria-label="Non lue"
                           />
