@@ -13,21 +13,7 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (!user) return;
-    fetch('/api/stories/list')
-      .then((r) => r.json())
-      .then((data) => {
-        const now = Date.now();
-        const hasActive = Object.values(data as Record<string, unknown>).some((stories) =>
-          Object.values(stories as Record<string, unknown>).some(
-            (s: unknown) => ((s as Record<string, unknown>).expiresAt as number) > now,
-          ),
-        );
-        setStoryBadge(hasActive);
-      })
-      .catch((e) => {
-        console.error(e);
-      });
-    const interval = setInterval(() => {
+    const checkStories = () => {
       fetch('/api/stories')
         .then((r) => r.json())
         .then((data) => {
@@ -42,7 +28,9 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
         .catch((e) => {
           console.error(e);
         });
-    }, 60000);
+    };
+    checkStories();
+    const interval = setInterval(checkStories, 60000);
     return () => clearInterval(interval);
   }, [user]);
 
