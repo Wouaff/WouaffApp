@@ -1,4 +1,4 @@
-import type { GroupData, GroupEntry, SearchResult, StoryData, UserProfile } from '../types';
+import type { GroupData, GroupEntry, PostComment, SearchResult, SocialPost, StoryData, UserProfile } from '../types';
 
 const API_BASE = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL || '';
 
@@ -232,6 +232,19 @@ export const badges = {
 export const status = {
   online: () => request<{ success: boolean }>('POST', '/status/online'),
   offline: () => request<{ success: boolean }>('POST', '/status/offline'),
+};
+
+/* ── Posts (feed social) ── */
+export const posts = {
+  list: (page = 1, limit = 20) => request<SocialPost[]>('GET', `/posts?page=${page}&limit=${limit}`),
+  get: (id: string) => request<SocialPost>('GET', `/posts/${id}`),
+  create: (text: string) => request<SocialPost>('POST', '/posts', { text }),
+  like: (id: string) => request<{ liked: boolean; likes: number }>('POST', `/posts/${id}/like`),
+  repost: (id: string) => request<{ reposted: boolean; reposts: number }>('POST', `/posts/${id}/repost`),
+  comments: (id: string) => request<PostComment[]>('GET', `/posts/${id}/comments`),
+  addComment: (id: string, text: string) => request<PostComment>('POST', `/posts/${id}/comments`, { text }),
+  delete: (id: string) => request<{ success: boolean }>('DELETE', `/posts/${id}`),
+  deleteComment: (commentId: number) => request<{ success: boolean }>('DELETE', `/posts/comments/${commentId}`),
 };
 
 /* ── Blocks / Reports ── */

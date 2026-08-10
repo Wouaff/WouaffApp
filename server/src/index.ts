@@ -24,6 +24,7 @@ import groupsRouter from './routes/groups.js';
 import linkPreviewRouter from './routes/linkPreview.js';
 import messagesRouter from './routes/messages.js';
 import notificationsRouter from './routes/notifications.js';
+import postsRouter from './routes/posts.js';
 import profilesRouter from './routes/profiles.js';
 import publicRouter from './routes/public.js';
 import searchRouter from './routes/search.js';
@@ -55,6 +56,7 @@ app.use('/api/contacts', rateLimit({ windowMs: 60000, max: 60 }));
 app.use('/api/messages', rateLimit({ windowMs: 60000, max: 120 }));
 app.use('/api/search', rateLimit({ windowMs: 60000, max: 30 }));
 app.use('/api/videos', rateLimit({ windowMs: 60000, max: 60 }));
+app.use('/api/posts', rateLimit({ windowMs: 60000, max: 120 }));
 
 /* Public maintenance status (accessible even during maintenance) */
 app.get('/api/maintenance', (_req, res) => {
@@ -90,6 +92,7 @@ app.use('/api/link-preview', patchRouter(linkPreviewRouter));
 app.use('/api/blocks', patchRouter(blocksRouter));
 app.use('/api/calls', patchRouter(callsRouter));
 app.use('/api/videos', patchRouter(videosRouter));
+app.use('/api/posts', patchRouter(postsRouter));
 
 /* Health check */
 app.get('/api/health', (_req, res) => {

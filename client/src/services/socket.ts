@@ -1,5 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
-import type { CallPayload, SocketMessageEvent } from '../types';
+import type { CallPayload, PostComment, SocialPost, SocketMessageEvent } from '../types';
 import { getSessionId } from './auth';
 
 const SOCKET_URL = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL
@@ -410,6 +410,51 @@ export function onVideoComment(cb: (data: { videoId: string; comment: unknown })
 }
 export function offVideoComment(cb: (data: { videoId: string; comment: unknown }) => void): void {
   socket?.off('video:comment', cb);
+}
+
+/* ── Post events (feed social) ── */
+
+export function onPostNew(cb: (data: SocialPost) => void): void {
+  socket?.on('post:new', cb);
+}
+export function offPostNew(cb: (data: SocialPost) => void): void {
+  socket?.off('post:new', cb);
+}
+
+export function onPostLiked(
+  cb: (data: { postId: string; uid: string; liked: boolean; likes: number }) => void,
+): void {
+  socket?.on('post:liked', cb);
+}
+export function offPostLiked(
+  cb: (data: { postId: string; uid: string; liked: boolean; likes: number }) => void,
+): void {
+  socket?.off('post:liked', cb);
+}
+
+export function onPostReposted(
+  cb: (data: { postId: string; uid: string; reposted: boolean; reposts: number }) => void,
+): void {
+  socket?.on('post:reposted', cb);
+}
+export function offPostReposted(
+  cb: (data: { postId: string; uid: string; reposted: boolean; reposts: number }) => void,
+): void {
+  socket?.off('post:reposted', cb);
+}
+
+export function onPostComment(cb: (data: { postId: string; comment: PostComment }) => void): void {
+  socket?.on('post:comment', cb);
+}
+export function offPostComment(cb: (data: { postId: string; comment: PostComment }) => void): void {
+  socket?.off('post:comment', cb);
+}
+
+export function onPostDeleted(cb: (data: { postId: string }) => void): void {
+  socket?.on('post:deleted', cb);
+}
+export function offPostDeleted(cb: (data: { postId: string }) => void): void {
+  socket?.off('post:deleted', cb);
 }
 
 /* ── Block events ── */

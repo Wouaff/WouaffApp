@@ -1,0 +1,49 @@
+CREATE TABLE IF NOT EXISTS posts (
+  id VARCHAR(36) PRIMARY KEY,
+  uid VARCHAR(128) NOT NULL,
+  text TEXT NOT NULL,
+  likesCount INT DEFAULT 0,
+  repostsCount INT DEFAULT 0,
+  commentsCount INT DEFAULT 0,
+  createdAt BIGINT DEFAULT 0,
+  reported TINYINT(1) DEFAULT 0,
+  reportedBy VARCHAR(128) DEFAULT NULL,
+  reportedAt BIGINT DEFAULT 0,
+  INDEX idx_posts_uid (uid),
+  INDEX idx_posts_created (createdAt)
+);
+
+CREATE TABLE IF NOT EXISTS post_likes (
+  uid VARCHAR(128) NOT NULL,
+  postId VARCHAR(36) NOT NULL,
+  createdAt BIGINT DEFAULT 0,
+  PRIMARY KEY (uid, postId)
+);
+
+CREATE TABLE IF NOT EXISTS post_reposts (
+  uid VARCHAR(128) NOT NULL,
+  postId VARCHAR(36) NOT NULL,
+  createdAt BIGINT DEFAULT 0,
+  PRIMARY KEY (uid, postId)
+);
+
+CREATE TABLE IF NOT EXISTS post_comments (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  postId VARCHAR(36) NOT NULL,
+  uid VARCHAR(128) NOT NULL,
+  text TEXT NOT NULL,
+  createdAt BIGINT DEFAULT 0,
+  INDEX idx_pc_post (postId)
+);
+
+SET @postTextIsUtf8mb3 = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='posts' AND COLUMN_NAME='text' AND CHARACTER_SET_NAME='utf8');
+SET @sql1 = IF(@postTextIsUtf8mb3>0, 'ALTER TABLE posts MODIFY COLUMN text TEXT CHARACTER SET utf8mb4 NOT NULL', 'SELECT 1');
+PREPARE stmt1 FROM @sql1;
+EXECUTE stmt1;
+DEALLOCATE PREPARE stmt1;
+
+SET @pcTextIsUtf8mb3 = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='post_comments' AND COLUMN_NAME='text' AND CHARACTER_SET_NAME='utf8');
+SET @sql2 = IF(@pcTextIsUtf8mb3>0, 'ALTER TABLE post_comments MODIFY COLUMN text TEXT CHARACTER SET utf8mb4 NOT NULL', 'SELECT 1');
+PREPARE stmt2 FROM @sql2;
+EXECUTE stmt2;
+DEALLOCATE PREPARE stmt2;

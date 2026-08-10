@@ -75,3 +75,29 @@ export interface VideoComment {
   pseudo?: string;
   avatar?: string;
 }
+
+export interface PostData {
+  id: string;
+  uid: string;
+  pseudo: string;
+  handle: string;
+  avatar?: string;
+  time: number;
+  text: string;
+  likes: number;
+  reposts: number;
+  comments: number;
+  liked: boolean;
+  reposted: boolean;
+  verified: boolean;
+}
+
+export interface PostComment {
+  id: number;
+  postId: string;
+  uid: string;
+  text: string;
+  createdAt: number;
+  pseudo?: string;
+  avatar?: string;
+}

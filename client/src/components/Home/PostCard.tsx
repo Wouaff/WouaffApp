@@ -1,11 +1,12 @@
 import { BadgeCheck, Heart, MessageCircle, Repeat2, Share2 } from 'lucide-react';
+import { useState } from 'react';
 import type { SocialPost } from '../../types';
 
 interface PostCardProps {
   post: SocialPost;
   onLike: (id: string) => void;
   onRepost: (id: string) => void;
-  onComment: (id: string) => void;
+  onComment: (id: string, text: string) => void;
 }
 
 function formatTime(ts: number): string {
@@ -22,6 +23,16 @@ function formatTime(ts: number): string {
 
 export default function PostCard({ post, onLike, onRepost, onComment }: PostCardProps) {
   const initial = (post.pseudo || '?')[0]?.toUpperCase() || '?';
+  const [replying, setReplying] = useState(false);
+  const [replyText, setReplyText] = useState('');
+
+  const submitComment = () => {
+    const value = replyText.trim();
+    if (!value) return;
+    onComment(post.id, value);
+    setReplyText('');
+    setReplying(false);
+  };
 
   return (
     <article className="flex gap-3 p-4 border-b border-[var(--border)] transition-colors hover:bg-[var(--bg-hover)]/40">
@@ -46,8 +57,10 @@ export default function PostCard({ post, onLike, onRepost, onComment }: PostCard
         <div className="flex items-center justify-between mt-3 max-w-[425px]">
           <button
             type="button"
-            onClick={() => onComment(post.id)}
-            className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:text-brand hover:bg-[var(--brand-glow)] transition-colors"
+            onClick={() => setReplying((r) => !r)}
+            className={`flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors ${
+              replying ? 'text-brand' : 'text-[var(--text-muted)] hover:text-brand hover:bg-[var(--brand-glow)]'
+            }`}
             aria-label={`Commenter (${post.comments})`}
           >
             <MessageCircle size={17} />
@@ -87,6 +100,31 @@ export default function PostCard({ post, onLike, onRepost, onComment }: PostCard
             <Share2 size={17} />
           </button>
         </div>
+
+        {replying && (
+          <div className="flex items-center gap-2 mt-3">
+            <input
+              type="text"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitComment();
+              }}
+              placeholder="Répondre..."
+              maxLength={280}
+              aria-label={`Répondre à ${post.pseudo}`}
+              className="flex-1 min-w-0 bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
+            />
+            <button
+              type="button"
+              onClick={submitComment}
+              disabled={!replyText.trim()}
+              className="bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-white font-bold text-sm rounded-full px-4 py-2 border-none cursor-pointer"
+            >
+              Répondre
+            </button>
+          </div>
+        )}
       </div>
     </article>
   );

@@ -182,3 +182,13 @@ export interface SuggestedUser {
   bio: string;
   avatar?: string;
 }
+
+export interface PostComment {
+  id: number;
+  postId: string;
+  uid: string;
+  text: string;
+  createdAt: number;
+  pseudo?: string;
+  avatar?: string;
+}
