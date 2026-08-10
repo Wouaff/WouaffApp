@@ -1,4 +1,4 @@
--- Convert users text columns to utf8mb4 so 4-byte chars (emojis) are accepted.
+-- Convert user-facing text columns to utf8mb4 so 4-byte chars (emojis) are accepted.
 
 SET @usersBioIsUtf8mb3 = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='bio' AND CHARACTER_SET_NAME='utf8');
 SET @sqlBio = IF(@usersBioIsUtf8mb3>0, 'ALTER TABLE users MODIFY COLUMN bio TEXT CHARACTER SET utf8mb4 DEFAULT NULL', 'SELECT 1');
@@ -17,3 +17,15 @@ SET @sqlSocial = IF(@usersSocialIsUtf8mb3>0, 'ALTER TABLE users MODIFY COLUMN so
 PREPARE stmtSocial FROM @sqlSocial;
 EXECUTE stmtSocial;
 DEALLOCATE PREPARE stmtSocial;
+
+SET @groupsNameIsUtf8mb3 = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='groups_table' AND COLUMN_NAME='name' AND CHARACTER_SET_NAME='utf8');
+SET @sqlGroupsName = IF(@groupsNameIsUtf8mb3>0, 'ALTER TABLE groups_table MODIFY COLUMN name VARCHAR(100) CHARACTER SET utf8mb4 NOT NULL', 'SELECT 1');
+PREPARE stmtGroupsName FROM @sqlGroupsName;
+EXECUTE stmtGroupsName;
+DEALLOCATE PREPARE stmtGroupsName;
+
+SET @groupsDescIsUtf8mb3 = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='groups_table' AND COLUMN_NAME='description' AND CHARACTER_SET_NAME='utf8');
+SET @sqlGroupsDesc = IF(@groupsDescIsUtf8mb3>0, 'ALTER TABLE groups_table MODIFY COLUMN description TEXT CHARACTER SET utf8mb4 DEFAULT NULL', 'SELECT 1');
+PREPARE stmtGroupsDesc FROM @sqlGroupsDesc;
+EXECUTE stmtGroupsDesc;
+DEALLOCATE PREPARE stmtGroupsDesc;
