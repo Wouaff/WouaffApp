@@ -8772,6 +8772,107 @@ body {
   display: none;
 }
 
+/* ── Recherche globale ── */
+.admin-global-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  position: relative;
+}
+.admin-global-search .admin-input {
+  flex: 1;
+  padding-left: 40px;
+}
+.admin-global-search-icon {
+  position: absolute;
+  left: 13px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* ── Analytics / graphiques ── */
+.admin-analytics-toggle {
+  display: flex;
+  gap: 6px;
+}
+.admin-analytics-toggle .admin-subtab {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+.admin-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.admin-analytics-card {
+  margin-bottom: 0;
+}
+.admin-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 140px;
+  padding-top: 18px;
+}
+.admin-chart-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  min-width: 0;
+}
+.admin-chart-value {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.admin-chart-bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 0;
+}
+.admin-chart-bar {
+  width: 70%;
+  max-width: 28px;
+  border-radius: 5px 5px 2px 2px;
+  min-height: 4px;
+  transition: height 0.3s ease;
+  opacity: 0.85;
+}
+.admin-chart-bar:hover {
+  opacity: 1;
+}
+.admin-chart-date {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── Rôles staff ── */
+.admin-role-chip {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  vertical-align: middle;
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.admin-role-chip.owner {
+  background: var(--brand-glow);
+  color: var(--brand);
+  border-color: var(--brand);
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .admin-main {
@@ -8949,6 +9050,12 @@ body {
   }
   .admin-video-card > .admin-btn {
     width: calc(100% - 24px);
+  }
+  .admin-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-global-search .admin-input {
+    min-width: 0;
   }
 }
 @media (max-width: 480px) {
