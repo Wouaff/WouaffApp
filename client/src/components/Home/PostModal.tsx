@@ -194,7 +194,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
               />
             )}
             {post.audio && (
-              <div className="mt-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-input)] px-1.5 py-1 max-w-[425px]">
+              <div className="mt-2 max-w-[425px]">
                 <VoiceMessage audioData={post.audio} duration={post.audioDuration} />
               </div>
             )}

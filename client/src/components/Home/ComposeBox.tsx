@@ -276,7 +276,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
         )}
 
         {audio && !recording && (
-          <div className="mt-2 flex items-center gap-1 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] px-1.5 py-1">
+          <div className="mt-2 flex items-center gap-1">
             <VoiceMessage audioData={audio} duration={audioDuration} />
             <button
               type="button"
