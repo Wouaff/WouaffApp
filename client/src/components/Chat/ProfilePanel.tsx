@@ -99,7 +99,24 @@ export default function ProfilePanel({ onClose, targetUid }: ProfilePanelProps) 
             </div>
           )}
         </div>
-        <div className="profile-panel-name">{p?.pseudo || 'Utilisateur'}</div>
+        <div className="profile-panel-name">
+          {p?.pseudo || 'Utilisateur'}
+          {badgeIds.map((id) => {
+            const def = badgeDefs[id];
+            if (!def?.icon) return null;
+            return (
+              <img
+                key={id}
+                className="inline-badge"
+                src={def.icon}
+                alt={def.name || id}
+                title={def.name || id}
+                loading="lazy"
+                decoding="async"
+              />
+            );
+          })}
+        </div>
         {p?.wouaffId && <div className="text-xs text-text-muted">{p.wouaffId}</div>}
         <div className="text-xs" style={{ color: isOnline ? '#43b581' : 'var(--text-muted)' } as React.CSSProperties}>
           {isOnline ? 'En ligne' : 'Hors ligne'}

@@ -294,6 +294,18 @@ export default function ProfilePage() {
             <div className="flex items-center gap-1.5">
               <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">{pseudo}</h1>
               {data.verified && <BadgeCheck size={20} className="text-brand" aria-label="Compte vérifié" />}
+              {validBadges.map((b) => (
+                <img
+                  key={b.icon}
+                  src={b.icon}
+                  alt={b.name || 'Badge'}
+                  title={b.name || ''}
+                  className="w-6 h-6 object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ))}
             </div>
             <div className="text-[15px] text-[var(--text-muted)]">@{handle}</div>
 
@@ -301,23 +313,6 @@ export default function ProfilePage() {
               <p className="m-0 mt-3 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap">
                 {bio}
               </p>
-            )}
-
-            {validBadges.length > 0 && (
-              <div className="flex items-center gap-1.5 mt-3">
-                {validBadges.map((b) => (
-                  <img
-                    key={b.icon}
-                    src={b.icon}
-                    alt={b.name || ''}
-                    title={b.name || ''}
-                    className="w-6 h-6 object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                ))}
-              </div>
             )}
 
             {socialLinks.length > 0 && (
