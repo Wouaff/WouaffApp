@@ -213,45 +213,47 @@ export default function HomePage() {
           </div>
         </header>
 
-        <ComposeBox onPost={handlePost} />
+        <div className="w-full max-w-[600px] mx-auto">
+          <ComposeBox onPost={handlePost} />
 
-        {loading ? (
-          <div className="py-16 px-6 flex flex-col items-center gap-3">
-            <div className="spinner" />
-            <p className="m-0 text-sm text-[var(--text-muted)]">Chargement du fil...</p>
-          </div>
-        ) : error ? (
-          <div className="py-16 px-6 text-center">
-            <p className="m-0 text-[var(--text-secondary)]">{error}</p>
-            <button
-              type="button"
-              onClick={loadPosts}
-              className="mt-4 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
-            >
-              Réessayer
-            </button>
-          </div>
-        ) : visibleItems.length === 0 ? (
-          <div className="py-16 px-6 text-center">
-            <div className="text-4xl mb-3" aria-hidden="true">
-              🐺
+          {loading ? (
+            <div className="py-16 px-6 flex flex-col items-center gap-3">
+              <div className="spinner" />
+              <p className="m-0 text-sm text-[var(--text-muted)]">Chargement du fil...</p>
             </div>
-            <p className="m-0 text-[var(--text-secondary)]">
-              Aucun post pour le moment. Publie le premier pour lancer la conversation !
-            </p>
-          </div>
-        ) : (
-          visibleItems.map((item) => (
-            <PostCard
-              key={item.key}
-              post={item.post}
-              repostInfo={item.repost}
-              onLike={handleLike}
-              onRepost={handleRepost}
-              onOpen={(p) => setSelectedPostId(p.id)}
-            />
-          ))
-        )}
+          ) : error ? (
+            <div className="py-16 px-6 text-center">
+              <p className="m-0 text-[var(--text-secondary)]">{error}</p>
+              <button
+                type="button"
+                onClick={loadPosts}
+                className="mt-4 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
+              >
+                Réessayer
+              </button>
+            </div>
+          ) : visibleItems.length === 0 ? (
+            <div className="py-16 px-6 text-center">
+              <div className="text-4xl mb-3" aria-hidden="true">
+                🐺
+              </div>
+              <p className="m-0 text-[var(--text-secondary)]">
+                Aucun post pour le moment. Publie le premier pour lancer la conversation !
+              </p>
+            </div>
+          ) : (
+            visibleItems.map((item) => (
+              <PostCard
+                key={item.key}
+                post={item.post}
+                repostInfo={item.repost}
+                onLike={handleLike}
+                onRepost={handleRepost}
+                onOpen={(p) => setSelectedPostId(p.id)}
+              />
+            ))
+          )}
+        </div>
       </main>
       <RightSidebar />
       {selectedPost && (
