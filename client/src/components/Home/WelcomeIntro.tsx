@@ -107,7 +107,7 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
                 href={DISCORD_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2.5 rounded-2xl px-6 py-4 font-bold text-[15px] text-white bg-[#5865F2] hover:opacity-90 transition-opacity no-underline"
+                className="flex items-center justify-center gap-2.5 rounded-full px-6 py-3.5 font-bold text-[15px] text-white bg-[#5865F2] hover:opacity-90 transition-opacity no-underline"
               >
                 <MessageCircle size={20} />
                 Rejoindre le Discord
@@ -116,7 +116,7 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2.5 rounded-2xl px-6 py-4 font-bold text-[15px] text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border)] hover:bg-[var(--bg-hover)] transition-colors no-underline"
+                className="flex items-center justify-center gap-2.5 rounded-full px-6 py-3.5 font-bold text-[15px] text-[var(--text-primary)] bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] transition-colors no-underline"
               >
                 <GitBranch size={20} />
                 Contribuer sur GitHub
@@ -125,7 +125,7 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
               <button
                 type="button"
                 onClick={finish}
-                className="mt-2 flex items-center justify-center gap-2.5 rounded-2xl px-6 py-4 font-bold text-[15px] text-white bg-brand hover:opacity-90 transition-opacity border-none cursor-pointer"
+                className="mt-2 flex items-center justify-center gap-2.5 rounded-full px-6 py-3.5 font-bold text-[15px] text-white bg-brand hover:opacity-90 transition-opacity border-none cursor-pointer"
               >
                 <Rocket size={20} />
                 Commencer l’aventure
@@ -146,7 +146,7 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
             <button
               type="button"
               onClick={next}
-              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold text-white bg-brand hover:opacity-90 transition-opacity border-none cursor-pointer"
             >
               Suivant
               <ArrowRight size={16} />
