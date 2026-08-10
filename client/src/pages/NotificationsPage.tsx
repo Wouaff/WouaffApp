@@ -242,7 +242,7 @@ export default function NotificationsPage() {
                     className={`w-full flex gap-3 px-4 py-3.5 text-left border-b border-[var(--border)] cursor-pointer transition-colors ${
                       item.read
                         ? 'bg-transparent hover:bg-[var(--bg-hover)]'
-                        : 'bg-[var(--brand-glow)]/25 hover:bg-[var(--brand-glow)]/40 border-l-[3px] border-l-brand'
+                        : 'bg-[rgba(249,123,59,0.14)] hover:bg-[rgba(249,123,59,0.22)] border-l-[3px] border-l-brand'
                     }`}
                   >
                     <div className="relative flex-shrink-0">
