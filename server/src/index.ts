@@ -133,7 +133,7 @@ setupProcessHandlers(async () => {
 });
 
 /* Run DB migrations then start */
-const PORT = parseInt(process.env.PORT || '3000', 10);
+const PORT = parseInt(process.env.PORT || '7285', 10);
 
 runMigrations()
   .then(async () => {
