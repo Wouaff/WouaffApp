@@ -15,12 +15,12 @@ function toNotificationItem(row: Record<string, unknown>): NotificationItem {
     postText: (row.postText as string) || null,
     postImage: (row.postImage as string) || null,
     commentId: (row.commentId as number) || null,
-    read: (row.read as number) === 1,
+    read: (row.is_read as number) === 1,
     createdAt: row.createdAt as number,
   };
 }
 
-const NOTIFICATION_SELECT = `SELECT n.id, n.uid, n.actorUid, n.type, n.postId, n.commentId, n.read, n.createdAt,
+const NOTIFICATION_SELECT = `SELECT n.id, n.uid, n.actorUid, n.type, n.postId, n.commentId, n.is_read, n.createdAt,
             u.pseudo AS actorPseudo, u.wouaffId AS actorWouaffId, u.avatar AS actorAvatar,
             p.text AS postText, p.image AS postImage
      FROM notifications n
@@ -41,7 +41,7 @@ export async function createNotification(
   if (!uid || !actorUid || uid === actorUid) return;
   try {
     const result = await query<{ insertId: number }>(
-      'INSERT INTO notifications (uid, actorUid, type, postId, commentId, read, createdAt) VALUES (?,?,?,?,?,0,?)',
+      'INSERT INTO notifications (uid, actorUid, type, postId, commentId, is_read, createdAt) VALUES (?,?,?,?,?,0,?)',
       [uid, actorUid, type, postId || null, commentId ?? null, Date.now()],
     );
     const insertId = (result as unknown as { insertId?: number }).insertId || 0;
@@ -65,16 +65,16 @@ export async function listNotifications(uid: string, limit = 50, before?: number
 
 export async function getUnreadCount(uid: string): Promise<number> {
   const [row] = await query<Array<{ c: number }>>(
-    'SELECT COUNT(*) AS c FROM notifications WHERE uid = ? AND read = 0',
+    'SELECT COUNT(*) AS c FROM notifications WHERE uid = ? AND is_read = 0',
     [uid],
   );
   return row?.c ?? 0;
 }
 
 export async function markNotificationRead(uid: string, id: number): Promise<void> {
-  await query('UPDATE notifications SET read = 1 WHERE id = ? AND uid = ?', [id, uid]);
+  await query('UPDATE notifications SET is_read = 1 WHERE id = ? AND uid = ?', [id, uid]);
 }
 
 export async function markAllNotificationsRead(uid: string): Promise<void> {
-  await query('UPDATE notifications SET read = 1 WHERE uid = ? AND read = 0', [uid]);
+  await query('UPDATE notifications SET is_read = 1 WHERE uid = ? AND is_read = 0', [uid]);
 }

@@ -1,14 +1,18 @@
 import { Bell, CheckCheck, Heart, MessageCircle, Repeat2, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { showToast } from '../components/Common/Toast';
 import LeftNav from '../components/Home/LeftNav';
 import RightSidebar from '../components/Home/RightSidebar';
-import { showToast } from '../components/Common/Toast';
 import { useAuth } from '../hooks/useAuth';
 import { notifications as notificationsAPI } from '../services/api';
 import { offNotificationNew, onNotificationNew } from '../services/socket';
 import type { NotificationItem } from '../types';
-import { notificationPermission, requestNotificationPermission, showBrowserNotification } from '../utils/browserNotifications';
+import {
+  notificationPermission,
+  requestNotificationPermission,
+  showBrowserNotification,
+} from '../utils/browserNotifications';
 
 function formatTime(ts: number): string {
   const diff = Date.now() - ts;
@@ -199,7 +203,9 @@ export default function NotificationsPage() {
                     type="button"
                     onClick={() => open(item)}
                     className={`w-full flex gap-3 px-4 py-3 text-left border-b border-[var(--border)] cursor-pointer transition-colors ${
-                      item.read ? 'bg-transparent hover:bg-[var(--bg-hover)]/40' : 'bg-[var(--bg-hover)]/60 hover:bg-[var(--bg-hover)]'
+                      item.read
+                        ? 'bg-transparent hover:bg-[var(--bg-hover)]/40'
+                        : 'bg-[var(--bg-hover)]/60 hover:bg-[var(--bg-hover)]'
                     }`}
                   >
                     <div className="relative flex-shrink-0">
@@ -217,15 +223,19 @@ export default function NotificationsPage() {
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="m-0 text-[15px] leading-snug text-[var(--text-primary)]">
-                        {notifTitle(item)}
-                      </p>
+                      <p className="m-0 text-[15px] leading-snug text-[var(--text-primary)]">{notifTitle(item)}</p>
                       {item.postText && (
                         <p className="m-0 mt-0.5 text-[13px] text-[var(--text-secondary)] truncate">{item.postText}</p>
                       )}
                       <p className="m-0 mt-1 text-[12px] text-[var(--text-muted)]">{formatTime(item.createdAt)}</p>
                     </div>
-                    {!item.read && <span className="w-2.5 h-2.5 rounded-full bg-brand flex-shrink-0 mt-2" aria-label="Non lue" />}
+                    {!item.read && (
+                      <span
+                        role="img"
+                        className="w-2.5 h-2.5 rounded-full bg-brand flex-shrink-0 mt-2"
+                        aria-label="Non lue"
+                      />
+                    )}
                   </button>
                 </li>
               );

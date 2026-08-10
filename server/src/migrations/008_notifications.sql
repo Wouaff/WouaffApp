@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   type VARCHAR(20) NOT NULL,
   postId VARCHAR(36) DEFAULT NULL,
   commentId BIGINT DEFAULT NULL,
-  read TINYINT(1) DEFAULT 0,
+  is_read TINYINT(1) DEFAULT 0,
   createdAt BIGINT DEFAULT 0,
-  INDEX idx_notifications_uid (uid, read, createdAt)
+  INDEX idx_notifications_uid (uid, is_read, createdAt)
 );

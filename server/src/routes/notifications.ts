@@ -1,13 +1,13 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { verifyToken } from '../middleware/auth.js';
-import { removeFcmToken, setFcmToken } from '../services/rtdb.js';
 import {
   getUnreadCount,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
 } from '../services/notifications.js';
+import { removeFcmToken, setFcmToken } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
 
 const router: Router = Router();
