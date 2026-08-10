@@ -885,16 +885,74 @@ export async function getAdminStats(): Promise<{
   online: number;
   badges: number;
   wouaffIds: number;
+  posts: number;
+  postComments: number;
+  postLikes: number;
+  postReposts: number;
+  videos: number;
+  videoLikes: number;
+  videoComments: number;
+  follows: number;
+  userReports: number;
+  reportedGroups: number;
+  logins: number;
 }> {
-  const [[{ users }], [{ chats }], [{ messages }], [{ online }], [{ badges }], [{ ids }]] = await Promise.all([
+  const [
+    [{ users }],
+    [{ chats }],
+    [{ messages }],
+    [{ online }],
+    [{ badges }],
+    [{ ids }],
+    [{ posts }],
+    [{ postComments }],
+    [{ postLikes }],
+    [{ postReposts }],
+    [{ videos }],
+    [{ videoLikes }],
+    [{ videoComments }],
+    [{ follows }],
+    [{ userReports }],
+    [{ reportedGroups }],
+    [{ logins }],
+  ] = await Promise.all([
     query<[{ users: number }]>('SELECT COUNT(*) as users FROM users'),
     query<[{ chats: number }]>('SELECT COUNT(DISTINCT convId) as chats FROM messages'),
     query<[{ messages: number }]>('SELECT COUNT(*) as messages FROM messages'),
     query<[{ online: number }]>("SELECT COUNT(*) as online FROM users WHERE status='online'"),
     query<[{ badges: number }]>('SELECT COUNT(*) as badges FROM badges'),
     query<[{ ids: number }]>('SELECT COUNT(*) as ids FROM wouaff_id_index'),
+    query<[{ posts: number }]>('SELECT COUNT(*) as posts FROM posts'),
+    query<[{ postComments: number }]>('SELECT COUNT(*) as postComments FROM post_comments'),
+    query<[{ postLikes: number }]>('SELECT COUNT(*) as postLikes FROM post_likes'),
+    query<[{ postReposts: number }]>('SELECT COUNT(*) as postReposts FROM post_reposts'),
+    query<[{ videos: number }]>('SELECT COUNT(*) as videos FROM videos'),
+    query<[{ videoLikes: number }]>('SELECT COUNT(*) as videoLikes FROM video_likes'),
+    query<[{ videoComments: number }]>('SELECT COUNT(*) as videoComments FROM video_comments'),
+    query<[{ follows: number }]>('SELECT COUNT(*) as follows FROM follows'),
+    query<[{ userReports: number }]>('SELECT COUNT(*) as userReports FROM user_reports'),
+    query<[{ reportedGroups: number }]>('SELECT COUNT(*) as reportedGroups FROM groups_table WHERE reported=1'),
+    query<[{ logins: number }]>('SELECT COUNT(*) as logins FROM login_history'),
   ]);
-  return { users, chats, messages, online, badges, wouaffIds: ids };
+  return {
+    users,
+    chats,
+    messages,
+    online,
+    badges,
+    wouaffIds: ids,
+    posts,
+    postComments,
+    postLikes,
+    postReposts,
+    videos,
+    videoLikes,
+    videoComments,
+    follows,
+    userReports,
+    reportedGroups,
+    logins,
+  };
 }
 
 export async function getRandomUserSuggestions(
@@ -1146,6 +1204,115 @@ export async function getLoginHistory(
     uid,
     limit,
   ]);
+}
+
+/* ── Modération du réseau social ── */
+
+export async function listRecentPosts(
+  limit = 30,
+  authorUid?: string,
+): Promise<Array<Record<string, unknown>>> {
+  const params: Array<string | number> = [];
+  let where = '';
+  if (authorUid) {
+    where = 'WHERE p.uid = ?';
+    params.push(authorUid);
+  }
+  params.push(limit);
+  return query(
+    `SELECT p.id, p.uid, p.text, p.image, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+            pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
+     FROM posts p
+     LEFT JOIN users pr ON pr.uid = p.uid
+     LEFT JOIN staff s ON s.uid = p.uid
+     ${where}
+     ORDER BY p.createdAt DESC
+     LIMIT ?`,
+    params,
+  );
+}
+
+export async function deletePostById(id: string): Promise<boolean> {
+  const row = await getOne<{ id: string }>('SELECT id FROM posts WHERE id=?', [id]);
+  if (!row) return false;
+  await query('DELETE FROM post_likes WHERE postId=?', [id]);
+  await query('DELETE FROM post_reposts WHERE postId=?', [id]);
+  await query('DELETE FROM post_comments WHERE postId=?', [id]);
+  await query('DELETE FROM posts WHERE id=?', [id]);
+  return true;
+}
+
+export async function listRecentPostComments(
+  limit = 30,
+): Promise<Array<{ id: number; postId: string; uid: string; text: string; createdAt: number; pseudo: string; avatar: string | null; postText: string }>> {
+  return query(
+    `SELECT c.id, c.postId, c.uid, c.text, c.createdAt,
+            p.pseudo, p.avatar, po.text AS postText
+     FROM post_comments c
+     LEFT JOIN users p ON p.uid = c.uid
+     LEFT JOIN posts po ON po.id = c.postId
+     ORDER BY c.createdAt DESC
+     LIMIT ?`,
+    [limit],
+  );
+}
+
+export async function deletePostCommentById(id: number): Promise<boolean> {
+  const comment = await getOne<{ postId: string }>('SELECT postId FROM post_comments WHERE id=?', [id]);
+  if (!comment) return false;
+  await query('DELETE FROM post_comments WHERE id=?', [id]);
+  await query('UPDATE posts SET commentsCount = GREATEST(0, commentsCount - 1) WHERE id=?', [comment.postId]);
+  return true;
+}
+
+export async function listRecentVideos(
+  limit = 30,
+): Promise<Array<Record<string, unknown>>> {
+  return query(
+    `SELECT v.id, v.uid, v.videoPath, v.thumbnailPath, v.caption, v.duration, v.likesCount, v.commentsCount, v.createdAt,
+            p.pseudo, p.avatar, p.wouaffId
+     FROM videos v
+     LEFT JOIN users p ON p.uid = v.uid
+     ORDER BY v.createdAt DESC
+     LIMIT ?`,
+    [limit],
+  );
+}
+
+export async function deleteVideoById(id: string): Promise<boolean> {
+  const row = await getOne<{ id: string }>('SELECT id FROM videos WHERE id=?', [id]);
+  if (!row) return false;
+  await query('DELETE FROM video_likes WHERE videoId=?', [id]);
+  await query('DELETE FROM video_comments WHERE videoId=?', [id]);
+  await query('DELETE FROM videos WHERE id=?', [id]);
+  return true;
+}
+
+export async function listUserReports(
+  limit = 50,
+): Promise<Array<{ id: number; reportedUid: string; reporterUid: string; reason: string | null; createdAt: number; reportedPseudo: string; reportedAvatar: string | null; reportedWouaffId: string | null; reporterPseudo: string }>> {
+  return query(
+    `SELECT r.id, r.reportedUid, r.reporterUid, r.reason, r.createdAt,
+            ru.pseudo AS reportedPseudo, ru.avatar AS reportedAvatar, ru.wouaffId AS reportedWouaffId,
+            rp.pseudo AS reporterPseudo
+     FROM user_reports r
+     LEFT JOIN users ru ON ru.uid = r.reportedUid
+     LEFT JOIN users rp ON rp.uid = r.reporterUid
+     ORDER BY r.createdAt DESC
+     LIMIT ?`,
+    [limit],
+  );
+}
+
+export async function clearUserReport(id: number): Promise<boolean> {
+  const row = await getOne<{ id: number }>('SELECT id FROM user_reports WHERE id=?', [id]);
+  if (!row) return false;
+  await query('DELETE FROM user_reports WHERE id=?', [id]);
+  return true;
+}
+
+export async function clearGroupReport(gid: string): Promise<void> {
+  await query('UPDATE groups_table SET reported=0, reportedBy=NULL, reportedAt=NULL WHERE gid=?', [gid]);
 }
 
 export async function getReportedGroups(): Promise<

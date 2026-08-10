@@ -1,9 +1,16 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
+import type { Server } from 'socket.io';
 import { verifyToken } from '../middleware/auth.js';
 import {
   addBadgeToUser,
+  clearGroupReport,
+  clearUserReport,
+  deleteGroup,
+  deletePostById,
+  deletePostCommentById,
   deleteUserProfile,
+  deleteVideoById,
   getAdminLogs,
   getAdminStats,
   getAllStaff,
@@ -14,6 +21,10 @@ import {
   getRecentUsers,
   getReportedGroups,
   isStaff,
+  listRecentPostComments,
+  listRecentPosts,
+  listRecentVideos,
+  listUserReports,
   logAdminAction,
   migrateWouaffIds,
   resetUserWouaffId,
@@ -181,6 +192,108 @@ router.get('/reports', async (req: Request, res: Response) => {
   if (!(await requireStaff(req, res))) return;
   const reports = await getReportedGroups();
   res.json(reports);
+});
+
+/* GET /admin/reports/users — signalements d'utilisateurs */
+router.get('/reports/users', async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const reports = await listUserReports(100);
+  res.json(reports);
+});
+
+/* POST /admin/reports/users/:id/clear — clôturer un signalement utilisateur */
+router.post('/reports/users/:id/clear', async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: 'ID invalide' });
+    return;
+  }
+  await clearUserReport(id);
+  res.json({ success: true });
+});
+
+/* POST /admin/groups/:gid/report/clear — lever le signalement d'un groupe */
+router.post('/groups/:gid/report/clear', async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  await clearGroupReport(req.params.gid);
+  res.json({ success: true });
+});
+
+/* DELETE /admin/groups/:gid — supprimer un groupe (modération) */
+router.delete('/groups/:gid', async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  await deleteGroup(req.params.gid);
+  await logAdminAction((req as AuthRequest).uid!, 'group_delete', 'group', req.params.gid);
+  res.json({ success: true });
+});
+
+/* GET /admin/posts — posts récents (modération) */
+router.get('/posts', async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 30));
+  const authorUid = (req.query.uid as string) || undefined;
+  const posts = await listRecentPosts(limit, authorUid);
+  res.json(posts);
+});
+
+/* DELETE /admin/posts/:id — supprimer n'importe quel post */
+router.delete('/posts/:id', async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const deleted = await deletePostById(req.params.id);
+  if (!deleted) {
+    res.status(404).json({ error: 'Post introuvable' });
+    return;
+  }
+  const io: Server = req.app.get('io');
+  if (io) io.emit('post:deleted', { postId: req.params.id });
+  await logAdminAction((req as AuthRequest).uid!, 'post_delete', 'post', req.params.id);
+  res.json({ success: true });
+});
+
+/* GET /admin/comments — commentaires récents (modération) */
+router.get('/comments', async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 30));
+  const comments = await listRecentPostComments(limit);
+  res.json(comments);
+});
+
+/* DELETE /admin/posts/comments/:id — supprimer n'importe quel commentaire */
+router.delete('/posts/comments/:id', async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: 'ID invalide' });
+    return;
+  }
+  const deleted = await deletePostCommentById(id);
+  if (!deleted) {
+    res.status(404).json({ error: 'Commentaire introuvable' });
+    return;
+  }
+  await logAdminAction((req as AuthRequest).uid!, 'comment_delete', 'comment', String(id));
+  res.json({ success: true });
+});
+
+/* GET /admin/videos — vidéos récentes (modération) */
+router.get('/videos', async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 30));
+  const videos = await listRecentVideos(limit);
+  res.json(videos);
+});
+
+/* DELETE /admin/videos/:id — supprimer n'importe quelle vidéo */
+router.delete('/videos/:id', async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const deleted = await deleteVideoById(req.params.id);
+  if (!deleted) {
+    res.status(404).json({ error: 'Vidéo introuvable' });
+    return;
+  }
+  await logAdminAction((req as AuthRequest).uid!, 'video_delete', 'video', req.params.id);
+  res.json({ success: true });
 });
 
 /* GET /admin/maintenance — statut maintenance */

@@ -4,7 +4,6 @@ import LoginPage from './components/Auth/LoginPage';
 import ActiveCallBar from './components/Call/ActiveCallBar';
 import IncomingCallOverlay from './components/Call/IncomingCallOverlay';
 import ConnectionLostOverlay from './components/Common/ConnectionLostOverlay';
-import DownloadBanner from './components/Common/DownloadBanner';
 import EmailVerificationBanner from './components/Common/EmailVerificationBanner';
 import OpenSourceBanner from './components/Common/OpenSourceBanner';
 import TitleBar from './components/Common/TitleBar';
@@ -107,7 +106,6 @@ export default function App() {
           <DiscordPresenceTracker />
           <div className="flex flex-col h-dvh">
             <TitleBar />
-            <DownloadBanner />
             <div className="flex-1 overflow-hidden">
               <Suspense fallback={<div className="flex items-center justify-center h-dvh"><div className="spinner" /></div>}>
                 <Routes>

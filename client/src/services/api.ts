@@ -195,6 +195,75 @@ export const publicProfile = {
 };
 
 /* ── Admin ── */
+
+export interface AdminPostRow {
+  id: string;
+  uid: string;
+  text: string;
+  image?: string | null;
+  likesCount: number;
+  repostsCount: number;
+  commentsCount: number;
+  createdAt: number;
+  pseudo: string;
+  avatar?: string | null;
+  wouaffId?: string | null;
+  staffUid?: string | null;
+}
+
+export interface AdminCommentRow {
+  id: number;
+  postId: string;
+  uid: string;
+  text: string;
+  createdAt: number;
+  pseudo: string;
+  avatar?: string | null;
+  postText?: string | null;
+}
+
+export interface AdminVideoRow {
+  id: string;
+  uid: string;
+  videoPath: string;
+  thumbnailPath?: string | null;
+  caption?: string | null;
+  duration?: number | null;
+  likesCount: number;
+  commentsCount: number;
+  createdAt: number;
+  pseudo?: string | null;
+  avatar?: string | null;
+  wouaffId?: string | null;
+}
+
+export interface AdminUserReportRow {
+  id: number;
+  reportedUid: string;
+  reporterUid: string;
+  reason: string | null;
+  createdAt: number;
+  reportedPseudo: string;
+  reportedAvatar?: string | null;
+  reportedWouaffId?: string | null;
+  reporterPseudo: string;
+}
+
+export interface AdminReportedGroupRow {
+  gid: string;
+  name: string;
+  reportedBy: string;
+  reportedAt: number;
+}
+
+export interface AdminLoginHistoryRow {
+  id: number;
+  uid: string;
+  ip: string | null;
+  userAgent: string | null;
+  createdAt: number;
+}
+
 export const admin = {
   staff: {
     list: () => request<Record<string, UserProfile>>('GET', '/admin/staff'),
@@ -217,6 +286,17 @@ export const admin = {
       online: number;
       badges: number;
       wouaffIds: number;
+      posts: number;
+      postComments: number;
+      postLikes: number;
+      postReposts: number;
+      videos: number;
+      videoLikes: number;
+      videoComments: number;
+      follows: number;
+      userReports: number;
+      reportedGroups: number;
+      logins: number;
     }>('GET', '/admin/stats'),
   users: {
     recent: () => request<Record<string, UserProfile>>('GET', '/admin/users/recent'),
@@ -245,15 +325,30 @@ export const admin = {
     >('GET', '/admin/logs'),
   logAction: (action: string, targetType?: string, targetId?: string, details?: string) =>
     request<{ success: boolean }>('POST', '/admin/log-action', { action, targetType, targetId, details }),
-  reports: () =>
-    request<
-      Array<{
-        gid: string;
-        name: string;
-        reportedBy: string;
-        reportedAt: number;
-      }>
-    >('GET', '/admin/reports'),
+  loginHistory: (uid: string) => request<AdminLoginHistoryRow[]>('GET', `/admin/login-history/${uid}`),
+  posts: {
+    list: (limit = 30, uid?: string) =>
+      request<AdminPostRow[]>(
+        'GET',
+        `/admin/posts?limit=${limit}${uid ? `&uid=${encodeURIComponent(uid)}` : ''}`,
+      ),
+    delete: (id: string) => request<{ success: boolean }>('DELETE', `/admin/posts/${id}`),
+  },
+  comments: {
+    list: (limit = 30) => request<AdminCommentRow[]>('GET', `/admin/comments?limit=${limit}`),
+    delete: (id: number) => request<{ success: boolean }>('DELETE', `/admin/posts/comments/${id}`),
+  },
+  videos: {
+    list: (limit = 30) => request<AdminVideoRow[]>('GET', `/admin/videos?limit=${limit}`),
+    delete: (id: string) => request<{ success: boolean }>('DELETE', `/admin/videos/${id}`),
+  },
+  reports: {
+    users: () => request<AdminUserReportRow[]>('GET', '/admin/reports/users'),
+    groups: () => request<AdminReportedGroupRow[]>('GET', '/admin/reports'),
+    clearUser: (id: number) => request<{ success: boolean }>('POST', `/admin/reports/users/${id}/clear`),
+    clearGroup: (gid: string) => request<{ success: boolean }>('POST', `/admin/groups/${gid}/report/clear`),
+    deleteGroup: (gid: string) => request<{ success: boolean }>('DELETE', `/admin/groups/${gid}`),
+  },
   maintenance: {
     get: () => request<{ enabled: boolean; message: string | null }>('GET', '/admin/maintenance'),
     set: (enabled: boolean, message?: string) =>

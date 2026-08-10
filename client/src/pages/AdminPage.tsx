@@ -7,19 +7,26 @@ import {
   ChevronRight,
   Circle,
   Edit3,
+  Film,
   Flag,
+  Globe,
+  Heart,
   Key,
+  KeyRound,
   Link2,
   Loader2,
   Lock,
   LogOut,
   Mail,
+  MessageCircle,
   MessageSquare,
+  Repeat2,
   RefreshCw,
   Save,
   Search,
   Shield,
   ShieldAlert,
+  ShieldCheck,
   Trash2,
   User,
   UserMinus,
@@ -31,10 +38,29 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { admin as adminAPI, profiles } from '../services/api';
+import type {
+  AdminCommentRow,
+  AdminLoginHistoryRow,
+  AdminPostRow,
+  AdminReportedGroupRow,
+  AdminUserReportRow,
+  AdminVideoRow,
+} from '../services/api';
 import type { UserProfile } from '../types';
 
-type Tab = 'dashboard' | 'users' | 'staff' | 'logs';
+type Tab = 'dashboard' | 'moderation' | 'reports' | 'users' | 'staff' | 'logs';
+type ModSubTab = 'posts' | 'comments' | 'videos';
+type ReportSubTab = 'users' | 'groups';
 type ToastItem = { id: number; msg: string; type: 'success' | 'error' | 'info' };
+
+interface AdminStat {
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+  online?: boolean;
+  group: 'general' | 'social' | 'moderation';
+}
 
 let toastId = 0;
 
@@ -48,6 +74,10 @@ const ACTIONS_LABELS: Record<string, string> = {
   migrate_wouaff_ids: 'Migration IDs',
   maintenance_on: 'Maintenance activée',
   maintenance_off: 'Maintenance désactivée',
+  post_delete: 'Suppression post',
+  comment_delete: 'Suppression commentaire',
+  video_delete: 'Suppression vidéo',
+  group_delete: 'Suppression groupe',
 };
 
 const ACTION_ICONS: Record<string, React.ReactNode> = {
@@ -60,25 +90,43 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
   migrate_wouaff_ids: <Link2 size={14} />,
   maintenance_on: <ShieldAlert size={14} />,
   maintenance_off: <ShieldAlert size={14} />,
+  post_delete: <Trash2 size={14} />,
+  comment_delete: <MessageCircle size={14} />,
+  video_delete: <Film size={14} />,
+  group_delete: <Users size={14} />,
 };
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'dashboard', label: 'Tableau de bord', icon: <BarChart3 size={18} /> },
+  { id: 'moderation', label: 'Modération', icon: <ShieldCheck size={18} /> },
+  { id: 'reports', label: 'Signalements', icon: <Flag size={18} /> },
   { id: 'users', label: 'Utilisateurs', icon: <Users size={18} /> },
   { id: 'staff', label: 'Staff', icon: <Shield size={18} /> },
   { id: 'logs', label: 'Activité', icon: <Activity size={18} /> },
 ];
 
-const STAT_CARDS = [
-  { key: 'users', label: 'Utilisateurs', icon: <User size={18} />, color: 'var(--brand)' },
-  { key: 'chats', label: 'Conversations', icon: <MessageSquare size={18} />, color: '#8b5cf6' },
-  { key: 'messages', label: 'Messages', icon: <Mail size={18} />, color: '#06b6d4' },
-  { key: 'online', label: 'En ligne', icon: <Circle size={18} />, color: '#22c55e', online: true },
-  { key: 'badges', label: 'Badges', icon: <Award size={18} />, color: '#f59e0b' },
-  { key: 'wouaffIds', label: 'Identifiants', icon: <Link2 size={18} />, color: '#ec4899' },
+const STAT_CARDS: AdminStat[] = [
+  { key: 'users', label: 'Utilisateurs', icon: <User size={18} />, color: 'var(--brand)', group: 'general' },
+  { key: 'online', label: 'En ligne', icon: <Circle size={18} />, color: '#22c55e', online: true, group: 'general' },
+  { key: 'chats', label: 'Conversations', icon: <MessageSquare size={18} />, color: '#8b5cf6', group: 'general' },
+  { key: 'messages', label: 'Messages', icon: <Mail size={18} />, color: '#06b6d4', group: 'general' },
+  { key: 'posts', label: 'Posts', icon: <Edit3 size={18} />, color: '#3b82f6', group: 'social' },
+  { key: 'postLikes', label: 'J\'aime (posts)', icon: <Heart size={18} />, color: '#ef4444', group: 'social' },
+  { key: 'postReposts', label: 'Reposts', icon: <Repeat2 size={18} />, color: '#10b981', group: 'social' },
+  { key: 'postComments', label: 'Commentaires', icon: <MessageCircle size={18} />, color: '#f59e0b', group: 'social' },
+  { key: 'follows', label: 'Abonnements', icon: <UserPlus size={18} />, color: '#ec4899', group: 'social' },
+  { key: 'videos', label: 'Vidéos', icon: <Film size={18} />, color: '#a855f7', group: 'social' },
+  { key: 'videoLikes', label: 'J\'aime (vidéos)', icon: <Heart size={18} />, color: '#fb7185', group: 'social' },
+  { key: 'videoComments', label: 'Commentaires vidéos', icon: <MessageCircle size={18} />, color: '#f97316', group: 'social' },
+  { key: 'userReports', label: 'Signalements users', icon: <Flag size={18} />, color: '#f43f5e', group: 'moderation' },
+  { key: 'reportedGroups', label: 'Groupes signalés', icon: <ShieldAlert size={18} />, color: '#e11d48', group: 'moderation' },
+  { key: 'logins', label: 'Connexions (IP)', icon: <Globe size={18} />, color: '#6366f1', group: 'moderation' },
+  { key: 'badges', label: 'Badges', icon: <Award size={18} />, color: '#f59e0b', group: 'general' },
+  { key: 'wouaffIds', label: 'Identifiants', icon: <Link2 size={18} />, color: '#ec4899', group: 'general' },
 ];
 
 function timeAgo(ts: number): string {
+  if (!ts) return '';
   const diff = Date.now() - ts;
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "à l'instant";
@@ -87,6 +135,32 @@ function timeAgo(ts: number): string {
   if (hrs < 24) return `il y a ${hrs}h`;
   const days = Math.floor(hrs / 24);
   return `il y a ${days}j`;
+}
+
+function formatDate(ts: number): string {
+  if (!ts) return '';
+  return new Date(ts).toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function avatar(avatar?: string | null, pseudo?: string | null, size = 36): React.ReactNode {
+  return (
+    <div
+      className="admin-user-avatar"
+      style={size !== 36 ? { width: size, height: size } : undefined}
+    >
+      {avatar ? (
+        <img src={avatar} alt="" />
+      ) : (
+        <span>{(pseudo || '?')[0]?.toUpperCase() || '?'}</span>
+      )}
+    </div>
+  );
 }
 
 export default function AdminPage() {
@@ -107,12 +181,21 @@ export default function AdminPage() {
     online: number;
     badges: number;
     wouaffIds: number;
+    posts: number;
+    postComments: number;
+    postLikes: number;
+    postReposts: number;
+    videos: number;
+    videoLikes: number;
+    videoComments: number;
+    follows: number;
+    userReports: number;
+    reportedGroups: number;
+    logins: number;
   } | null>(null);
 
   /* Users state */
   const [recentUsers, setRecentUsers] = useState<Record<string, UserProfile>>({});
-
-  /* Search state */
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
@@ -123,6 +206,8 @@ export default function AdminPage() {
   const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
   const [badgeMsg, setBadgeMsg] = useState('');
   const [actionMsg, setActionMsg] = useState('');
+  const [loginHistory, setLoginHistory] = useState<AdminLoginHistoryRow[]>([]);
+  const [loginHistoryLoading, setLoginHistoryLoading] = useState(false);
 
   /* Staff state */
   const [staffList, setStaffList] = useState<Record<string, UserProfile>>({});
@@ -144,16 +229,19 @@ export default function AdminPage() {
   const [logProfiles, setLogProfiles] = useState<Record<string, { pseudo: string; avatar?: string }>>({});
   const [logsLoading, setLogsLoading] = useState(false);
 
+  /* Modération state */
+  const [modSubTab, setModSubTab] = useState<ModSubTab>('posts');
+  const [modPosts, setModPosts] = useState<AdminPostRow[]>([]);
+  const [modComments, setModComments] = useState<AdminCommentRow[]>([]);
+  const [modVideos, setModVideos] = useState<AdminVideoRow[]>([]);
+  const [modLoading, setModLoading] = useState(false);
+  const [postFilter, setPostFilter] = useState('');
+
   /* Reports state */
-  const [reports, setReports] = useState<
-    Array<{
-      gid: string;
-      name: string;
-      reportedBy: string;
-      reportedAt: number;
-    }>
-  >([]);
-  const [showReports, setShowReports] = useState(false);
+  const [reportSubTab, setReportSubTab] = useState<ReportSubTab>('users');
+  const [userReports, setUserReports] = useState<AdminUserReportRow[]>([]);
+  const [groupReports, setGroupReports] = useState<AdminReportedGroupRow[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
 
   /* Maintenance state */
   const [maintenanceOn, setMaintenanceOn] = useState(false);
@@ -203,12 +291,15 @@ export default function AdminPage() {
               setMaintenanceMsg(m.message ?? '');
             })
             .catch(() => {});
+          loadModeration('posts');
+          loadReports('users');
         }
       } catch (e) {
         console.error(e);
       }
       setChecking(false);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadStats = async () => {
@@ -263,18 +354,107 @@ export default function AdminPage() {
     setLogsLoading(false);
   };
 
-  const loadReports = async () => {
+  const loadModeration = async (sub: ModSubTab, uid?: string) => {
+    setModLoading(true);
     try {
-      const r = await adminAPI.reports();
-      setReports(r);
-      setShowReports(true);
-    } catch {
-      toast('Erreur chargement signalements', 'error');
+      if (sub === 'posts') {
+        setModPosts(await adminAPI.posts.list(30, uid || undefined));
+      } else if (sub === 'comments') {
+        setModComments(await adminAPI.comments.list(30));
+      } else {
+        setModVideos(await adminAPI.videos.list(30));
+      }
+    } catch (e) {
+      console.error(e);
+      toast('Erreur de chargement de la modération', 'error');
+    }
+    setModLoading(false);
+  };
+
+  const deletePost = async (id: string, authorPseudo?: string) => {
+    if (!confirm(`Supprimer définitivement ce post${authorPseudo ? ` de ${authorPseudo}` : ''} ?`)) return;
+    try {
+      await adminAPI.posts.delete(id);
+      setModPosts((prev) => prev.filter((p) => p.id !== id));
+      toast('Post supprimé', 'success');
+      loadStats();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Erreur', 'error');
     }
   };
 
-  const searchProfile = async () => {
-    const q = searchQuery.trim();
+  const deleteComment = async (id: number) => {
+    if (!confirm('Supprimer définitivement ce commentaire ?')) return;
+    try {
+      await adminAPI.comments.delete(id);
+      setModComments((prev) => prev.filter((c) => c.id !== id));
+      toast('Commentaire supprimé', 'success');
+      loadStats();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Erreur', 'error');
+    }
+  };
+
+  const deleteVideo = async (id: string, authorPseudo?: string) => {
+    if (!confirm(`Supprimer définitivement cette vidéo${authorPseudo ? ` de ${authorPseudo}` : ''} ?`)) return;
+    try {
+      await adminAPI.videos.delete(id);
+      setModVideos((prev) => prev.filter((v) => v.id !== id));
+      toast('Vidéo supprimée', 'success');
+      loadStats();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Erreur', 'error');
+    }
+  };
+
+  const loadReports = async (sub: ReportSubTab) => {
+    setReportsLoading(true);
+    try {
+      if (sub === 'users') setUserReports(await adminAPI.reports.users());
+      else setGroupReports(await adminAPI.reports.groups());
+    } catch (e) {
+      console.error(e);
+      toast('Erreur de chargement des signalements', 'error');
+    }
+    setReportsLoading(false);
+  };
+
+  const clearUserReport = async (id: number) => {
+    try {
+      await adminAPI.reports.clearUser(id);
+      setUserReports((prev) => prev.filter((r) => r.id !== id));
+      toast('Signalement clôturé', 'success');
+      loadStats();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Erreur', 'error');
+    }
+  };
+
+  const clearGroupReport = async (gid: string) => {
+    try {
+      await adminAPI.reports.clearGroup(gid);
+      setGroupReports((prev) => prev.filter((r) => r.gid !== gid));
+      toast('Signalement levé', 'success');
+      loadStats();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Erreur', 'error');
+    }
+  };
+
+  const deleteGroup = async (gid: string, name?: string) => {
+    if (!confirm(`Supprimer définitivement le groupe « ${name || gid} » ?`)) return;
+    try {
+      await adminAPI.reports.deleteGroup(gid);
+      setGroupReports((prev) => prev.filter((r) => r.gid !== gid));
+      toast('Groupe supprimé', 'success');
+      loadStats();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Erreur', 'error');
+    }
+  };
+
+  const searchProfile = async (qOverride?: string) => {
+    const q = (qOverride ?? searchQuery).trim();
     if (!q) return;
     setSearchLoading(true);
     setSearchError('');
@@ -282,6 +462,7 @@ export default function AdminPage() {
     setEditMsg('');
     setBadgeMsg('');
     setActionMsg('');
+    setLoginHistory([]);
     try {
       let uid: string;
       let prof: UserProfile;
@@ -314,10 +495,22 @@ export default function AdminPage() {
           ids = Object.values(rawBadges as Record<string, string>).filter(Boolean);
       }
       setSelectedBadges(ids);
+      loadLoginHistory(uid);
     } catch (e) {
       setSearchError(e instanceof Error ? e.message : 'Erreur');
     }
     setSearchLoading(false);
+  };
+
+  const loadLoginHistory = async (uid: string) => {
+    setLoginHistoryLoading(true);
+    try {
+      setLoginHistory(await adminAPI.loginHistory(uid));
+    } catch (e) {
+      console.error(e);
+      setLoginHistory([]);
+    }
+    setLoginHistoryLoading(false);
   };
 
   const saveProfile = async () => {
@@ -389,6 +582,7 @@ export default function AdminPage() {
       toast('Compte supprimé', 'success');
       setSearchResult(null);
       setSearchQuery('');
+      setLoginHistory([]);
     } catch (e) {
       setActionMsg(e instanceof Error ? e.message : 'Erreur');
     }
@@ -440,7 +634,15 @@ export default function AdminPage() {
     setActiveTab('users');
     setSearchResult(null);
     setTimeout(() => {
-      searchProfile();
+      searchProfile(uid);
+    }, 100);
+  };
+
+  const openReportedUser = (uid: string) => {
+    setSearchQuery(uid);
+    setActiveTab('users');
+    setTimeout(() => {
+      searchProfile(uid);
     }, 100);
   };
 
@@ -488,6 +690,12 @@ export default function AdminPage() {
     );
   }
 
+  const statGroups: { id: 'general' | 'social' | 'moderation'; label: string }[] = [
+    { id: 'general', label: 'Général' },
+    { id: 'social', label: 'Réseau social' },
+    { id: 'moderation', label: 'Modération' },
+  ];
+
   return (
     <div className="admin-page">
       <div className="admin-layout">
@@ -498,7 +706,7 @@ export default function AdminPage() {
             </div>
             <div className="admin-brand-text">
               <span className="admin-brand-name">Panneau d'administration</span>
-              <span className="admin-brand-sub">Wouaff</span>
+              <span className="admin-brand-sub">Wouaff Social</span>
             </div>
           </div>
 
@@ -558,31 +766,41 @@ export default function AdminPage() {
         </div>
 
         <main className="admin-main">
+          {/* ── DASHBOARD ── */}
           {activeTab === 'dashboard' && (
             <div className="admin-panel active">
               <div className="admin-panel-header">
                 <h2>Tableau de bord</h2>
-                <p>Vue d'ensemble de la plateforme Wouaff.</p>
+                <p>Vue d'ensemble de la plateforme Wouaff et du réseau social.</p>
               </div>
 
               {stats && (
-                <div className="admin-stats-grid">
-                  {STAT_CARDS.map((s) => (
-                    <div
-                      key={s.key}
-                      className="admin-stat-card"
-                      style={{ '--stat-color': s.color } as React.CSSProperties}
-                    >
-                      <div className="admin-stat-icon" style={{ background: `${s.color}20`, color: s.color }}>
-                        {s.icon}
+                <>
+                  {statGroups.map((g) => (
+                    <div key={g.id}>
+                      <div className="admin-section-divider">
+                        <span>{g.label}</span>
                       </div>
-                      <div className={`admin-stat-value${s.online ? ' admin-stat-online' : ''}`}>
-                        {stats[s.key as keyof typeof stats]}
+                      <div className="admin-stats-grid">
+                        {STAT_CARDS.filter((s) => s.group === g.id).map((s) => (
+                          <div
+                            key={s.key}
+                            className="admin-stat-card"
+                            style={{ '--stat-color': s.color } as React.CSSProperties}
+                          >
+                            <div className="admin-stat-icon" style={{ background: `${s.color}20`, color: s.color }}>
+                              {s.icon}
+                            </div>
+                            <div className={`admin-stat-value${s.online ? ' admin-stat-online' : ''}`}>
+                              {stats[s.key as keyof typeof stats]}
+                            </div>
+                            <div className="admin-stat-label">{s.label}</div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="admin-stat-label">{s.label}</div>
                     </div>
                   ))}
-                </div>
+                </>
               )}
 
               <div className="admin-actions-row">
@@ -601,7 +819,13 @@ export default function AdminPage() {
                 >
                   <Link2 size={16} /> Migrer wouaffIds
                 </button>
-                <button className="admin-btn admin-btn-secondary" onClick={loadReports}>
+                <button
+                  className="admin-btn admin-btn-secondary"
+                  onClick={() => {
+                    setActiveTab('reports');
+                    loadReports('users');
+                  }}
+                >
                   <Flag size={16} /> Signalements
                 </button>
                 <button
@@ -612,6 +836,7 @@ export default function AdminPage() {
                   <ShieldAlert size={16} /> {maintenanceOn ? 'Désactiver maintenance' : 'Activer maintenance'}
                 </button>
               </div>
+
               {maintenanceOn && (
                 <div className="admin-card mt-1">
                   <div className="admin-card-title">
@@ -633,61 +858,329 @@ export default function AdminPage() {
                   </button>
                 </div>
               )}
+            </div>
+          )}
 
-              {showReports && (
-                <div className="admin-card mt-1">
-                  <div className="admin-card-title">
-                    <Flag size={16} /> Groupes signalés
-                    <button className="admin-card-close" onClick={() => setShowReports(false)}>
-                      <X size={14} />
+          {/* ── MODÉRATION ── */}
+          {activeTab === 'moderation' && (
+            <div className="admin-panel active">
+              <div className="admin-panel-header">
+                <h2>Modération du réseau social</h2>
+                <p>Posts, commentaires et vidéos : consultez et supprimez le contenu.</p>
+              </div>
+
+              <div className="admin-subtabs">
+                <button
+                  type="button"
+                  className={`admin-subtab${modSubTab === 'posts' ? ' active' : ''}`}
+                  onClick={() => {
+                    setModSubTab('posts');
+                    loadModeration('posts', postFilter || undefined);
+                  }}
+                >
+                  <Edit3 size={15} /> Posts
+                </button>
+                <button
+                  type="button"
+                  className={`admin-subtab${modSubTab === 'comments' ? ' active' : ''}`}
+                  onClick={() => {
+                    setModSubTab('comments');
+                    loadModeration('comments');
+                  }}
+                >
+                  <MessageCircle size={15} /> Commentaires
+                </button>
+                <button
+                  type="button"
+                  className={`admin-subtab${modSubTab === 'videos' ? ' active' : ''}`}
+                  onClick={() => {
+                    setModSubTab('videos');
+                    loadModeration('videos');
+                  }}
+                >
+                  <Film size={15} /> Vidéos
+                </button>
+              </div>
+
+              {modLoading && (
+                <div className="admin-muted" style={{ padding: '20px 0' }}>
+                  <Loader2 size={16} className="animate-spin" style={{ display: 'inline-block', marginRight: 8 }} />
+                  Chargement...
+                </div>
+              )}
+
+              {modSubTab === 'posts' && (
+                <>
+                  <div className="admin-search-row">
+                    <input
+                      className="admin-input"
+                      placeholder="Filtrer par UID utilisateur..."
+                      value={postFilter}
+                      onChange={(e) => setPostFilter(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && loadModeration('posts', postFilter.trim() || undefined)}
+                    />
+                    <button
+                      className="admin-btn admin-btn-primary"
+                      onClick={() => loadModeration('posts', postFilter.trim() || undefined)}
+                      disabled={modLoading}
+                    >
+                      <Search size={16} />
+                    </button>
+                    <button
+                      className="admin-btn admin-btn-secondary"
+                      onClick={() => loadModeration('posts')}
+                      title="Réinitialiser"
+                    >
+                      <RefreshCw size={16} />
                     </button>
                   </div>
-                  {reports.length === 0 ? (
-                    <p className="admin-muted">Aucun signalement</p>
-                  ) : (
-                    <div className="admin-user-list">
-                      {reports.map((r) => (
-                        <div
-                          key={r.gid}
-                          className="admin-user-item"
-                          onClick={() => {
-                            setSearchQuery(r.gid);
-                            setActiveTab('users');
-                          }}
-                        >
-                          <div className="admin-user-avatar">
-                            <Flag size={16} />
+
+                  <div className="admin-mod-list">
+                    {modPosts.length === 0 && !modLoading && <p className="admin-muted">Aucun post.</p>}
+                    {modPosts.map((p) => (
+                      <div key={p.id as string} className="admin-mod-item">
+                        {avatar(p.avatar as string, p.pseudo as string)}
+                        <div className="admin-mod-body">
+                          <div className="admin-mod-head">
+                            <span className="admin-mod-author">{(p.pseudo as string) || 'Utilisateur'}</span>
+                            {p.staffUid && <ShieldCheck size={13} className="admin-mod-verified" />}
+                            <span className="admin-mod-handle">
+                              @{((p.wouaffId as string) || (p.uid as string)).replace(/^@/, '')}
+                            </span>
+                            <span className="admin-mod-time">{timeAgo(p.createdAt as number)}</span>
                           </div>
-                          <div className="admin-user-info">
-                            <div className="admin-user-name">{r.name || 'Groupe sans nom'}</div>
-                            <div className="admin-user-id">Signalé par {r.reportedBy.slice(0, 8)}...</div>
+                          <p className="admin-mod-text">{p.text as string}</p>
+                          {p.image && (
+                            <img
+                              src={p.image as string}
+                              alt=""
+                              className="admin-mod-thumb"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          )}
+                          <div className="admin-mod-meta">
+                            <span>
+                              <Heart size={12} /> {p.likesCount as number}
+                            </span>
+                            <span>
+                              <Repeat2 size={12} /> {p.repostsCount as number}
+                            </span>
+                            <span>
+                              <MessageCircle size={12} /> {p.commentsCount as number}
+                            </span>
                           </div>
-                          <div className="admin-user-uid">{timeAgo(r.reportedAt)}</div>
                         </div>
-                      ))}
+                        <button
+                          className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                          onClick={() => deletePost(p.id as string, p.pseudo as string)}
+                        >
+                          <Trash2 size={12} /> Supprimer
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {modSubTab === 'comments' && (
+                <div className="admin-mod-list">
+                  {modComments.length === 0 && !modLoading && <p className="admin-muted">Aucun commentaire.</p>}
+                  {modComments.map((c) => (
+                    <div key={c.id as number} className="admin-mod-item">
+                      {avatar(c.avatar as string, c.pseudo as string)}
+                      <div className="admin-mod-body">
+                        <div className="admin-mod-head">
+                          <span className="admin-mod-author">{(c.pseudo as string) || 'Utilisateur'}</span>
+                          <span className="admin-mod-time">{timeAgo(c.createdAt as number)}</span>
+                        </div>
+                        <p className="admin-mod-text">{c.text as string}</p>
+                        {c.postText && (
+                          <div className="admin-mod-reply">sur : « {c.postText as string} »</div>
+                        )}
+                      </div>
+                      <button
+                        className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                        onClick={() => deleteComment(c.id as number)}
+                      >
+                        <Trash2 size={12} /> Supprimer
+                      </button>
                     </div>
-                  )}
+                  ))}
+                </div>
+              )}
+
+              {modSubTab === 'videos' && (
+                <div className="admin-mod-grid">
+                  {modVideos.length === 0 && !modLoading && <p className="admin-muted">Aucune vidéo.</p>}
+                  {modVideos.map((v) => (
+                    <div key={v.id as string} className="admin-video-card">
+                      <div className="admin-video-preview">
+                        <video src={v.videoPath as string} preload="metadata" muted playsInline />
+                        <div className="admin-video-overlay">
+                          <Film size={28} />
+                        </div>
+                      </div>
+                      <div className="admin-video-info">
+                        <div className="admin-mod-head">
+                          <span className="admin-mod-author">{(v.pseudo as string) || 'Utilisateur'}</span>
+                          <span className="admin-mod-time">{timeAgo(v.createdAt as number)}</span>
+                        </div>
+                        {v.caption && <p className="admin-mod-text">{v.caption as string}</p>}
+                        <div className="admin-mod-meta">
+                          <span>
+                            <Heart size={12} /> {v.likesCount as number}
+                          </span>
+                          <span>
+                            <MessageCircle size={12} /> {v.commentsCount as number}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                        onClick={() => deleteVideo(v.id as string, v.pseudo as string)}
+                      >
+                        <Trash2 size={12} /> Supprimer
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           )}
 
+          {/* ── SIGNALEMENTS ── */}
+          {activeTab === 'reports' && (
+            <div className="admin-panel active">
+              <div className="admin-panel-header">
+                <h2>Signalements</h2>
+                <p>Contenus et comptes signalés par la communauté.</p>
+              </div>
+
+              <div className="admin-subtabs">
+                <button
+                  type="button"
+                  className={`admin-subtab${reportSubTab === 'users' ? ' active' : ''}`}
+                  onClick={() => {
+                    setReportSubTab('users');
+                    loadReports('users');
+                  }}
+                >
+                  <Flag size={15} /> Utilisateurs ({userReports.length})
+                </button>
+                <button
+                  type="button"
+                  className={`admin-subtab${reportSubTab === 'groups' ? ' active' : ''}`}
+                  onClick={() => {
+                    setReportSubTab('groups');
+                    loadReports('groups');
+                  }}
+                >
+                  <Users size={15} /> Groupes ({groupReports.length})
+                </button>
+              </div>
+
+              <div className="admin-actions-row">
+                <button
+                  className="admin-btn admin-btn-secondary"
+                  onClick={() => loadReports(reportSubTab)}
+                  disabled={reportsLoading}
+                >
+                  {reportsLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                  Recharger
+                </button>
+              </div>
+
+              {reportSubTab === 'users' && (
+                <div className="admin-mod-list">
+                  {userReports.length === 0 && !reportsLoading && <p className="admin-muted">Aucun signalement.</p>}
+                  {userReports.map((r) => (
+                    <div key={r.id as number} className="admin-mod-item">
+                      {avatar(r.reportedAvatar as string, r.reportedPseudo as string)}
+                      <div className="admin-mod-body">
+                        <div className="admin-mod-head">
+                          <span className="admin-mod-author">{(r.reportedPseudo as string) || 'Compte'}</span>
+                          <span className="admin-mod-handle">
+                            @{((r.reportedWouaffId as string) || (r.reportedUid as string)).replace(/^@/, '')}
+                          </span>
+                          <span className="admin-mod-time">{timeAgo(r.createdAt as number)}</span>
+                        </div>
+                        {r.reason && <p className="admin-mod-text">« {r.reason as string} »</p>}
+                        <div className="admin-mod-reply">Signalé par {(r.reporterPseudo as string) || 'inconnu'}</div>
+                      </div>
+                      <div className="admin-mod-actions">
+                        <button
+                          className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]"
+                          onClick={() => openReportedUser(r.reportedUid as string)}
+                        >
+                          <Search size={12} /> Voir
+                        </button>
+                        <button
+                          className="admin-btn admin-btn-primary px-2.5 py-1.5 text-[11px]"
+                          onClick={() => clearUserReport(r.id as number)}
+                        >
+                          <X size={12} /> Clôturer
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {reportSubTab === 'groups' && (
+                <div className="admin-mod-list">
+                  {groupReports.length === 0 && !reportsLoading && <p className="admin-muted">Aucun signalement.</p>}
+                  {groupReports.map((r) => (
+                    <div key={r.gid as string} className="admin-mod-item">
+                      <div className="admin-user-avatar">
+                        <Flag size={16} />
+                      </div>
+                      <div className="admin-mod-body">
+                        <div className="admin-mod-head">
+                          <span className="admin-mod-author">{(r.name as string) || 'Groupe sans nom'}</span>
+                          <span className="admin-mod-time">{timeAgo(r.reportedAt as number)}</span>
+                        </div>
+                        <div className="admin-mod-reply">Signalé par {(r.reportedBy as string).slice(0, 10)}...</div>
+                      </div>
+                      <div className="admin-mod-actions">
+                        <button
+                          className="admin-btn admin-btn-primary px-2.5 py-1.5 text-[11px]"
+                          onClick={() => clearGroupReport(r.gid as string)}
+                        >
+                          <X size={12} /> Lever
+                        </button>
+                        <button
+                          className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                          onClick={() => deleteGroup(r.gid as string, r.name as string)}
+                        >
+                          <Trash2 size={12} /> Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── UTILISATEURS ── */}
           {activeTab === 'users' && (
             <div className="admin-panel active">
               <div className="admin-panel-header">
                 <h2>Utilisateurs</h2>
-                <p>Recherche et gestion des profils.</p>
+                <p>Recherche, édition, badges et historique de connexion.</p>
               </div>
 
               <div className="admin-search-row">
                 <input
                   className="admin-input"
-                  placeholder="@wouaff_id, UID ou gid..."
+                  placeholder="@wouaff_id, UID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && searchProfile()}
                 />
-                <button className="admin-btn admin-btn-primary" onClick={searchProfile} disabled={searchLoading}>
+                <button className="admin-btn admin-btn-primary" onClick={() => searchProfile()} disabled={searchLoading}>
                   {searchLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                 </button>
                 <button
@@ -695,6 +1188,7 @@ export default function AdminPage() {
                   onClick={() => {
                     setSearchQuery('');
                     setSearchResult(null);
+                    setLoginHistory([]);
                   }}
                 >
                   <X size={16} />
@@ -724,13 +1218,17 @@ export default function AdminPage() {
                             }}
                           />
                         ) : (
-                          <div className="admin-profile-avatar-fallback">{(searchResult.profile.pseudo || '?')[0]}</div>
+                          <div className="admin-profile-avatar-fallback">
+                            {(searchResult.profile.pseudo || '?')[0]}
+                          </div>
                         )}
                       </div>
                       <div className="admin-profile-name">{searchResult.profile.pseudo || 'Utilisateur'}</div>
                       <div className="admin-profile-handle">{searchResult.profile.wouaffId || '(aucun)'}</div>
                       <div className="admin-profile-uid">{searchResult.uid}</div>
-                      {searchResult.profile.bio && <div className="admin-profile-bio">{searchResult.profile.bio}</div>}
+                      {searchResult.profile.bio && (
+                        <div className="admin-profile-bio">{searchResult.profile.bio}</div>
+                      )}
                       <div className="admin-profile-badges">
                         {selectedBadges.length > 0 ? (
                           selectedBadges.map((id) =>
@@ -826,6 +1324,45 @@ export default function AdminPage() {
                     {badgeMsg && <div className="admin-msg">{badgeMsg}</div>}
                   </div>
 
+                  <div className="admin-card">
+                    <div className="admin-card-title">
+                      <Globe size={16} /> Historique de connexions
+                      <button
+                        className="admin-card-close"
+                        onClick={() => loadLoginHistory(searchResult.uid)}
+                        title="Recharger"
+                      >
+                        <RefreshCw size={14} />
+                      </button>
+                    </div>
+                    {loginHistoryLoading ? (
+                      <p className="admin-muted">Chargement...</p>
+                    ) : loginHistory.length === 0 ? (
+                      <p className="admin-muted">Aucune connexion enregistrée.</p>
+                    ) : (
+                      <div className="admin-log-list">
+                        {loginHistory.map((h) => (
+                          <div key={h.id} className="admin-log-item">
+                            <div className="admin-log-icon">
+                              <KeyRound size={14} />
+                            </div>
+                            <div className="admin-log-info">
+                              <div className="admin-log-action">
+                                <code>{h.ip || 'IP inconnue'}</code>
+                              </div>
+                              {h.userAgent && (
+                                <div className="admin-log-meta">
+                                  {h.userAgent.length > 80 ? `${h.userAgent.slice(0, 80)}...` : h.userAgent}
+                                </div>
+                              )}
+                            </div>
+                            <div className="admin-log-time">{formatDate(h.createdAt)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="admin-card admin-card-danger">
                     <div className="admin-card-title">
                       <AlertTriangle size={16} /> Actions sur le compte
@@ -868,6 +1405,7 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* ── STAFF ── */}
           {activeTab === 'staff' && (
             <div className="admin-panel active">
               <div className="admin-panel-header">
@@ -882,7 +1420,7 @@ export default function AdminPage() {
                 <div className="admin-search-row">
                   <input
                     className="admin-input"
-                    placeholder="UID Firebase..."
+                    placeholder="UID..."
                     value={staffUidInput}
                     onChange={(e) => setStaffUidInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && addStaff()}
@@ -926,11 +1464,12 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* ── ACTIVITÉ ── */}
           {activeTab === 'logs' && (
             <div className="admin-panel active">
               <div className="admin-panel-header">
                 <h2>Activité du staff</h2>
-                <p>Dernières actions des administrateurs.</p>
+                <p>Dernières actions de modération des administrateurs.</p>
               </div>
 
               <button className="admin-btn admin-btn-secondary mb-4" onClick={loadLogs}>
