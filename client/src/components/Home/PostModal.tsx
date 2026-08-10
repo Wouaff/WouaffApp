@@ -150,9 +150,20 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
               <span className="text-[var(--text-muted)] text-[15px]">·</span>
               <span className="text-[var(--text-muted)] text-[15px]">{formatTime(post.time)}</span>
             </div>
-            <p className="m-0 mt-1 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
-              {post.text}
-            </p>
+            {post.text && (
+              <p className="m-0 mt-1 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
+                {post.text}
+              </p>
+            )}
+            {post.image && (
+              <img
+                src={post.image}
+                alt="Image du post"
+                className="mt-2 rounded-2xl border border-[var(--border)] max-h-[480px] w-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            )}
           </div>
         </div>
 

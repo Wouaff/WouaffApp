@@ -1,0 +1,5 @@
+SET @postImageExists = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='posts' AND COLUMN_NAME='image');
+SET @sql1 = IF(@postImageExists=0, 'ALTER TABLE posts ADD COLUMN image LONGTEXT DEFAULT NULL', 'SELECT 1');
+PREPARE stmt1 FROM @sql1;
+EXECUTE stmt1;
+DEALLOCATE PREPARE stmt1;

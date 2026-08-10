@@ -1,6 +1,7 @@
 import { BadgeCheck, ChevronLeft, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import FollowModal from '../components/Home/FollowModal';
 import LeftNav from '../components/Home/LeftNav';
 import PostCard from '../components/Home/PostCard';
 import PostModal from '../components/Home/PostModal';
@@ -43,8 +44,10 @@ export default function ProfilePage() {
   const [postsLoading, setPostsLoading] = useState(false);
   const [following, setFollowing] = useState(false);
   const [followers, setFollowers] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
   const [followPending, setFollowPending] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [followModal, setFollowModal] = useState<'followers' | 'following' | null>(null);
 
   const selectedPost = posts.find((i) => i.post.id === selectedPostId)?.post || null;
 
@@ -71,6 +74,7 @@ export default function ProfilePage() {
       setData(json);
       setFollowing(json.isFollowing);
       setFollowers(json.followersCount);
+      setFollowingCount(json.followingCount);
       setState('profile');
       const handle = String(json.profile.wouaffId || wouaffId).replace(/^@/, '');
       document.title = `${json.profile.pseudo || 'Utilisateur'} (@${handle}) — Wouaff`;
@@ -122,6 +126,11 @@ export default function ProfilePage() {
       setFollowPending(false);
     }
   }, [data, following, user, navigate]);
+
+  const handleFollowCountChange = useCallback((kind: 'followers' | 'following', delta: number) => {
+    if (kind === 'followers') setFollowers((f) => Math.max(0, f + delta));
+    else setFollowingCount((f) => Math.max(0, f + delta));
+  }, []);
 
   const updatePost = useCallback((id: string, fn: (p: SocialPost) => SocialPost) => {
     setPosts((prev) => prev.map((i) => (i.post.id === id ? { ...i, post: fn(i.post) } : i)));
@@ -347,12 +356,20 @@ export default function ProfilePage() {
               <span className="text-[14px] text-[var(--text-primary)]">
                 <strong>{data.postsCount}</strong> <span className="text-[var(--text-muted)]">posts</span>
               </span>
-              <span className="text-[14px] text-[var(--text-primary)]">
+              <button
+                type="button"
+                onClick={() => setFollowModal('followers')}
+                className="text-[14px] text-[var(--text-primary)] rounded-full border-none bg-transparent p-0 cursor-pointer hover:underline"
+              >
                 <strong>{followers}</strong> <span className="text-[var(--text-muted)]">abonnés</span>
-              </span>
-              <span className="text-[14px] text-[var(--text-primary)]">
-                <strong>{data.followingCount}</strong> <span className="text-[var(--text-muted)]">abonnements</span>
-              </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFollowModal('following')}
+                className="text-[14px] text-[var(--text-primary)] rounded-full border-none bg-transparent p-0 cursor-pointer hover:underline"
+              >
+                <strong>{followingCount}</strong> <span className="text-[var(--text-muted)]">abonnements</span>
+              </button>
             </div>
           </div>
 
@@ -407,6 +424,14 @@ export default function ProfilePage() {
           onLike={handleLike}
           onRepost={handleRepost}
           onCommentDelta={handleCommentDelta}
+        />
+      )}
+      {followModal && (
+        <FollowModal
+          wouaffId={wouaffId!}
+          kind={followModal}
+          onClose={() => setFollowModal(null)}
+          onChange={handleFollowCountChange}
         />
       )}
     </div>

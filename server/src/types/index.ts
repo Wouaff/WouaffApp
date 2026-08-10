@@ -84,6 +84,7 @@ export interface PostData {
   avatar?: string;
   time: number;
   text: string;
+  image?: string;
   likes: number;
   reposts: number;
   comments: number;

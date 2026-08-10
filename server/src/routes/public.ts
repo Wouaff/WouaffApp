@@ -25,6 +25,37 @@ async function count(sql: string, param: string): Promise<number> {
   return rows[0]?.c || 0;
 }
 
+async function resolveUid(wouaffId: string): Promise<string | null> {
+  let id = wouaffId;
+  if (!id.startsWith('@')) id = `@${id}`;
+  return searchByWouaffId(id);
+}
+
+async function getFollowList(
+  uid: string,
+  viewerUid: string | null,
+  kind: 'followers' | 'following',
+): Promise<
+  Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null; isFollowing: boolean; isMe: boolean }>
+> {
+  const rows = await query<Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>>(
+    kind === 'followers'
+      ? 'SELECT p.uid, p.pseudo, p.avatar, p.wouaffId FROM follows f JOIN users p ON p.uid = f.followerUid WHERE f.followedUid = ? ORDER BY f.createdAt DESC'
+      : 'SELECT p.uid, p.pseudo, p.avatar, p.wouaffId FROM follows f JOIN users p ON p.uid = f.followedUid WHERE f.followerUid = ? ORDER BY f.createdAt DESC',
+    [uid],
+  );
+  if (rows.length === 0 || !viewerUid) {
+    return rows.map((r) => ({ ...r, isFollowing: false, isMe: viewerUid === r.uid }));
+  }
+  const placeholders = rows.map(() => '?').join(',');
+  const followRows = await query<Array<{ followerUid: string }>>(
+    `SELECT followerUid FROM follows WHERE followerUid = ? AND followedUid IN (${placeholders})`,
+    [viewerUid, ...rows.map((r) => r.uid)],
+  );
+  const followingSet = new Set(followRows.map((r) => r.followerUid));
+  return rows.map((r) => ({ ...r, isFollowing: followingSet.has(r.uid), isMe: viewerUid === r.uid }));
+}
+
 router.get('/profile/:wouaffId', async (req: Request, res: Response) => {
   try {
     let wouaffId = req.params.wouaffId;
@@ -66,6 +97,36 @@ router.get('/profile/:wouaffId', async (req: Request, res: Response) => {
     });
   } catch {
     res.status(500).json({ error: 'Erreur lors du chargement du profil' });
+  }
+});
+
+router.get('/profile/:wouaffId/followers', async (req: Request, res: Response) => {
+  try {
+    const uid = await resolveUid(req.params.wouaffId);
+    if (!uid) {
+      res.status(404).json({ error: 'Utilisateur introuvable' });
+      return;
+    }
+    const viewerUid = await getOptionalUid(req);
+    const list = await getFollowList(uid, viewerUid, 'followers');
+    res.json({ users: list });
+  } catch {
+    res.status(500).json({ error: 'Erreur lors du chargement des abonnés' });
+  }
+});
+
+router.get('/profile/:wouaffId/following', async (req: Request, res: Response) => {
+  try {
+    const uid = await resolveUid(req.params.wouaffId);
+    if (!uid) {
+      res.status(404).json({ error: 'Utilisateur introuvable' });
+      return;
+    }
+    const viewerUid = await getOptionalUid(req);
+    const list = await getFollowList(uid, viewerUid, 'following');
+    res.json({ users: list });
+  } catch {
+    res.status(500).json({ error: 'Erreur lors du chargement des abonnements' });
   }
 });
 

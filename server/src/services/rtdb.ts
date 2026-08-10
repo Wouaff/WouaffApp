@@ -879,6 +879,24 @@ export async function getAdminStats(): Promise<{
   return { users, chats, messages, online, badges, wouaffIds: ids };
 }
 
+export async function getRandomUserSuggestions(
+  uid: string,
+  limit = 3,
+): Promise<Array<{ uid: string; pseudo: string; avatar: string | null; bio: string | null; wouaffId: string | null }>> {
+  const rows = await query<
+    Array<{ uid: string; pseudo: string; avatar: string | null; bio: string | null; wouaffId: string | null }>
+  >(
+    `SELECT u.uid, u.pseudo, u.avatar, u.bio, u.wouaffId
+     FROM users u
+     LEFT JOIN follows f ON f.followedUid = u.uid AND f.followerUid = ?
+     WHERE u.uid != ? AND f.followedUid IS NULL
+     ORDER BY RAND()
+     LIMIT ?`,
+    [uid, uid, limit],
+  );
+  return rows;
+}
+
 export async function getRecentUsers(limit = 20): Promise<Record<string, Record<string, unknown>>> {
   const rows = await query<Array<{ uid: string } & Record<string, unknown>>>(
     'SELECT * FROM users ORDER BY createdAt DESC LIMIT ?',

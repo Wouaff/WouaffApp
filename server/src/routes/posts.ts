@@ -30,6 +30,7 @@ async function toPostData(
     avatar: row.avatar as string,
     time: row.createdAt as number,
     text: row.text as string,
+    image: (row.image as string) || undefined,
     likes: row.likesCount as number,
     reposts: row.repostsCount as number,
     comments: row.commentsCount as number,
@@ -64,7 +65,7 @@ async function fetchRepostedMap(uid: string, ids: string[]): Promise<Set<string>
 }
 
 const REPOST_SELECT = `SELECT r.uid AS repostedByUid, r.createdAt AS repostedAt,
-            p.id, p.uid, p.text, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+            p.id, p.uid, p.text, p.image, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid,
             ru.pseudo AS reposterPseudo, ru.avatar AS reposterAvatar, ru.wouaffId AS reposterWouaffId,
             rs.uid AS reposterStaffUid
@@ -100,22 +101,27 @@ async function getRepostItem(repostedByUid: string, postId: string, viewerUid?: 
 
 router.post('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const { text } = req.body as { text?: string };
+  const { text, image } = req.body as { text?: string; image?: string };
   const content = (text || '').trim();
-  if (!content) {
-    res.status(400).json({ error: 'Texte requis' });
+  const img = typeof image === 'string' ? image.trim() : '';
+  if (!content && !img) {
+    res.status(400).json({ error: 'Texte ou image requis' });
     return;
   }
   if (content.length > MAX_LENGTH) {
     res.status(400).json({ error: `Maximum ${MAX_LENGTH} caractères` });
     return;
   }
+  if (img && !img.startsWith('data:image/')) {
+    res.status(400).json({ error: 'Image invalide' });
+    return;
+  }
   const id = randomUUID();
   const now = Date.now();
   try {
     await query(
-      'INSERT INTO posts (id, uid, text, likesCount, repostsCount, commentsCount, createdAt) VALUES (?,?,?,0,0,0,?)',
-      [id, authReq.uid!, content, now],
+      'INSERT INTO posts (id, uid, text, image, likesCount, repostsCount, commentsCount, createdAt) VALUES (?,?,?,?,0,0,0,?)',
+      [id, authReq.uid!, content, img || null, now],
     );
     const profile = await getProfile(authReq.uid!);
     const verified = await isVerified(authReq.uid!);
@@ -128,6 +134,7 @@ router.post('/', async (req: Request, res: Response) => {
       avatar: profile?.avatar as string,
       time: now,
       text: content,
+      image: img || undefined,
       likes: 0,
       reposts: 0,
       comments: 0,
@@ -159,7 +166,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
   postParams.push(window, offset);
   const postRows = await query<Array<Record<string, unknown>>>(
-    `SELECT p.id, p.uid, p.text, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+    `SELECT p.id, p.uid, p.text, p.image, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
      FROM posts p
      LEFT JOIN users pr ON pr.uid = p.uid
@@ -179,7 +186,7 @@ router.get('/', async (req: Request, res: Response) => {
   repostParams.push(window, offset);
   const repostRows = await query<Array<Record<string, unknown>>>(
     `SELECT r.uid AS repostedByUid, r.createdAt AS repostedAt,
-            p.id, p.uid, p.text, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+            p.id, p.uid, p.text, p.image, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid,
             ru.pseudo AS reposterPseudo, ru.avatar AS reposterAvatar, ru.wouaffId AS reposterWouaffId,
             rs.uid AS reposterStaffUid
@@ -229,7 +236,7 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getOne<Record<string, unknown>>(
-    `SELECT p.id, p.uid, p.text, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+    `SELECT p.id, p.uid, p.text, p.image, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
      FROM posts p
      LEFT JOIN users pr ON pr.uid = p.uid

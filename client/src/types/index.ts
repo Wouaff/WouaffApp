@@ -162,6 +162,7 @@ export interface SocialPost {
   avatar?: string;
   time: number;
   text: string;
+  image?: string;
   likes: number;
   reposts: number;
   comments: number;

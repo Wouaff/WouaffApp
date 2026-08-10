@@ -1,17 +1,26 @@
-import { Image, Smile } from 'lucide-react';
+import { Image, Smile, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { compressImage } from '../../utils/audio';
+import EmojiPicker from '../Chat/EmojiPicker';
+import { showToast } from '../Common/Toast';
 
 const MAX_LENGTH = 280;
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
 interface ComposeBoxProps {
-  onPost: (text: string) => void;
+  onPost: (text: string, image?: string) => void;
 }
 
 export default function ComposeBox({ onPost }: ComposeBoxProps) {
   const { user } = useAuth();
   const [text, setText] = useState('');
+  const [image, setImage] = useState('');
+  const [imageLoading, setImageLoading] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = () => textareaRef.current?.focus();
@@ -19,14 +28,75 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
     return () => window.removeEventListener('wouaff:focus-compose', handler);
   }, []);
 
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [showEmojiPicker]);
+
   const remaining = MAX_LENGTH - text.length;
-  const canPost = text.trim().length > 0 && remaining >= 0;
+  const canPost = (text.trim().length > 0 || image.length > 0) && remaining >= 0 && !imageLoading;
+
+  const insertEmoji = (emoji: string) => {
+    const el = textareaRef.current;
+    if (!el) {
+      setText((v) => v + emoji);
+    } else {
+      const start = el.selectionStart ?? text.length;
+      const end = el.selectionEnd ?? text.length;
+      const next = text.slice(0, start) + emoji + text.slice(end);
+      setText(next);
+      requestAnimationFrame(() => {
+        el.focus();
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+      });
+    }
+    setShowEmojiPicker(false);
+  };
+
+  const pickImage = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      showToast('Veuillez sélectionner une image.', 'error');
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      showToast('Image trop volumineuse (max 10 Mo).', 'error');
+      return;
+    }
+    setImageLoading(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      if (!e.target) return;
+      try {
+        const compressed = await compressImage(e.target.result as string);
+        setImage(compressed);
+      } catch {
+        showToast("Impossible de traiter l'image.", 'error');
+      } finally {
+        setImageLoading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) pickImage(file);
+    e.target.value = '';
+  };
 
   const submit = () => {
-    const value = text.trim();
-    if (!value) return;
-    onPost(value);
+    if (!canPost) return;
+    onPost(text.trim(), image || undefined);
     setText('');
+    setImage('');
+    setShowEmojiPicker(false);
   };
 
   const initial = (user?.pseudo || '?')[0]?.toUpperCase() || '?';
@@ -47,22 +117,59 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
           aria-label="Rédiger un post"
           className="w-full bg-transparent resize-none outline-none text-[19px] leading-snug text-[var(--text-primary)] placeholder-[var(--text-muted)] font-sans border-none py-1"
         />
+
+        {image && (
+          <div className="relative mt-2">
+            <img
+              src={image}
+              alt="Aperçu"
+              className="max-h-[320px] w-full object-cover rounded-2xl border border-[var(--border)]"
+            />
+            <button
+              type="button"
+              onClick={() => setImage('')}
+              aria-label="Retirer l'image"
+              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center border-none cursor-pointer hover:bg-black/80 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-1 text-brand">
             <button
               type="button"
-              title="Image (bientôt)"
+              onClick={() => fileInputRef.current?.click()}
+              title="Ajouter une image"
               className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-brand hover:bg-[var(--brand-glow)] transition-colors"
             >
               <Image size={19} />
             </button>
-            <button
-              type="button"
-              title="Émojis (bientôt)"
-              className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-brand hover:bg-[var(--brand-glow)] transition-colors"
-            >
-              <Smile size={19} />
-            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={onFileChange}
+              className="hidden"
+              aria-hidden="true"
+            />
+            <div className="relative" ref={emojiPickerRef}>
+              <button
+                type="button"
+                onClick={() => setShowEmojiPicker((o) => !o)}
+                title="Émojis"
+                className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-brand hover:bg-[var(--brand-glow)] transition-colors"
+              >
+                <Smile size={19} />
+              </button>
+              {showEmojiPicker && <EmojiPicker onEmojiSelect={insertEmoji} />}
+            </div>
+            {imageLoading && (
+              <span className="ml-1 text-xs text-[var(--text-muted)]" role="status">
+                Compression...
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3">
             {remaining <= 20 && (

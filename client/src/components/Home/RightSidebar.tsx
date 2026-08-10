@@ -1,13 +1,54 @@
 import { Check, Lock, Search, Server, ShieldCheck, TrendingUp, UserPlus } from 'lucide-react';
-import { useState } from 'react';
-import { MOCK_SUGGESTIONS, MOCK_TRENDS } from '../../data/mockFeed';
+import { useCallback, useEffect, useState } from 'react';
+import { MOCK_TRENDS } from '../../data/mockFeed';
+import { profiles } from '../../services/api';
+
+interface Suggestion {
+  uid: string;
+  pseudo: string;
+  avatar: string | null;
+  bio: string | null;
+  wouaffId: string | null;
+}
+
+function toHandle(s: Suggestion): string {
+  const id = s.wouaffId?.trim();
+  if (id) return id.startsWith('@') ? id : `@${id}`;
+  return `@${s.pseudo?.toLowerCase().replace(/\s+/g, '') || 'utilisateur'}`;
+}
 
 export default function RightSidebar() {
   const [q, setQ] = useState('');
   const [following, setFollowing] = useState<Record<string, boolean>>({});
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
-  const toggleFollow = (handle: string) => {
-    setFollowing((prev) => ({ ...prev, [handle]: !prev[handle] }));
+  const loadSuggestions = useCallback(async () => {
+    try {
+      const res = await profiles.suggestions(3);
+      setSuggestions(res.results);
+    } catch (e) {
+      console.error(e);
+      setSuggestions([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSuggestions();
+  }, [loadSuggestions]);
+
+  const toggleFollow = async (s: Suggestion) => {
+    const isFollowing = !!following[s.uid];
+    setFollowing((prev) => ({ ...prev, [s.uid]: !isFollowing }));
+    try {
+      if (isFollowing) {
+        await profiles.unfollow(s.uid);
+      } else {
+        await profiles.follow(s.uid);
+      }
+    } catch (e) {
+      console.error(e);
+      setFollowing((prev) => ({ ...prev, [s.uid]: isFollowing }));
+    }
   };
 
   return (
@@ -80,37 +121,51 @@ export default function RightSidebar() {
 
         <div className="mt-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] overflow-hidden">
           <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0 px-4 pt-4 pb-2">À qui suivre</h2>
-          {MOCK_SUGGESTIONS.map((s) => {
-            const isFollowing = following[s.handle];
-            const initial = s.pseudo[0]?.toUpperCase() || '?';
-            return (
-              <div
-                key={s.handle}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors"
-              >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
-                  <span>{initial}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[15px] font-bold text-[var(--text-primary)] truncate">{s.pseudo}</div>
-                  <div className="text-[13px] text-[var(--text-muted)] truncate">{s.bio}</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => toggleFollow(s.handle)}
-                  className={`flex items-center gap-1 rounded-full px-4 py-1.5 text-[13px] font-bold border-none cursor-pointer transition-colors ${
-                    isFollowing
-                      ? 'bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border)]'
-                      : 'bg-[var(--text-primary)] text-[var(--bg-base)] hover:opacity-90'
-                  }`}
-                  aria-label={isFollowing ? `Ne plus suivre ${s.pseudo}` : `Suivre ${s.pseudo}`}
+          {suggestions.length === 0 ? (
+            <div className="px-4 py-4 text-[13px] text-[var(--text-muted)]">Aucune suggestion pour le moment</div>
+          ) : (
+            suggestions.map((s) => {
+              const isFollowing = following[s.uid];
+              const initial = (s.pseudo || '?')[0]?.toUpperCase() || '?';
+              return (
+                <div
+                  key={s.uid}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors"
                 >
-                  {isFollowing ? <Check size={14} /> : <UserPlus size={14} />}
-                  <span>{isFollowing ? 'Suivi' : 'Suivre'}</span>
-                </button>
-              </div>
-            );
-          })}
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
+                    {s.avatar ? (
+                      <img
+                        src={s.avatar}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <span>{initial}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[15px] font-bold text-[var(--text-primary)] truncate">{s.pseudo}</div>
+                    <div className="text-[13px] text-[var(--text-muted)] truncate">{s.bio || toHandle(s)}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleFollow(s)}
+                    className={`flex items-center gap-1 rounded-full px-4 py-1.5 text-[13px] font-bold border-none cursor-pointer transition-colors ${
+                      isFollowing
+                        ? 'bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border)]'
+                        : 'bg-[var(--text-primary)] text-[var(--bg-base)] hover:opacity-90'
+                    }`}
+                    aria-label={isFollowing ? `Ne plus suivre ${s.pseudo}` : `Suivre ${s.pseudo}`}
+                  >
+                    {isFollowing ? <Check size={14} /> : <UserPlus size={14} />}
+                    <span>{isFollowing ? 'Suivi' : 'Suivre'}</span>
+                  </button>
+                </div>
+              );
+            })
+          )}
         </div>
 
         <p className="m-0 mt-4 text-[12px] text-[var(--text-muted)] px-1">

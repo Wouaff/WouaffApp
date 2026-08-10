@@ -116,9 +116,9 @@ export default function HomePage() {
     };
   }, [user]);
 
-  const handlePost = useCallback(async (text: string) => {
+  const handlePost = useCallback(async (text: string, image?: string) => {
     try {
-      const post = await postsAPI.create(text);
+      const post = await postsAPI.create(text, image);
       setItems((prev) => {
         const item = toPostItem(post);
         return prev.some((i) => i.key === item.key) ? prev : [item, ...prev];

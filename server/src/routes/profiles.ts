@@ -8,6 +8,7 @@ import {
   getMutualContacts,
   getProfile,
   getPublicKey,
+  getRandomUserSuggestions,
   getReverseContactUids,
   updateProfile,
 } from '../services/rtdb.js';
@@ -25,6 +26,14 @@ router.get('/me', async (req: Request, res: Response) => {
     return;
   }
   res.json(profile);
+});
+
+/* GET /profiles/suggestions — comptes suggérés aléatoirement */
+router.get('/suggestions', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const limit = Math.min(10, Math.max(1, parseInt(req.query.limit as string, 10) || 3));
+  const suggestions = await getRandomUserSuggestions(authReq.uid!, limit);
+  res.json({ results: suggestions });
 });
 
 /* GET /profiles/:uid */

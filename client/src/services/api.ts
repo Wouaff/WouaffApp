@@ -86,6 +86,16 @@ export const profiles = {
   updateMe: (data: Record<string, unknown>) => request<{ success: boolean }>('PUT', '/profiles/me', data),
   mutual: (uid: string) =>
     request<Array<{ uid: string; pseudo: string; avatar: string | null }>>('GET', `/profiles/${uid}/mutual`),
+  suggestions: (limit = 3) =>
+    request<{
+      results: Array<{
+        uid: string;
+        pseudo: string;
+        avatar: string | null;
+        bio: string | null;
+        wouaffId: string | null;
+      }>;
+    }>('GET', `/profiles/suggestions?limit=${limit}`),
   follow: (uid: string) => request<{ following: boolean }>('POST', `/profiles/${uid}/follow`),
   unfollow: (uid: string) => request<{ following: boolean }>('DELETE', `/profiles/${uid}/follow`),
 };
@@ -165,6 +175,23 @@ export const search = {
   users: (q: string) => request<{ results: SearchResult[] }>('GET', `/search/users?q=${encodeURIComponent(q)}`),
   userByWouaffId: (wouaffId: string) =>
     request<{ uid: string; profile: UserProfile }>('GET', `/search/users/${wouaffId.replace('@', '')}`),
+};
+
+/* ── Public profile lists (abonnés / abonnements) ── */
+export interface FollowUser {
+  uid: string;
+  pseudo: string;
+  avatar: string | null;
+  wouaffId: string | null;
+  isFollowing: boolean;
+  isMe: boolean;
+}
+
+export const publicProfile = {
+  followers: (wouaffId: string) =>
+    request<{ users: FollowUser[] }>('GET', `/public/profile/${encodeURIComponent(wouaffId)}/followers`),
+  following: (wouaffId: string) =>
+    request<{ users: FollowUser[] }>('GET', `/public/profile/${encodeURIComponent(wouaffId)}/following`),
 };
 
 /* ── Admin ── */
@@ -250,7 +277,7 @@ export const posts = {
   list: (page = 1, limit = 20, uid?: string) =>
     request<FeedItem[]>('GET', `/posts?page=${page}&limit=${limit}${uid ? `&uid=${encodeURIComponent(uid)}` : ''}`),
   get: (id: string) => request<SocialPost>('GET', `/posts/${id}`),
-  create: (text: string) => request<SocialPost>('POST', '/posts', { text }),
+  create: (text: string, image?: string) => request<SocialPost>('POST', '/posts', { text, image }),
   like: (id: string) => request<{ liked: boolean; likes: number }>('POST', `/posts/${id}/like`),
   repost: (id: string) =>
     request<{ reposted: boolean; reposts: number; item?: FeedItem }>('POST', `/posts/${id}/repost`),
