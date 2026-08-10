@@ -1402,20 +1402,19 @@ export async function clearGroupReport(gid: string): Promise<void> {
 /* ── Signalements de posts ── */
 
 export async function reportPost(postId: string, reporterUid: string, reason?: string): Promise<void> {
-  await query('INSERT INTO post_reports (postId, reporterUid, reason, createdAt) VALUES (?,?,?,?)', [
-    postId,
-    reporterUid,
-    reason || null,
-    Date.now(),
-  ]);
+  await query(
+    'INSERT INTO post_reports (postId, reporterUid, reason, createdAt) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE reason=VALUES(reason), createdAt=VALUES(createdAt)',
+    [postId, reporterUid, reason || null, Date.now()],
+  );
   await query('UPDATE posts SET reported=1, reportedBy=?, reportedAt=? WHERE id=?', [reporterUid, Date.now(), postId]);
 }
 
 export async function listPostReports(limit = 50): Promise<Array<Record<string, unknown>>> {
   return query(
     `SELECT r.id, r.postId, r.reporterUid, r.reason, r.createdAt,
-            p.text AS postText, p.uid AS authorUid, p.likesCount, p.commentsCount, p.repostsCount,
-            au.pseudo AS authorPseudo, au.avatar AS authorAvatar, au.wouaffId AS authorWouaffId,
+            p.text AS postText, p.image AS postImage, p.uid AS postAuthorUid,
+            p.likesCount, p.commentsCount, p.repostsCount,
+            au.pseudo AS postPseudo, au.avatar AS postAvatar, au.wouaffId AS postWouaffId,
             rp.pseudo AS reporterPseudo
      FROM post_reports r
      LEFT JOIN posts p ON p.id = r.postId

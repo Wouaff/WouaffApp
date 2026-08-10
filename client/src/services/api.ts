@@ -272,6 +272,16 @@ export interface AdminReportedGroupRow {
   reportedAt: number;
 }
 
+export interface AdminReportActionRow {
+  id: number;
+  reportType: string;
+  reportId: string;
+  action: string;
+  createdAt: number;
+  adminPseudo?: string;
+  adminAvatar?: string;
+}
+
 export interface AdminLoginHistoryRow {
   id: number;
   uid: string;
@@ -282,8 +292,11 @@ export interface AdminLoginHistoryRow {
 
 export const admin = {
   staff: {
-    list: () => request<Record<string, UserProfile>>('GET', '/admin/staff'),
-    add: (uid: string) => request<{ success: boolean }>('POST', `/admin/staff/${uid}`),
+    list: () =>
+      request<Record<string, { role: string; addedAt: number; profile?: UserProfile }>>('GET', '/admin/staff'),
+    add: (uid: string, role?: string) => request<{ success: boolean }>('POST', `/admin/staff/${uid}`, { role }),
+    setRole: (uid: string, role: string) =>
+      request<{ success: boolean; role: string }>('PUT', `/admin/staff/${uid}/role`, { role }),
     remove: (uid: string) => request<{ success: boolean }>('DELETE', `/admin/staff/${uid}`),
   },
   badges: {
@@ -315,6 +328,40 @@ export const admin = {
       reportedGroups: number;
       logins: number;
     }>('GET', '/admin/stats'),
+  analytics: (days: number) =>
+    request<{
+      registrations: Array<{ date: string; count: number }>;
+      posts: Array<{ date: string; count: number }>;
+      messages: Array<{ date: string; count: number }>;
+      topPosts: Array<{ id: string; text: string; likesCount: number; commentsCount: number; createdAt: number; pseudo: string; avatar?: string }>;
+      topUsers: Array<{ uid: string; pseudo: string; avatar?: string; wouaffId?: string; postCount: number; followingCount: number; followersCount: number }>;
+    }>('GET', `/admin/analytics?days=${days}`),
+  search: (q: string) =>
+    request<{
+      users: Array<{ uid: string; pseudo: string; avatar?: string; wouaffId?: string; createdAt: number }>;
+      posts: Array<{ id: string; text: string; uid: string; createdAt: number; pseudo: string; avatar?: string }>;
+      videos: Array<{ id: string; caption?: string; uid: string; createdAt: number; pseudo: string }>;
+      groups: Array<{ gid: string; name: string; description?: string; privacy: string; createdAt: number }>;
+      messages: Array<{ convId: string; msgKey: string; text: string; fromUid: string; time: number }>;
+    }>('GET', `/admin/search?q=${encodeURIComponent(q)}`),
+  bans: {
+    list: () =>
+      request<
+        Array<{
+          uid: string;
+          reason: string | null;
+          bannedBy: string;
+          createdAt: number;
+          expiresAt: number | null;
+          pseudo: string;
+          avatar?: string;
+          wouaffId?: string;
+        }>
+      >('GET', '/admin/bans'),
+    ban: (uid: string, reason?: string, durationHours?: number) =>
+      request<{ success: boolean }>('POST', '/admin/bans', { uid, reason, durationHours }),
+    unban: (uid: string) => request<{ success: boolean }>('DELETE', `/admin/bans/${uid}`),
+  },
   users: {
     recent: () => request<Record<string, UserProfile>>('GET', '/admin/users/recent'),
   },
@@ -356,10 +403,35 @@ export const admin = {
     list: (limit = 30) => request<AdminVideoRow[]>('GET', `/admin/videos?limit=${limit}`),
     delete: (id: string) => request<{ success: boolean }>('DELETE', `/admin/videos/${id}`),
   },
+  groups: {
+    list: (limit = 50, q?: string) =>
+      request<
+        Array<{
+          gid: string;
+          name: string;
+          description?: string;
+          icon?: string;
+          privacy: string;
+          createdAt: number;
+          createdBy: string;
+          reported: number;
+          memberCount: number;
+        }>
+      >('GET', `/admin/groups?limit=${limit}${q ? `&q=${encodeURIComponent(q)}` : ''}`),
+    detail: (gid: string) => request<Record<string, unknown>>('GET', `/admin/groups/${gid}`),
+    update: (gid: string, data: Record<string, unknown>) =>
+      request<{ success: boolean }>('PUT', `/admin/groups/${gid}`, data),
+    setMemberRole: (gid: string, uid: string, role: string) =>
+      request<{ success: boolean }>('PUT', `/admin/groups/${gid}/members/${uid}/role`, { role }),
+    kickMember: (gid: string, uid: string) =>
+      request<{ success: boolean }>('DELETE', `/admin/groups/${gid}/members/${uid}`),
+    delete: (gid: string) => request<{ success: boolean }>('DELETE', `/admin/groups/${gid}`),
+  },
   reports: {
     users: () => request<AdminUserReportRow[]>('GET', '/admin/reports/users'),
     posts: () => request<AdminPostReportRow[]>('GET', '/admin/reports/posts'),
     groups: () => request<AdminReportedGroupRow[]>('GET', '/admin/reports'),
+    history: () => request<AdminReportActionRow[]>('GET', '/admin/reports/history'),
     clearUser: (id: number) => request<{ success: boolean }>('POST', `/admin/reports/users/${id}/clear`),
     clearPost: (id: number) => request<{ success: boolean }>('POST', `/admin/reports/posts/${id}/clear`),
     clearGroup: (gid: string) => request<{ success: boolean }>('POST', `/admin/groups/${gid}/report/clear`),
