@@ -1,7 +1,8 @@
 import { Check, Lock, Search, Server, ShieldCheck, TrendingUp, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { MOCK_TRENDS } from '../../data/mockFeed';
-import { profiles } from '../../services/api';
+import { Link } from 'react-router-dom';
+import { profiles, trends as trendsAPI } from '../../services/api';
+import type { TrendItem } from '../../types';
 
 interface Suggestion {
   uid: string;
@@ -21,6 +22,7 @@ export default function RightSidebar() {
   const [q, setQ] = useState('');
   const [following, setFollowing] = useState<Record<string, boolean>>({});
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [trendList, setTrendList] = useState<TrendItem[]>([]);
 
   const loadSuggestions = useCallback(async () => {
     try {
@@ -32,9 +34,24 @@ export default function RightSidebar() {
     }
   }, []);
 
+  const loadTrends = useCallback(async () => {
+    try {
+      setTrendList(await trendsAPI.list(10));
+    } catch (e) {
+      console.error(e);
+      setTrendList([]);
+    }
+  }, []);
+
   useEffect(() => {
     loadSuggestions();
   }, [loadSuggestions]);
+
+  useEffect(() => {
+    loadTrends();
+    const interval = setInterval(loadTrends, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [loadTrends]);
 
   const toggleFollow = async (s: Suggestion) => {
     const isFollowing = !!following[s.uid];
@@ -73,17 +90,21 @@ export default function RightSidebar() {
             <TrendingUp size={18} className="text-brand" />
             <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0">Tendances en France</h2>
           </div>
-          {MOCK_TRENDS.map((t) => (
-            <button
-              key={t.tag}
-              type="button"
-              className="w-full text-left px-4 py-3 border-none bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
-            >
-              <span className="block text-[12px] text-[var(--text-muted)]">{t.category}</span>
-              <span className="block text-[15px] font-bold text-[var(--text-primary)]">#{t.tag}</span>
-              <span className="block text-[12px] text-[var(--text-muted)]">{t.posts} publications</span>
-            </button>
-          ))}
+          {trendList.length === 0 ? (
+            <div className="px-4 py-4 text-[13px] text-[var(--text-muted)]">Aucune tendance pour le moment</div>
+          ) : (
+            trendList.map((t) => (
+              <Link
+                key={t.tag}
+                to={`/hashtag/${encodeURIComponent(t.tag)}`}
+                className="block w-full text-left px-4 py-3 border-none bg-transparent no-underline cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                <span className="block text-[12px] text-[var(--text-muted)]">{t.category}</span>
+                <span className="block text-[15px] font-bold text-[var(--text-primary)]">#{t.tag}</span>
+                <span className="block text-[12px] text-[var(--text-muted)]">{t.posts} publications</span>
+              </Link>
+            ))
+          )}
         </div>
 
         <div className="mt-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] overflow-hidden">

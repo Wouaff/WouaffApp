@@ -4,13 +4,34 @@ import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
-import { getProfile } from '../services/rtdb.js';
+import { getProfile, reportPost } from '../services/rtdb.js';
 import type { AuthRequest, PostComment, PostData, PostFeedItem } from '../types/index.js';
+import { extractHashtags } from '../utils/hashtags.js';
 
 const MAX_LENGTH = 280;
 
 const router: Router = Router();
 router.use(verifyToken);
+
+async function insertHashtags(
+  postId: string,
+  uid: string,
+  kind: 'post' | 'repost',
+  createdAt: number,
+  text: string,
+): Promise<void> {
+  const tags = extractHashtags(text);
+  if (tags.length === 0) return;
+  const values: Array<string | number> = [];
+  const placeholders = tags.map((tag) => {
+    values.push(postId, tag, uid, kind, createdAt);
+    return '(?,?,?,?,?)';
+  });
+  await query(
+    `INSERT INTO hashtag_occurrences (postId, tag, uid, kind, createdAt) VALUES ${placeholders.join(',')}`,
+    values,
+  );
+}
 
 async function isVerified(uid: string): Promise<boolean> {
   const staff = await getOne<{ uid: string }>('SELECT uid FROM staff WHERE uid = ?', [uid]);
@@ -123,6 +144,7 @@ router.post('/', async (req: Request, res: Response) => {
       'INSERT INTO posts (id, uid, text, image, likesCount, repostsCount, commentsCount, createdAt) VALUES (?,?,?,?,0,0,0,?)',
       [id, authReq.uid!, content, img || null, now],
     );
+    if (content) await insertHashtags(id, authReq.uid!, 'post', now, content);
     const profile = await getProfile(authReq.uid!);
     const verified = await isVerified(authReq.uid!);
     const wouaffId = (profile?.wouaffId as string) || '';
@@ -156,14 +178,20 @@ router.get('/', async (req: Request, res: Response) => {
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
   const offset = (page - 1) * limit;
   const uidFilter = (req.query.uid as string) || '';
+  const tagFilter = (req.query.tag as string) || '';
   const window = Math.max(limit, limit * 3);
 
   const postParams: Array<string | number> = [];
-  let postWhere = '';
+  const postWheres: string[] = [];
   if (uidFilter) {
-    postWhere = 'WHERE p.uid = ?';
+    postWheres.push('p.uid = ?');
     postParams.push(uidFilter);
   }
+  if (tagFilter) {
+    postWheres.push('p.id IN (SELECT postId FROM hashtag_occurrences WHERE tag = ?)');
+    postParams.push(tagFilter.toLowerCase());
+  }
+  const postWhere = postWheres.length > 0 ? `WHERE ${postWheres.join(' AND ')}` : '';
   postParams.push(window, offset);
   const postRows = await query<Array<Record<string, unknown>>>(
     `SELECT p.id, p.uid, p.text, p.image, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
@@ -178,11 +206,16 @@ router.get('/', async (req: Request, res: Response) => {
   );
 
   const repostParams: Array<string | number> = [];
-  let repostWhere = '';
+  const repostWheres: string[] = [];
   if (uidFilter) {
-    repostWhere = 'WHERE r.uid = ?';
+    repostWheres.push('r.uid = ?');
     repostParams.push(uidFilter);
   }
+  if (tagFilter) {
+    repostWheres.push('p.id IN (SELECT postId FROM hashtag_occurrences WHERE tag = ?)');
+    repostParams.push(tagFilter.toLowerCase());
+  }
+  const repostWhere = repostWheres.length > 0 ? `WHERE ${repostWheres.join(' AND ')}` : '';
   repostParams.push(window, offset);
   const repostRows = await query<Array<Record<string, unknown>>>(
     `SELECT r.uid AS repostedByUid, r.createdAt AS repostedAt,
@@ -268,6 +301,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
   await query('DELETE FROM post_likes WHERE postId = ?', [req.params.id]);
   await query('DELETE FROM post_reposts WHERE postId = ?', [req.params.id]);
   await query('DELETE FROM post_comments WHERE postId = ?', [req.params.id]);
+  await query('DELETE FROM hashtag_occurrences WHERE postId = ?', [req.params.id]);
   const io: Server = req.app.get('io');
   if (io) io.emit('post:deleted', { postId: req.params.id });
   res.json({ success: true });
@@ -313,6 +347,11 @@ router.post('/:id/repost', async (req: Request, res: Response) => {
   const io: Server = req.app.get('io');
   if (existing) {
     await query('DELETE FROM post_reposts WHERE uid = ? AND postId = ?', [authReq.uid!, req.params.id]);
+    await query('DELETE FROM hashtag_occurrences WHERE postId = ? AND kind = ? AND uid = ?', [
+      req.params.id,
+      'repost',
+      authReq.uid!,
+    ]);
     await query('UPDATE posts SET repostsCount = GREATEST(0, repostsCount - 1) WHERE id = ?', [req.params.id]);
     const [row] = await query<Array<{ repostsCount: number }>>('SELECT repostsCount FROM posts WHERE id = ?', [
       req.params.id,
@@ -332,6 +371,10 @@ router.post('/:id/repost', async (req: Request, res: Response) => {
       req.params.id,
       Date.now(),
     ]);
+    const original = await getOne<{ text: string | null }>('SELECT text FROM posts WHERE id = ?', [req.params.id]);
+    if (original?.text) {
+      await insertHashtags(req.params.id, authReq.uid!, 'repost', Date.now(), original.text);
+    }
     await query('UPDATE posts SET repostsCount = repostsCount + 1 WHERE id = ?', [req.params.id]);
     const [row] = await query<Array<{ repostsCount: number }>>('SELECT repostsCount FROM posts WHERE id = ?', [
       req.params.id,
@@ -342,6 +385,22 @@ router.post('/:id/repost', async (req: Request, res: Response) => {
     if (io && item) io.emit('post:repost', item);
     res.json({ reposted: true, reposts: row.repostsCount, item });
   }
+});
+
+router.post('/:id/report', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const post = await getOne<{ uid: string }>('SELECT uid FROM posts WHERE id = ?', [req.params.id]);
+  if (!post) {
+    res.status(404).json({ error: 'Post introuvable' });
+    return;
+  }
+  if (post.uid === authReq.uid) {
+    res.status(400).json({ error: 'Impossible de signaler votre propre post' });
+    return;
+  }
+  const { reason } = req.body as { reason?: string };
+  await reportPost(req.params.id, authReq.uid!, typeof reason === 'string' ? reason.slice(0, 300) : undefined);
+  res.json({ success: true });
 });
 
 router.post('/:id/comments', async (req: Request, res: Response) => {

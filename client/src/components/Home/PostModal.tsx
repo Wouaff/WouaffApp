@@ -1,10 +1,11 @@
-import { BadgeCheck, Heart, MessageCircle, Repeat2, Share2, Trash2, X } from 'lucide-react';
+import { BadgeCheck, Flag, Heart, MessageCircle, Repeat2, Share2, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { posts as postsAPI } from '../../services/api';
 import { offPostComment, offPostDeleted, onPostComment, onPostDeleted } from '../../services/socket';
 import type { PostComment, SocialPost } from '../../types';
 import { showToast } from '../Common/Toast';
+import ReportPostModal from './ReportPostModal';
 
 interface PostModalProps {
   post: SocialPost;
@@ -32,6 +33,8 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const isOwn = !!user && post.uid === user.uid;
 
   useEffect(() => {
     let cancelled = false;
@@ -198,6 +201,17 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
           >
             <Share2 size={17} />
           </button>
+          {!isOwn && (
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              className={`${actionBtn} hover:text-red-500 hover:bg-red-500/10`}
+              aria-label="Signaler ce post"
+              title="Signaler"
+            >
+              <Flag size={17} />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
@@ -268,6 +282,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
           </button>
         </div>
       </div>
+      {reportOpen && <ReportPostModal postId={post.id} onClose={() => setReportOpen(false)} />}
     </div>
   );
 }

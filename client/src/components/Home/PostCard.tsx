@@ -1,6 +1,9 @@
-import { BadgeCheck, Heart, MessageCircle, Repeat2, Share2 } from 'lucide-react';
+import { BadgeCheck, Flag, Heart, MessageCircle, Repeat2, Share2 } from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import type { RepostInfo, SocialPost } from '../../types';
+import ReportPostModal from './ReportPostModal';
 
 interface PostCardProps {
   post: SocialPost;
@@ -23,6 +26,9 @@ function formatTime(ts: number): string {
 }
 
 export default function PostCard({ post, repostInfo, onLike, onRepost, onOpen }: PostCardProps) {
+  const { user } = useAuth();
+  const [reportOpen, setReportOpen] = useState(false);
+  const isOwn = !!user && post.uid === user.uid;
   const initial = (post.pseudo || '?')[0]?.toUpperCase() || '?';
 
   const profileHref =
@@ -32,6 +38,28 @@ export default function PostCard({ post, repostInfo, onLike, onRepost, onOpen }:
     repostInfo && repostInfo.handle.length > 1 && repostInfo.handle !== '@inconnu'
       ? `/@${repostInfo.handle.replace(/^@/, '')}`
       : null;
+
+  const renderText = (text: string) => {
+    let tagOccurrence = 0;
+    const parts = text.split(/(#[\p{L}\p{N}_]+)/gu);
+    return parts.map((part) => {
+      if (part.length > 1 && part.startsWith('#')) {
+        tagOccurrence += 1;
+        const tag = part.slice(1);
+        return (
+          <Link
+            key={`${tag}-${tagOccurrence}`}
+            to={`/hashtag/${encodeURIComponent(tag)}`}
+            className="text-brand hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </Link>
+        );
+      }
+      return part;
+    });
+  };
 
   return (
     <article
@@ -102,14 +130,14 @@ export default function PostCard({ post, repostInfo, onLike, onRepost, onOpen }:
 
           {post.text && (
             <p className="m-0 mt-1 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
-              {post.text}
+              {renderText(post.text)}
             </p>
           )}
 
           {post.image && (
             <img
               src={post.image}
-              alt="Image du post"
+              alt=""
               className="mt-2 rounded-2xl border border-[var(--border)] max-h-[480px] w-full object-cover"
               loading="lazy"
               decoding="async"
@@ -159,9 +187,25 @@ export default function PostCard({ post, repostInfo, onLike, onRepost, onOpen }:
             >
               <Share2 size={17} />
             </button>
+
+            {!isOwn && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setReportOpen(true);
+                }}
+                className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                aria-label="Signaler ce post"
+                title="Signaler"
+              >
+                <Flag size={17} />
+              </button>
+            )}
           </div>
         </div>
       </div>
+      {reportOpen && <ReportPostModal postId={post.id} onClose={() => setReportOpen(false)} />}
     </article>
   );
 }

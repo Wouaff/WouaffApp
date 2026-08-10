@@ -13,6 +13,7 @@ import { patchRouter } from './middleware/asyncHandler.js';
 import { errorHandler, setupProcessHandlers } from './middleware/errorHandler.js';
 import { maintenanceCheck } from './middleware/maintenance.js';
 import { rateLimit } from './middleware/rateLimit.js';
+import { sqlGuard } from './middleware/sqlGuard.js';
 import { requestTimeout } from './middleware/timeout.js';
 import adminRouter from './routes/admin.js';
 import authRouter from './routes/auth.js';
@@ -30,6 +31,7 @@ import publicRouter from './routes/public.js';
 import searchRouter from './routes/search.js';
 import statusRouter from './routes/status.js';
 import storiesRouter from './routes/stories.js';
+import trendsRouter from './routes/trends.js';
 import videosRouter from './routes/videos.js';
 import { archiveOldCalls, initColdStorage, isColdStorageEnabled } from './services/coldStorage.js';
 import { cleanExpiredEphemeralMessages, getMaintenanceMode } from './services/rtdb.js';
@@ -48,6 +50,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
 
+/* SQL injection guard — scanne tous les champs textuels des requêtes API */
+app.use('/api', sqlGuard);
+
 /* Rate limiting */
 app.use('/api/auth/login', rateLimit({ windowMs: 60000, max: 20 }));
 app.use('/api/auth/register', rateLimit({ windowMs: 60000, max: 10 }));
@@ -57,6 +62,7 @@ app.use('/api/messages', rateLimit({ windowMs: 60000, max: 120 }));
 app.use('/api/search', rateLimit({ windowMs: 60000, max: 30 }));
 app.use('/api/videos', rateLimit({ windowMs: 60000, max: 60 }));
 app.use('/api/posts', rateLimit({ windowMs: 60000, max: 120 }));
+app.use('/api/trends', rateLimit({ windowMs: 60000, max: 30 }));
 
 /* Public maintenance status (accessible even during maintenance) */
 app.get('/api/maintenance', (_req, res) => {
@@ -93,6 +99,7 @@ app.use('/api/blocks', patchRouter(blocksRouter));
 app.use('/api/calls', patchRouter(callsRouter));
 app.use('/api/videos', patchRouter(videosRouter));
 app.use('/api/posts', patchRouter(postsRouter));
+app.use('/api/trends', patchRouter(trendsRouter));
 
 /* Health check */
 app.get('/api/health', (_req, res) => {

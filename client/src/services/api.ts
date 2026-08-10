@@ -6,6 +6,7 @@ import type {
   SearchResult,
   SocialPost,
   StoryData,
+  TrendItem,
   UserProfile,
 } from '../types';
 
@@ -249,6 +250,21 @@ export interface AdminUserReportRow {
   reporterPseudo: string;
 }
 
+export interface AdminPostReportRow {
+  id: number;
+  postId: string;
+  reporterUid: string;
+  reason: string | null;
+  createdAt: number;
+  postText: string;
+  postImage?: string | null;
+  postAuthorUid: string;
+  postPseudo: string;
+  postAvatar?: string | null;
+  postWouaffId?: string | null;
+  reporterPseudo: string;
+}
+
 export interface AdminReportedGroupRow {
   gid: string;
   name: string;
@@ -295,6 +311,7 @@ export const admin = {
       videoComments: number;
       follows: number;
       userReports: number;
+      postReports: number;
       reportedGroups: number;
       logins: number;
     }>('GET', '/admin/stats'),
@@ -328,10 +345,7 @@ export const admin = {
   loginHistory: (uid: string) => request<AdminLoginHistoryRow[]>('GET', `/admin/login-history/${uid}`),
   posts: {
     list: (limit = 30, uid?: string) =>
-      request<AdminPostRow[]>(
-        'GET',
-        `/admin/posts?limit=${limit}${uid ? `&uid=${encodeURIComponent(uid)}` : ''}`,
-      ),
+      request<AdminPostRow[]>('GET', `/admin/posts?limit=${limit}${uid ? `&uid=${encodeURIComponent(uid)}` : ''}`),
     delete: (id: string) => request<{ success: boolean }>('DELETE', `/admin/posts/${id}`),
   },
   comments: {
@@ -344,8 +358,10 @@ export const admin = {
   },
   reports: {
     users: () => request<AdminUserReportRow[]>('GET', '/admin/reports/users'),
+    posts: () => request<AdminPostReportRow[]>('GET', '/admin/reports/posts'),
     groups: () => request<AdminReportedGroupRow[]>('GET', '/admin/reports'),
     clearUser: (id: number) => request<{ success: boolean }>('POST', `/admin/reports/users/${id}/clear`),
+    clearPost: (id: number) => request<{ success: boolean }>('POST', `/admin/reports/posts/${id}/clear`),
     clearGroup: (gid: string) => request<{ success: boolean }>('POST', `/admin/groups/${gid}/report/clear`),
     deleteGroup: (gid: string) => request<{ success: boolean }>('DELETE', `/admin/groups/${gid}`),
   },
@@ -369,8 +385,12 @@ export const status = {
 
 /* ── Posts (feed social) ── */
 export const posts = {
-  list: (page = 1, limit = 20, uid?: string) =>
-    request<FeedItem[]>('GET', `/posts?page=${page}&limit=${limit}${uid ? `&uid=${encodeURIComponent(uid)}` : ''}`),
+  list: (page = 1, limit = 20, uid?: string, tag?: string) => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (uid) params.set('uid', uid);
+    if (tag) params.set('tag', tag);
+    return request<FeedItem[]>('GET', `/posts?${params.toString()}`);
+  },
   get: (id: string) => request<SocialPost>('GET', `/posts/${id}`),
   create: (text: string, image?: string) => request<SocialPost>('POST', '/posts', { text, image }),
   like: (id: string) => request<{ liked: boolean; likes: number }>('POST', `/posts/${id}/like`),
@@ -380,6 +400,12 @@ export const posts = {
   addComment: (id: string, text: string) => request<PostComment>('POST', `/posts/${id}/comments`, { text }),
   delete: (id: string) => request<{ success: boolean }>('DELETE', `/posts/${id}`),
   deleteComment: (commentId: number) => request<{ success: boolean }>('DELETE', `/posts/comments/${commentId}`),
+  report: (id: string, reason?: string) => request<{ success: boolean }>('POST', `/posts/${id}/report`, { reason }),
+};
+
+/* ── Tendances ── */
+export const trends = {
+  list: (limit = 10) => request<TrendItem[]>('GET', `/trends?limit=${limit}`),
 };
 
 /* ── Blocks / Reports ── */

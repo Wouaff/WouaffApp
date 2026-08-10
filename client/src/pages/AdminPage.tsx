@@ -21,8 +21,8 @@ import {
   Menu,
   MessageCircle,
   MessageSquare,
-  Repeat2,
   RefreshCw,
+  Repeat2,
   Save,
   Search,
   Shield,
@@ -38,20 +38,21 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { admin as adminAPI, profiles } from '../services/api';
 import type {
   AdminCommentRow,
   AdminLoginHistoryRow,
+  AdminPostReportRow,
   AdminPostRow,
   AdminReportedGroupRow,
   AdminUserReportRow,
   AdminVideoRow,
 } from '../services/api';
+import { admin as adminAPI, profiles } from '../services/api';
 import type { UserProfile } from '../types';
 
 type Tab = 'dashboard' | 'moderation' | 'reports' | 'users' | 'staff' | 'logs';
 type ModSubTab = 'posts' | 'comments' | 'videos';
-type ReportSubTab = 'users' | 'groups';
+type ReportSubTab = 'users' | 'posts' | 'groups';
 type ToastItem = { id: number; msg: string; type: 'success' | 'error' | 'info' };
 
 interface AdminStat {
@@ -112,15 +113,28 @@ const STAT_CARDS: AdminStat[] = [
   { key: 'chats', label: 'Conversations', icon: <MessageSquare size={18} />, color: '#8b5cf6', group: 'general' },
   { key: 'messages', label: 'Messages', icon: <Mail size={18} />, color: '#06b6d4', group: 'general' },
   { key: 'posts', label: 'Posts', icon: <Edit3 size={18} />, color: '#3b82f6', group: 'social' },
-  { key: 'postLikes', label: 'J\'aime (posts)', icon: <Heart size={18} />, color: '#ef4444', group: 'social' },
+  { key: 'postLikes', label: "J'aime (posts)", icon: <Heart size={18} />, color: '#ef4444', group: 'social' },
   { key: 'postReposts', label: 'Reposts', icon: <Repeat2 size={18} />, color: '#10b981', group: 'social' },
   { key: 'postComments', label: 'Commentaires', icon: <MessageCircle size={18} />, color: '#f59e0b', group: 'social' },
   { key: 'follows', label: 'Abonnements', icon: <UserPlus size={18} />, color: '#ec4899', group: 'social' },
   { key: 'videos', label: 'Vidéos', icon: <Film size={18} />, color: '#a855f7', group: 'social' },
-  { key: 'videoLikes', label: 'J\'aime (vidéos)', icon: <Heart size={18} />, color: '#fb7185', group: 'social' },
-  { key: 'videoComments', label: 'Commentaires vidéos', icon: <MessageCircle size={18} />, color: '#f97316', group: 'social' },
+  { key: 'videoLikes', label: "J'aime (vidéos)", icon: <Heart size={18} />, color: '#fb7185', group: 'social' },
+  {
+    key: 'videoComments',
+    label: 'Commentaires vidéos',
+    icon: <MessageCircle size={18} />,
+    color: '#f97316',
+    group: 'social',
+  },
   { key: 'userReports', label: 'Signalements users', icon: <Flag size={18} />, color: '#f43f5e', group: 'moderation' },
-  { key: 'reportedGroups', label: 'Groupes signalés', icon: <ShieldAlert size={18} />, color: '#e11d48', group: 'moderation' },
+  { key: 'postReports', label: 'Posts signalés', icon: <Flag size={18} />, color: '#fb7185', group: 'moderation' },
+  {
+    key: 'reportedGroups',
+    label: 'Groupes signalés',
+    icon: <ShieldAlert size={18} />,
+    color: '#e11d48',
+    group: 'moderation',
+  },
   { key: 'logins', label: 'Connexions (IP)', icon: <Globe size={18} />, color: '#6366f1', group: 'moderation' },
   { key: 'badges', label: 'Badges', icon: <Award size={18} />, color: '#f59e0b', group: 'general' },
   { key: 'wouaffIds', label: 'Identifiants', icon: <Link2 size={18} />, color: '#ec4899', group: 'general' },
@@ -151,15 +165,8 @@ function formatDate(ts: number): string {
 
 function avatar(avatar?: string | null, pseudo?: string | null, size = 36): React.ReactNode {
   return (
-    <div
-      className="admin-user-avatar"
-      style={size !== 36 ? { width: size, height: size } : undefined}
-    >
-      {avatar ? (
-        <img src={avatar} alt="" />
-      ) : (
-        <span>{(pseudo || '?')[0]?.toUpperCase() || '?'}</span>
-      )}
+    <div className="admin-user-avatar" style={size !== 36 ? { width: size, height: size } : undefined}>
+      {avatar ? <img src={avatar} alt="" /> : <span>{(pseudo || '?')[0]?.toUpperCase() || '?'}</span>}
     </div>
   );
 }
@@ -217,6 +224,7 @@ export default function AdminPage() {
     videoComments: number;
     follows: number;
     userReports: number;
+    postReports: number;
     reportedGroups: number;
     logins: number;
   } | null>(null);
@@ -267,6 +275,7 @@ export default function AdminPage() {
   /* Reports state */
   const [reportSubTab, setReportSubTab] = useState<ReportSubTab>('users');
   const [userReports, setUserReports] = useState<AdminUserReportRow[]>([]);
+  const [postReports, setPostReports] = useState<AdminPostReportRow[]>([]);
   const [groupReports, setGroupReports] = useState<AdminReportedGroupRow[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
 
@@ -281,6 +290,7 @@ export default function AdminPage() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: chargement initial au montage
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -326,7 +336,6 @@ export default function AdminPage() {
       }
       setChecking(false);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadStats = async () => {
@@ -438,6 +447,7 @@ export default function AdminPage() {
     setReportsLoading(true);
     try {
       if (sub === 'users') setUserReports(await adminAPI.reports.users());
+      else if (sub === 'posts') setPostReports(await adminAPI.reports.posts());
       else setGroupReports(await adminAPI.reports.groups());
     } catch (e) {
       console.error(e);
@@ -451,6 +461,30 @@ export default function AdminPage() {
       await adminAPI.reports.clearUser(id);
       setUserReports((prev) => prev.filter((r) => r.id !== id));
       toast('Signalement clôturé', 'success');
+      loadStats();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Erreur', 'error');
+    }
+  };
+
+  const clearPostReport = async (id: number) => {
+    try {
+      await adminAPI.reports.clearPost(id);
+      setPostReports((prev) => prev.filter((r) => r.id !== id));
+      toast('Signalement clôturé', 'success');
+      loadStats();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Erreur', 'error');
+    }
+  };
+
+  const deleteReportedPost = async (id: number, postId: string) => {
+    if (!confirm(`Supprimer définitivement ce post${postId ? ` (${postId})` : ''} ?`)) return;
+    try {
+      await adminAPI.posts.delete(postId);
+      await adminAPI.reports.clearPost(id);
+      setPostReports((prev) => prev.filter((r) => r.id !== id));
+      toast('Post supprimé et signalement clôturé', 'success');
       loadStats();
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Erreur', 'error');
@@ -735,12 +769,7 @@ export default function AdminPage() {
           <Menu size={20} />
         </button>
         <span className="admin-mobile-title">Panneau d'administration</span>
-        <button
-          type="button"
-          className="admin-mobile-back"
-          onClick={() => navigate('/')}
-          aria-label="Retour"
-        >
+        <button type="button" className="admin-mobile-back" onClick={() => navigate('/')} aria-label="Retour">
           <ArrowLeft size={18} />
         </button>
       </div>
@@ -1035,7 +1064,9 @@ export default function AdminPage() {
 
               {!modLoading && modSubTab === 'comments' && (
                 <div className="admin-mod-list">
-                  {modComments.length === 0 && <EmptyState icon={<MessageCircle size={26} />} text="Aucun commentaire." />}
+                  {modComments.length === 0 && (
+                    <EmptyState icon={<MessageCircle size={26} />} text="Aucun commentaire." />
+                  )}
                   {modComments.map((c) => (
                     <div key={c.id as number} className="admin-mod-item">
                       {avatar(c.avatar as string, c.pseudo as string)}
@@ -1045,9 +1076,7 @@ export default function AdminPage() {
                           <span className="admin-mod-time">{timeAgo(c.createdAt as number)}</span>
                         </div>
                         <p className="admin-mod-text">{c.text as string}</p>
-                        {c.postText && (
-                          <div className="admin-mod-reply">sur : « {c.postText as string} »</div>
-                        )}
+                        {c.postText && <div className="admin-mod-reply">sur : « {c.postText as string} »</div>}
                       </div>
                       <button
                         className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
@@ -1120,6 +1149,16 @@ export default function AdminPage() {
                 </button>
                 <button
                   type="button"
+                  className={`admin-subtab${reportSubTab === 'posts' ? ' active' : ''}`}
+                  onClick={() => {
+                    setReportSubTab('posts');
+                    loadReports('posts');
+                  }}
+                >
+                  <Edit3 size={15} /> Posts ({postReports.length})
+                </button>
+                <button
+                  type="button"
                   className={`admin-subtab${reportSubTab === 'groups' ? ' active' : ''}`}
                   onClick={() => {
                     setReportSubTab('groups');
@@ -1181,11 +1220,62 @@ export default function AdminPage() {
                 </div>
               )}
 
+              {!reportsLoading && reportSubTab === 'posts' && (
+                <div className="admin-mod-list">
+                  {postReports.length === 0 && <EmptyState icon={<Edit3 size={26} />} text="Aucun post signalé." />}
+                  {postReports.map((r) => (
+                    <div key={r.id as number} className="admin-mod-item">
+                      {avatar(r.postAvatar as string, r.postPseudo as string)}
+                      <div className="admin-mod-body">
+                        <div className="admin-mod-head">
+                          <span className="admin-mod-author">{(r.postPseudo as string) || 'Utilisateur'}</span>
+                          <span className="admin-mod-handle">
+                            @{((r.postWouaffId as string) || (r.postAuthorUid as string)).replace(/^@/, '')}
+                          </span>
+                          <span className="admin-mod-time">{timeAgo(r.createdAt as number)}</span>
+                        </div>
+                        <p className="admin-mod-text">{(r.postText as string) || '(post sans texte)'}</p>
+                        {r.postImage && (
+                          <img
+                            src={r.postImage as string}
+                            alt=""
+                            className="admin-mod-thumb"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        )}
+                        {r.reason && <div className="admin-mod-reply">Motif : « {r.reason as string} »</div>}
+                        <div className="admin-mod-reply">Signalé par {(r.reporterPseudo as string) || 'inconnu'}</div>
+                      </div>
+                      <div className="admin-mod-actions">
+                        <button
+                          className="admin-btn admin-btn-secondary px-2.5 py-1.5 text-[11px]"
+                          onClick={() => openReportedUser(r.postAuthorUid as string)}
+                        >
+                          <Search size={12} /> Auteur
+                        </button>
+                        <button
+                          className="admin-btn admin-btn-primary px-2.5 py-1.5 text-[11px]"
+                          onClick={() => clearPostReport(r.id as number)}
+                        >
+                          <X size={12} /> Clôturer
+                        </button>
+                        <button
+                          className="admin-btn admin-btn-danger px-2.5 py-1.5 text-[11px]"
+                          onClick={() => deleteReportedPost(r.id as number, r.postId as string)}
+                        >
+                          <Trash2 size={12} /> Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {!reportsLoading && reportSubTab === 'groups' && (
                 <div className="admin-mod-list">
-                  {groupReports.length === 0 && (
-                    <EmptyState icon={<Users size={26} />} text="Aucun groupe signalé." />
-                  )}
+                  {groupReports.length === 0 && <EmptyState icon={<Users size={26} />} text="Aucun groupe signalé." />}
                   {groupReports.map((r) => (
                     <div key={r.gid as string} className="admin-mod-item">
                       <div className="admin-user-avatar">
@@ -1235,7 +1325,11 @@ export default function AdminPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && searchProfile()}
                 />
-                <button className="admin-btn admin-btn-primary" onClick={() => searchProfile()} disabled={searchLoading}>
+                <button
+                  className="admin-btn admin-btn-primary"
+                  onClick={() => searchProfile()}
+                  disabled={searchLoading}
+                >
                   {searchLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                 </button>
                 <button
@@ -1273,17 +1367,13 @@ export default function AdminPage() {
                             }}
                           />
                         ) : (
-                          <div className="admin-profile-avatar-fallback">
-                            {(searchResult.profile.pseudo || '?')[0]}
-                          </div>
+                          <div className="admin-profile-avatar-fallback">{(searchResult.profile.pseudo || '?')[0]}</div>
                         )}
                       </div>
                       <div className="admin-profile-name">{searchResult.profile.pseudo || 'Utilisateur'}</div>
                       <div className="admin-profile-handle">{searchResult.profile.wouaffId || '(aucun)'}</div>
                       <div className="admin-profile-uid">{searchResult.uid}</div>
-                      {searchResult.profile.bio && (
-                        <div className="admin-profile-bio">{searchResult.profile.bio}</div>
-                      )}
+                      {searchResult.profile.bio && <div className="admin-profile-bio">{searchResult.profile.bio}</div>}
                       <div className="admin-profile-badges">
                         {selectedBadges.length > 0 ? (
                           selectedBadges.map((id) =>

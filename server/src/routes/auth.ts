@@ -5,7 +5,7 @@ import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
 import { createSession, verifyToken } from '../middleware/auth.js';
 import { genCode, getLastEmailError, sendPasswordResetEmail, sendVerificationEmail } from '../services/email.js';
-import { isStaff } from '../services/rtdb.js';
+import { getStaffRole, isStaff, isUserBanned } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
 
 const router: Router = Router();
@@ -109,6 +109,11 @@ router.post('/login', async (req: Request, res: Response) => {
       res.status(401).json({ error: 'Email ou mot de passe incorrect' });
       return;
     }
+    const banned = await isUserBanned(profile.uid);
+    if (banned) {
+      res.status(403).json({ error: 'Ce compte est banni.' });
+      return;
+    }
     const { sessionId } = await createSession(profile.uid, {
       ip: req.ip,
       userAgent: req.headers['user-agent'] as string | undefined,
@@ -133,7 +138,8 @@ router.get('/me', verifyToken, async (req: Request, res: Response) => {
     return;
   }
   const staff = await isStaff(authReq.uid!);
-  res.json({ ...profile, staff, emailVerified: !!profile.emailVerified });
+  const staffRole = staff ? await getStaffRole(authReq.uid!) : null;
+  res.json({ ...profile, staff, staffRole, emailVerified: !!profile.emailVerified });
 });
 
 /* POST /auth/logout */

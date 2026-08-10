@@ -22,6 +22,7 @@ import ProfilePage from './pages/ProfilePage';
 import PublicGroupsPage from './pages/PublicGroupsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import SettingsPage from './pages/SettingsPage';
+import TagPage from './pages/TagPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 
 const PAGE_MAP = {
@@ -107,14 +108,42 @@ export default function App() {
           <div className="flex flex-col h-dvh">
             <TitleBar />
             <div className="flex-1 overflow-hidden">
-              <Suspense fallback={<div className="flex items-center justify-center h-dvh"><div className="spinner" /></div>}>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center h-dvh">
+                    <div className="spinner" />
+                  </div>
+                }
+              >
                 <Routes>
                   <Route path="/auth" element={<LoginPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
-                  <Route path="/" element={<AppShell><HomePage /></AppShell>} />
-                  <Route path="/chat" element={<AppShell><ChatPage /></AppShell>} />
+                  <Route
+                    path="/"
+                    element={
+                      <AppShell>
+                        <HomePage />
+                      </AppShell>
+                    }
+                  />
+                  <Route
+                    path="/chat"
+                    element={
+                      <AppShell>
+                        <ChatPage />
+                      </AppShell>
+                    }
+                  />
+                  <Route
+                    path="/hashtag/:tag"
+                    element={
+                      <AppShell>
+                        <TagPage />
+                      </AppShell>
+                    }
+                  />
                   <Route
                     path="/settings"
                     element={

@@ -4,7 +4,7 @@ import { parseCookie } from 'cookie';
 import { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
 import { isColdStorageEnabled, saveCallRecord } from '../services/coldStorage.js';
-import { chatId, getReverseContactUids, setUserOffline, setUserOnline } from '../services/rtdb.js';
+import { chatId, getReverseContactUids, isUserBanned, setUserOffline, setUserOnline } from '../services/rtdb.js';
 
 interface AuthenticatedSocket {
   uid: string;
@@ -50,6 +50,7 @@ export function setupSocket(httpServer: HTTPServer): Server {
     try {
       const session = await getOne<{ uid: string }>('SELECT uid FROM sessions WHERE sessionId = ?', [sessionId]);
       if (!session) return next(new Error('Session invalide'));
+      if (await isUserBanned(session.uid)) return next(new Error('Compte banni'));
       (socket as unknown as AuthenticatedSocket).uid = session.uid;
       (socket as unknown as AuthenticatedSocket).roomsJoined = new Set();
       next();

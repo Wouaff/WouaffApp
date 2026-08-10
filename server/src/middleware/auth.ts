@@ -1,10 +1,26 @@
 import { randomUUID } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 import { getOne, query } from '../config/database.js';
+import { isUserBanned } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
 
 const sessionCache = new Map<string, { uid: string; expires: number }>();
 const SESSION_CACHE_TTL = 30000;
+
+const banCache = new Map<string, { banned: boolean; expires: number }>();
+const BAN_CACHE_TTL = 15000;
+
+async function isBanned(uid: string): Promise<boolean> {
+  const cached = banCache.get(uid);
+  if (cached && Date.now() < cached.expires) return cached.banned;
+  const banned = await isUserBanned(uid);
+  banCache.set(uid, { banned, expires: Date.now() + BAN_CACHE_TTL });
+  return banned;
+}
+
+export async function clearBanCache(uid: string): Promise<void> {
+  banCache.delete(uid);
+}
 
 function getCachedSession(sessionId: string): string | null {
   const entry = sessionCache.get(sessionId);
@@ -32,6 +48,10 @@ export async function verifyToken(req: Request, res: Response, next: NextFunctio
   }
   const cached = getCachedSession(sessionId);
   if (cached) {
+    if (await isBanned(cached)) {
+      res.status(403).json({ error: 'Compte banni' });
+      return;
+    }
     (req as AuthRequest).uid = cached;
     next();
     return;
@@ -41,6 +61,10 @@ export async function verifyToken(req: Request, res: Response, next: NextFunctio
     removeCachedSession(sessionId);
     res.clearCookie('session_id');
     res.status(401).json({ error: 'Session invalide' });
+    return;
+  }
+  if (await isBanned(session.uid)) {
+    res.status(403).json({ error: 'Compte banni' });
     return;
   }
   setCachedSession(sessionId, session.uid);

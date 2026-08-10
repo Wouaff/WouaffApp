@@ -37,19 +37,45 @@ export async function getConversationsForUser(uid: string): Promise<Record<strin
   for (const row of rows) {
     const contactUid = row.contactUid as string;
     const profile: Record<string, unknown> = {};
-    for (const k of ['pseudo', 'avatar', 'status', 'lastSeen', 'bio', 'wouaffId', 'social_links', 'createdAt', 'banner', 'email']) {
+    for (const k of [
+      'pseudo',
+      'avatar',
+      'status',
+      'lastSeen',
+      'bio',
+      'wouaffId',
+      'social_links',
+      'createdAt',
+      'banner',
+      'email',
+    ]) {
       if (row[k] !== undefined) profile[k] = row[k];
     }
     let lastMsg: Record<string, unknown> | null = null;
     if (row.msgKey) {
       lastMsg = {
-        msgKey: row.msgKey, text: row.text, fromUid: row.fromUid, time: row.time,
-        deleted: row.deleted, edited: row.edited, encrypted: row.encrypted,
-        imageData: row.imageData, fileData: row.fileData, fileName: row.fileName,
-        audioData: row.audioData, duration: row.duration, contactData: row.contactData,
-        replyTo: row.replyTo, messageTheme: row.messageTheme, forwardedFrom: row.forwardedFrom,
-        ephemeralDuration: row.ephemeralDuration, reactions: row.reactions, type: row.type,
-        pendingFrom: row.pendingFrom, senderName: row.senderName, seen: row.seen,
+        msgKey: row.msgKey,
+        text: row.text,
+        fromUid: row.fromUid,
+        time: row.time,
+        deleted: row.deleted,
+        edited: row.edited,
+        encrypted: row.encrypted,
+        imageData: row.imageData,
+        fileData: row.fileData,
+        fileName: row.fileName,
+        audioData: row.audioData,
+        duration: row.duration,
+        contactData: row.contactData,
+        replyTo: row.replyTo,
+        messageTheme: row.messageTheme,
+        forwardedFrom: row.forwardedFrom,
+        ephemeralDuration: row.ephemeralDuration,
+        reactions: row.reactions,
+        type: row.type,
+        pendingFrom: row.pendingFrom,
+        senderName: row.senderName,
+        seen: row.seen,
         from: row.fromUid,
       };
     }
@@ -89,26 +115,28 @@ export async function getGroupConversations(uid: string): Promise<Record<string,
     [uid],
   );
   const gids = rows.map((r) => r.gid as string);
-  const membersAll = gids.length > 0
-    ? await query<Array<{ gid: string; uid: string; role: string; joinedAt: number }>>(
-        `SELECT gid, uid, role, joinedAt FROM group_members WHERE gid IN (${gids.map(() => '?').join(',')})`,
-        gids,
-      )
-    : [];
+  const membersAll =
+    gids.length > 0
+      ? await query<Array<{ gid: string; uid: string; role: string; joinedAt: number }>>(
+          `SELECT gid, uid, role, joinedAt FROM group_members WHERE gid IN (${gids.map(() => '?').join(',')})`,
+          gids,
+        )
+      : [];
   const membersByGid: Record<string, Record<string, { role: string; joinedAt: number }>> = {};
   for (const m of membersAll) {
     if (!membersByGid[m.gid]) membersByGid[m.gid] = {};
     membersByGid[m.gid][m.uid] = { role: m.role, joinedAt: m.joinedAt };
   }
-  const invitesAll = gids.length > 0
-    ? await query<Array<{ gid: string; inviteId: string }>>(
-        `SELECT gi.gid, gi.inviteId
+  const invitesAll =
+    gids.length > 0
+      ? await query<Array<{ gid: string; inviteId: string }>>(
+          `SELECT gi.gid, gi.inviteId
          FROM group_invites gi
          WHERE gi.gid IN (${gids.map(() => '?').join(',')})
            AND gi.createdAt = (SELECT MAX(gi2.createdAt) FROM group_invites gi2 WHERE gi2.gid = gi.gid)`,
-        gids,
-      )
-    : [];
+          gids,
+        )
+      : [];
   const inviteByGid: Record<string, string> = {};
   for (const inv of invitesAll) {
     inviteByGid[inv.gid as string] = inv.inviteId;
@@ -117,7 +145,18 @@ export async function getGroupConversations(uid: string): Promise<Record<string,
   for (const row of rows) {
     const gid = row.gid as string;
     const group: Record<string, unknown> = {};
-    for (const k of ['name', 'description', 'icon', 'banner', 'privacy', 'createdAt', 'createdBy', 'reported', 'reportedBy', 'reportedAt']) {
+    for (const k of [
+      'name',
+      'description',
+      'icon',
+      'banner',
+      'privacy',
+      'createdAt',
+      'createdBy',
+      'reported',
+      'reportedBy',
+      'reportedAt',
+    ]) {
       if (row[k] !== undefined) group[k] = row[k];
     }
     group.members = membersByGid[gid] || {};
@@ -125,13 +164,27 @@ export async function getGroupConversations(uid: string): Promise<Record<string,
     let lastMsg: Record<string, unknown> | null = null;
     if (row.msgKey) {
       lastMsg = {
-        msgKey: row.msgKey, text: row.text, fromUid: row.fromUid, time: row.time,
-        deleted: row.deleted, edited: row.edited, encrypted: row.encrypted,
-        imageData: row.imageData, fileData: row.fileData, fileName: row.fileName,
-        audioData: row.audioData, duration: row.duration,
-        replyTo: row.replyTo, messageTheme: row.messageTheme, forwardedFrom: row.forwardedFrom,
-        ephemeralDuration: row.ephemeralDuration, reactions: row.reactions, type: row.type,
-        senderName: row.senderName, seenBy: row.seenBy, from: row.fromUid,
+        msgKey: row.msgKey,
+        text: row.text,
+        fromUid: row.fromUid,
+        time: row.time,
+        deleted: row.deleted,
+        edited: row.edited,
+        encrypted: row.encrypted,
+        imageData: row.imageData,
+        fileData: row.fileData,
+        fileName: row.fileName,
+        audioData: row.audioData,
+        duration: row.duration,
+        replyTo: row.replyTo,
+        messageTheme: row.messageTheme,
+        forwardedFrom: row.forwardedFrom,
+        ephemeralDuration: row.ephemeralDuration,
+        reactions: row.reactions,
+        type: row.type,
+        senderName: row.senderName,
+        seenBy: row.seenBy,
+        from: row.fromUid,
       };
     }
     groups[gid] = { group, lastMsg, lastTime: (lastMsg?.time as number) || 0, type: 'group' };
@@ -500,12 +553,13 @@ export async function getPublicGroups(limit = 100, offset = 0): Promise<Record<s
     [limit, offset],
   );
   const gids = rows.map((r) => r.gid as string);
-  const membersAll = gids.length > 0
-    ? await query<Array<{ gid: string; uid: string; role: string }>>(
-        `SELECT gid, uid, role FROM group_members WHERE gid IN (${gids.map(() => '?').join(',')})`,
-        gids,
-      )
-    : [];
+  const membersAll =
+    gids.length > 0
+      ? await query<Array<{ gid: string; uid: string; role: string }>>(
+          `SELECT gid, uid, role FROM group_members WHERE gid IN (${gids.map(() => '?').join(',')})`,
+          gids,
+        )
+      : [];
   const membersByGid: Record<string, Record<string, { role: string }>> = {};
   for (const m of membersAll) {
     if (!membersByGid[m.gid]) membersByGid[m.gid] = {};
@@ -858,22 +912,33 @@ export async function isStaff(uid: string): Promise<boolean> {
   return !!row;
 }
 
-export async function getAllStaff(): Promise<Record<string, boolean>> {
-  const rows = await query<Array<{ uid: string }>>('SELECT uid FROM staff');
-  const result: Record<string, boolean> = {};
-  for (const r of rows) result[r.uid] = true;
+export async function getStaffRole(uid: string): Promise<'owner' | 'moderator' | null> {
+  const row = await getOne<{ role: string }>('SELECT role FROM staff WHERE uid=?', [uid]);
+  return row ? (row.role as 'owner' | 'moderator') || 'moderator' : null;
+}
+
+export async function getAllStaff(): Promise<Record<string, { role: string; addedAt: number }>> {
+  const rows = await query<Array<{ uid: string; role: string; addedAt: number }>>(
+    'SELECT uid, role, addedAt FROM staff',
+  );
+  const result: Record<string, { role: string; addedAt: number }> = {};
+  for (const r of rows) result[r.uid] = { role: r.role || 'moderator', addedAt: r.addedAt };
   return result;
 }
 
-export async function setStaff(uid: string, isStaffMember: boolean): Promise<void> {
+export async function setStaff(uid: string, isStaffMember: boolean, role: string = 'moderator'): Promise<void> {
   if (isStaffMember) {
-    await query('INSERT INTO staff (uid, addedAt) VALUES (?,?) ON DUPLICATE KEY UPDATE addedAt=VALUES(addedAt)', [
-      uid,
-      Date.now(),
-    ]);
+    await query(
+      'INSERT INTO staff (uid, addedAt, role) VALUES (?,?,?) ON DUPLICATE KEY UPDATE addedAt=VALUES(addedAt), role=VALUES(role)',
+      [uid, Date.now(), role],
+    );
   } else {
     await query('DELETE FROM staff WHERE uid=?', [uid]);
   }
+}
+
+export async function setStaffRole(uid: string, role: string): Promise<void> {
+  await query('UPDATE staff SET role=? WHERE uid=?', [role, uid]);
 }
 
 /* ── Admin Functions ── */
@@ -894,6 +959,7 @@ export async function getAdminStats(): Promise<{
   videoComments: number;
   follows: number;
   userReports: number;
+  postReports: number;
   reportedGroups: number;
   logins: number;
 }> {
@@ -913,6 +979,7 @@ export async function getAdminStats(): Promise<{
     [{ videoComments }],
     [{ follows }],
     [{ userReports }],
+    [{ postReports }],
     [{ reportedGroups }],
     [{ logins }],
   ] = await Promise.all([
@@ -931,6 +998,7 @@ export async function getAdminStats(): Promise<{
     query<[{ videoComments: number }]>('SELECT COUNT(*) as videoComments FROM video_comments'),
     query<[{ follows: number }]>('SELECT COUNT(*) as follows FROM follows'),
     query<[{ userReports: number }]>('SELECT COUNT(*) as userReports FROM user_reports'),
+    query<[{ postReports: number }]>('SELECT COUNT(*) as postReports FROM post_reports'),
     query<[{ reportedGroups: number }]>('SELECT COUNT(*) as reportedGroups FROM groups_table WHERE reported=1'),
     query<[{ logins: number }]>('SELECT COUNT(*) as logins FROM login_history'),
   ]);
@@ -950,6 +1018,7 @@ export async function getAdminStats(): Promise<{
     videoComments,
     follows,
     userReports,
+    postReports,
     reportedGroups,
     logins,
   };
@@ -1200,18 +1269,15 @@ export async function getLoginHistory(
   uid: string,
   limit = 50,
 ): Promise<Array<{ id: number; uid: string; ip: string | null; userAgent: string | null; createdAt: number }>> {
-  return query('SELECT id, uid, ip, userAgent, createdAt FROM login_history WHERE uid=? ORDER BY createdAt DESC LIMIT ?', [
-    uid,
-    limit,
-  ]);
+  return query(
+    'SELECT id, uid, ip, userAgent, createdAt FROM login_history WHERE uid=? ORDER BY createdAt DESC LIMIT ?',
+    [uid, limit],
+  );
 }
 
 /* ── Modération du réseau social ── */
 
-export async function listRecentPosts(
-  limit = 30,
-  authorUid?: string,
-): Promise<Array<Record<string, unknown>>> {
+export async function listRecentPosts(limit = 30, authorUid?: string): Promise<Array<Record<string, unknown>>> {
   const params: Array<string | number> = [];
   let where = '';
   if (authorUid) {
@@ -1238,13 +1304,23 @@ export async function deletePostById(id: string): Promise<boolean> {
   await query('DELETE FROM post_likes WHERE postId=?', [id]);
   await query('DELETE FROM post_reposts WHERE postId=?', [id]);
   await query('DELETE FROM post_comments WHERE postId=?', [id]);
+  await query('DELETE FROM post_reports WHERE postId=?', [id]);
   await query('DELETE FROM posts WHERE id=?', [id]);
   return true;
 }
 
-export async function listRecentPostComments(
-  limit = 30,
-): Promise<Array<{ id: number; postId: string; uid: string; text: string; createdAt: number; pseudo: string; avatar: string | null; postText: string }>> {
+export async function listRecentPostComments(limit = 30): Promise<
+  Array<{
+    id: number;
+    postId: string;
+    uid: string;
+    text: string;
+    createdAt: number;
+    pseudo: string;
+    avatar: string | null;
+    postText: string;
+  }>
+> {
   return query(
     `SELECT c.id, c.postId, c.uid, c.text, c.createdAt,
             p.pseudo, p.avatar, po.text AS postText
@@ -1265,9 +1341,7 @@ export async function deletePostCommentById(id: number): Promise<boolean> {
   return true;
 }
 
-export async function listRecentVideos(
-  limit = 30,
-): Promise<Array<Record<string, unknown>>> {
+export async function listRecentVideos(limit = 30): Promise<Array<Record<string, unknown>>> {
   return query(
     `SELECT v.id, v.uid, v.videoPath, v.thumbnailPath, v.caption, v.duration, v.likesCount, v.commentsCount, v.createdAt,
             p.pseudo, p.avatar, p.wouaffId
@@ -1288,9 +1362,19 @@ export async function deleteVideoById(id: string): Promise<boolean> {
   return true;
 }
 
-export async function listUserReports(
-  limit = 50,
-): Promise<Array<{ id: number; reportedUid: string; reporterUid: string; reason: string | null; createdAt: number; reportedPseudo: string; reportedAvatar: string | null; reportedWouaffId: string | null; reporterPseudo: string }>> {
+export async function listUserReports(limit = 50): Promise<
+  Array<{
+    id: number;
+    reportedUid: string;
+    reporterUid: string;
+    reason: string | null;
+    createdAt: number;
+    reportedPseudo: string;
+    reportedAvatar: string | null;
+    reportedWouaffId: string | null;
+    reporterPseudo: string;
+  }>
+> {
   return query(
     `SELECT r.id, r.reportedUid, r.reporterUid, r.reason, r.createdAt,
             ru.pseudo AS reportedPseudo, ru.avatar AS reportedAvatar, ru.wouaffId AS reportedWouaffId,
@@ -1313,6 +1397,184 @@ export async function clearUserReport(id: number): Promise<boolean> {
 
 export async function clearGroupReport(gid: string): Promise<void> {
   await query('UPDATE groups_table SET reported=0, reportedBy=NULL, reportedAt=NULL WHERE gid=?', [gid]);
+}
+
+/* ── Signalements de posts ── */
+
+export async function reportPost(postId: string, reporterUid: string, reason?: string): Promise<void> {
+  await query('INSERT INTO post_reports (postId, reporterUid, reason, createdAt) VALUES (?,?,?,?)', [
+    postId,
+    reporterUid,
+    reason || null,
+    Date.now(),
+  ]);
+  await query('UPDATE posts SET reported=1, reportedBy=?, reportedAt=? WHERE id=?', [reporterUid, Date.now(), postId]);
+}
+
+export async function listPostReports(limit = 50): Promise<Array<Record<string, unknown>>> {
+  return query(
+    `SELECT r.id, r.postId, r.reporterUid, r.reason, r.createdAt,
+            p.text AS postText, p.uid AS authorUid, p.likesCount, p.commentsCount, p.repostsCount,
+            au.pseudo AS authorPseudo, au.avatar AS authorAvatar, au.wouaffId AS authorWouaffId,
+            rp.pseudo AS reporterPseudo
+     FROM post_reports r
+     LEFT JOIN posts p ON p.id = r.postId
+     LEFT JOIN users au ON au.uid = p.uid
+     LEFT JOIN users rp ON rp.uid = r.reporterUid
+     ORDER BY r.createdAt DESC
+     LIMIT ?`,
+    [limit],
+  );
+}
+
+export async function clearPostReport(id: number): Promise<void> {
+  const row = await getOne<{ postId: string }>('SELECT postId FROM post_reports WHERE id=?', [id]);
+  if (!row) return;
+  await query('DELETE FROM post_reports WHERE id=?', [id]);
+  const remaining = await getOne<{ id: number }>('SELECT id FROM post_reports WHERE postId=?', [row.postId]);
+  if (!remaining) {
+    await query('UPDATE posts SET reported=0, reportedBy=NULL, reportedAt=NULL WHERE id=?', [row.postId]);
+  }
+}
+
+/* ── Bannissements ── */
+
+export async function banUser(
+  uid: string,
+  reason: string | undefined,
+  bannedBy: string,
+  expiresAt?: number,
+): Promise<void> {
+  await query(
+    'INSERT INTO bans (uid, reason, bannedBy, createdAt, expiresAt) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE reason=VALUES(reason), bannedBy=VALUES(bannedBy), createdAt=VALUES(createdAt), expiresAt=VALUES(expiresAt)',
+    [uid, reason || null, bannedBy, Date.now(), expiresAt ?? null],
+  );
+}
+
+export async function unbanUser(uid: string): Promise<void> {
+  await query('DELETE FROM bans WHERE uid=?', [uid]);
+}
+
+export async function getUserBan(
+  uid: string,
+): Promise<{ reason: string | null; expiresAt: number | null; createdAt: number } | null> {
+  const row = await getOne<{ reason: string | null; expiresAt: number | null; createdAt: number }>(
+    'SELECT reason, expiresAt, createdAt FROM bans WHERE uid=?',
+    [uid],
+  );
+  if (!row) return null;
+  if (row.expiresAt !== null && row.expiresAt <= Date.now()) return null;
+  return row;
+}
+
+export async function isUserBanned(uid: string): Promise<boolean> {
+  return (await getUserBan(uid)) !== null;
+}
+
+export async function getActiveBans(limit = 100): Promise<Array<Record<string, unknown>>> {
+  return query(
+    `SELECT b.uid, b.reason, b.bannedBy, b.createdAt, b.expiresAt,
+            u.pseudo, u.avatar, u.wouaffId
+     FROM bans b
+     LEFT JOIN users u ON u.uid = b.uid
+     WHERE b.expiresAt IS NULL OR b.expiresAt > ?
+     ORDER BY b.createdAt DESC
+     LIMIT ?`,
+    [Date.now(), limit],
+  );
+}
+
+/* ── Traçabilité des signalements traités ── */
+
+export async function logReportAction(
+  reportType: string,
+  reportId: string,
+  action: string,
+  adminUid: string,
+): Promise<void> {
+  await query('INSERT INTO report_actions (reportType, reportId, action, adminUid, createdAt) VALUES (?,?,?,?,?)', [
+    reportType,
+    reportId,
+    action,
+    adminUid,
+    Date.now(),
+  ]);
+}
+
+export async function getReportActions(limit = 100): Promise<Array<Record<string, unknown>>> {
+  return query(
+    `SELECT ra.id, ra.reportType, ra.reportId, ra.action, ra.createdAt,
+            a.pseudo AS adminPseudo, a.avatar AS adminAvatar
+     FROM report_actions ra
+     LEFT JOIN users a ON a.uid = ra.adminUid
+     ORDER BY ra.createdAt DESC
+     LIMIT ?`,
+    [limit],
+  );
+}
+
+/* ── Groupes (modération) ── */
+
+export async function listAllGroups(limit = 50, offset = 0, search?: string): Promise<Array<Record<string, unknown>>> {
+  const params: Array<string | number> = [];
+  let where = '';
+  if (search) {
+    where = 'WHERE g.name LIKE ?';
+    params.push(`%${search}%`);
+  }
+  params.push(limit, offset);
+  return query(
+    `SELECT g.gid, g.name, g.description, g.icon, g.privacy, g.createdAt, g.createdBy,
+            g.reported, g.reportedAt,
+            (SELECT COUNT(*) FROM group_members gm WHERE gm.gid = g.gid) AS memberCount
+     FROM groups_table g
+     ${where}
+     ORDER BY g.createdAt DESC
+     LIMIT ? OFFSET ?`,
+    params,
+  );
+}
+
+/* ── Analytics ── */
+
+export async function getAdminAnalytics(days: number): Promise<{
+  registrations: Array<{ date: string; count: number }>;
+  posts: Array<{ date: string; count: number }>;
+  messages: Array<{ date: string; count: number }>;
+  topPosts: Array<Record<string, unknown>>;
+  topUsers: Array<Record<string, unknown>>;
+}> {
+  const since = Date.now() - days * 86400000;
+  const [registrations, posts, messages, topPosts, topUsers] = await Promise.all([
+    query<Array<{ date: string; count: number }>>(
+      'SELECT DATE(FROM_UNIXTIME(createdAt/1000)) AS date, COUNT(*) AS count FROM users WHERE createdAt >= ? GROUP BY DATE(FROM_UNIXTIME(createdAt/1000)) ORDER BY date ASC',
+      [since],
+    ),
+    query<Array<{ date: string; count: number }>>(
+      'SELECT DATE(FROM_UNIXTIME(createdAt/1000)) AS date, COUNT(*) AS count FROM posts WHERE createdAt >= ? GROUP BY DATE(FROM_UNIXTIME(createdAt/1000)) ORDER BY date ASC',
+      [since],
+    ),
+    query<Array<{ date: string; count: number }>>(
+      'SELECT DATE(FROM_UNIXTIME(time/1000)) AS date, COUNT(*) AS count FROM messages WHERE time >= ? GROUP BY DATE(FROM_UNIXTIME(time/1000)) ORDER BY date ASC',
+      [since],
+    ),
+    query<Array<Record<string, unknown>>>(
+      `SELECT p.id, p.text, p.likesCount, p.commentsCount, p.createdAt,
+              u.pseudo, u.avatar
+       FROM posts p LEFT JOIN users u ON u.uid = p.uid
+       ORDER BY p.likesCount DESC LIMIT 10`,
+    ),
+    query<Array<Record<string, unknown>>>(
+      `SELECT u.uid, u.pseudo, u.avatar, u.wouaffId, u.createdAt,
+              (SELECT COUNT(*) FROM posts p WHERE p.uid = u.uid) AS postCount,
+              (SELECT COUNT(*) FROM follows f WHERE f.followerUid = u.uid) AS followingCount,
+              (SELECT COUNT(*) FROM follows f2 WHERE f2.followedUid = u.uid) AS followersCount
+       FROM users u
+       ORDER BY (SELECT COUNT(*) FROM posts p WHERE p.uid = u.uid) DESC
+       LIMIT 10`,
+    ),
+  ]);
+  return { registrations, posts, messages, topPosts, topUsers };
 }
 
 export async function getReportedGroups(): Promise<

@@ -157,6 +157,7 @@ export interface VideoComment {
 
 export interface SocialPost {
   id: string;
+  uid?: string;
   pseudo: string;
   handle: string;
   avatar?: string;
