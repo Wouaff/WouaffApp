@@ -421,14 +421,10 @@ export function offPostNew(cb: (data: SocialPost) => void): void {
   socket?.off('post:new', cb);
 }
 
-export function onPostLiked(
-  cb: (data: { postId: string; uid: string; liked: boolean; likes: number }) => void,
-): void {
+export function onPostLiked(cb: (data: { postId: string; uid: string; liked: boolean; likes: number }) => void): void {
   socket?.on('post:liked', cb);
 }
-export function offPostLiked(
-  cb: (data: { postId: string; uid: string; liked: boolean; likes: number }) => void,
-): void {
+export function offPostLiked(cb: (data: { postId: string; uid: string; liked: boolean; likes: number }) => void): void {
   socket?.off('post:liked', cb);
 }
 

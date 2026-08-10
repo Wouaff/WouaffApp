@@ -84,7 +84,10 @@ export default function RightSidebar() {
             const isFollowing = following[s.handle];
             const initial = s.pseudo[0]?.toUpperCase() || '?';
             return (
-              <div key={s.handle} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors">
+              <div
+                key={s.handle}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors"
+              >
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
                   <span>{initial}</span>
                 </div>

@@ -111,7 +111,9 @@ export default function LeftNav() {
               <span>{initial}</span>
             </div>
             <div className="flex flex-col min-w-0 text-left flex-1">
-              <span className="text-[15px] font-bold text-[var(--text-primary)] truncate">{user?.pseudo || 'Utilisateur'}</span>
+              <span className="text-[15px] font-bold text-[var(--text-primary)] truncate">
+                {user?.pseudo || 'Utilisateur'}
+              </span>
               <span className="text-xs text-[var(--text-muted)] truncate">Paramètres</span>
             </div>
             <Settings size={18} className="text-[var(--text-muted)] flex-shrink-0" />

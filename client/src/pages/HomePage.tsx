@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { showToast, default as Toast } from '../components/Common/Toast';
 import ComposeBox from '../components/Home/ComposeBox';
 import LeftNav from '../components/Home/LeftNav';
 import PostCard from '../components/Home/PostCard';
 import RightSidebar from '../components/Home/RightSidebar';
-import { showToast, default as Toast } from '../components/Common/Toast';
 import { useAuth } from '../hooks/useAuth';
 import { posts as postsAPI } from '../services/api';
 import {
@@ -83,18 +83,15 @@ export default function HomePage() {
     };
   }, [user]);
 
-  const handlePost = useCallback(
-    async (text: string) => {
-      try {
-        const post = await postsAPI.create(text);
-        setPosts((prev) => (prev.some((p) => p.id === post.id) ? prev : [post, ...prev]));
-        showToast('✅ Post publié !');
-      } catch (e) {
-        showToast((e as Error).message || 'Erreur lors de la publication', 'error');
-      }
-    },
-    [],
-  );
+  const handlePost = useCallback(async (text: string) => {
+    try {
+      const post = await postsAPI.create(text);
+      setPosts((prev) => (prev.some((p) => p.id === post.id) ? prev : [post, ...prev]));
+      showToast('✅ Post publié !');
+    } catch (e) {
+      showToast((e as Error).message || 'Erreur lors de la publication', 'error');
+    }
+  }, []);
 
   const handleLike = useCallback(async (id: string) => {
     setPosts((prev) =>
@@ -117,13 +114,13 @@ export default function HomePage() {
     );
     try {
       const res = await postsAPI.repost(id);
-      setPosts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, reposted: res.reposted, reposts: res.reposts } : p)),
-      );
+      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, reposted: res.reposted, reposts: res.reposts } : p)));
     } catch (e) {
       console.error(e);
       setPosts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, reposted: !p.reposted, reposts: p.reposts + (p.reposted ? -1 : 1) } : p)),
+        prev.map((p) =>
+          p.id === id ? { ...p, reposted: !p.reposted, reposts: p.reposts + (p.reposted ? -1 : 1) } : p,
+        ),
       );
     }
   }, []);
@@ -167,7 +164,9 @@ export default function HomePage() {
                 <span className={tab === t.id ? 'text-[15px] font-extrabold' : 'text-[15px] font-medium'}>
                   {t.label}
                 </span>
-                {tab === t.id && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-brand rounded-full" />}
+                {tab === t.id && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-brand rounded-full" />
+                )}
               </button>
             ))}
           </div>

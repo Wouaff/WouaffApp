@@ -43,9 +43,7 @@ export default function PostCard({ post, onLike, onRepost, onComment }: PostCard
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 flex-wrap">
           <span className="font-bold text-[var(--text-primary)] text-[15px]">{post.pseudo}</span>
-          {post.verified && (
-            <BadgeCheck size={17} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />
-          )}
+          {post.verified && <BadgeCheck size={17} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />}
           <span className="text-[var(--text-muted)] text-[15px]">·</span>
           <span className="text-[var(--text-muted)] text-[15px]">{formatTime(post.time)}</span>
         </div>

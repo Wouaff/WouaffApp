@@ -17,7 +17,11 @@ async function isVerified(uid: string): Promise<boolean> {
   return !!staff;
 }
 
-async function toPostData(row: Record<string, unknown>, uid?: string, likedMap?: Set<string>, repostedMap?: Set<string>): Promise<PostData> {
+async function toPostData(
+  row: Record<string, unknown>,
+  likedMap?: Set<string>,
+  repostedMap?: Set<string>,
+): Promise<PostData> {
   return {
     id: row.id as string,
     uid: row.uid as string,
@@ -80,11 +84,12 @@ router.post('/', async (req: Request, res: Response) => {
     );
     const profile = await getProfile(authReq.uid!);
     const verified = await isVerified(authReq.uid!);
+    const wouaffId = (profile?.wouaffId as string) || '';
     const post: PostData = {
       id,
       uid: authReq.uid!,
       pseudo: (profile?.pseudo as string) || 'Utilisateur',
-      handle: (profile?.wouaffId as string) ? `@${profile.wouaffId}` : '@inconnu',
+      handle: wouaffId ? `@${wouaffId}` : '@inconnu',
       avatar: profile?.avatar as string,
       time: now,
       text: content,
@@ -123,7 +128,7 @@ router.get('/', async (req: Request, res: Response) => {
   const repostedMap = authReq.uid ? await fetchRepostedMap(authReq.uid, ids) : undefined;
   const enriched: PostData[] = [];
   for (const row of rows) {
-    enriched.push(await toPostData(row, authReq.uid, likedMap, repostedMap));
+    enriched.push(await toPostData(row, likedMap, repostedMap));
   }
   res.json(enriched);
 });
@@ -145,7 +150,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
   const likedMap = authReq.uid ? await fetchLikedMap(authReq.uid, [req.params.id]) : undefined;
   const repostedMap = authReq.uid ? await fetchRepostedMap(authReq.uid, [req.params.id]) : undefined;
-  res.json(await toPostData(row, authReq.uid, likedMap, repostedMap));
+  res.json(await toPostData(row, likedMap, repostedMap));
 });
 
 router.delete('/:id', async (req: Request, res: Response) => {
@@ -184,7 +189,11 @@ router.post('/:id/like', async (req: Request, res: Response) => {
     if (io) io.emit('post:liked', { postId: req.params.id, uid: authReq.uid!, liked: false, likes: row.likesCount });
     res.json({ liked: false, likes: row.likesCount });
   } else {
-    await query('INSERT INTO post_likes (uid, postId, createdAt) VALUES (?,?,?)', [authReq.uid!, req.params.id, Date.now()]);
+    await query('INSERT INTO post_likes (uid, postId, createdAt) VALUES (?,?,?)', [
+      authReq.uid!,
+      req.params.id,
+      Date.now(),
+    ]);
     await query('UPDATE posts SET likesCount = likesCount + 1 WHERE id = ?', [req.params.id]);
     const [row] = await query<Array<{ likesCount: number }>>('SELECT likesCount FROM posts WHERE id = ?', [
       req.params.id,
@@ -209,7 +218,12 @@ router.post('/:id/repost', async (req: Request, res: Response) => {
     ]);
     const io: Server = req.app.get('io');
     if (io)
-      io.emit('post:reposted', { postId: req.params.id, uid: authReq.uid!, reposted: false, reposts: row.repostsCount });
+      io.emit('post:reposted', {
+        postId: req.params.id,
+        uid: authReq.uid!,
+        reposted: false,
+        reposts: row.repostsCount,
+      });
     res.json({ reposted: false, reposts: row.repostsCount });
   } else {
     await query('INSERT INTO post_reposts (uid, postId, createdAt) VALUES (?,?,?)', [
@@ -277,7 +291,7 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
   for (const row of rows) {
     enriched.push({
       ...row,
-      pseudo: (row as unknown as Record<string, unknown>).pseudo as string || 'Inconnu',
+      pseudo: ((row as unknown as Record<string, unknown>).pseudo as string) || 'Inconnu',
       avatar: (row as unknown as Record<string, unknown>).avatar as string,
     });
   }
