@@ -60,7 +60,10 @@ const VoiceMessage = memo(function VoiceMessage({ audioData, duration }: VoiceMe
   const displaySec = playing || progress > 0 ? currentSec : duration || 0;
 
   return (
-    <div className="flex items-center gap-3 rounded-full bg-[var(--bg-input)] border border-[var(--border)] px-2.5 py-2 min-w-[190px] max-w-[320px]">
+    <div
+      className="flex items-center gap-3 rounded-full bg-[var(--bg-input)] border border-[var(--border)] px-2.5 py-2 min-w-[190px] max-w-[320px]"
+      onClick={(e) => e.stopPropagation()}
+    >
       <button
         type="button"
         onClick={toggle}
