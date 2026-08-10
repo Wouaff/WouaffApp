@@ -41,6 +41,21 @@ function notifTitle(item: NotificationItem): string {
   }
 }
 
+function notifVerb(item: NotificationItem): string {
+  switch (item.type) {
+    case 'follow':
+      return 'a suivi votre compte';
+    case 'like':
+      return 'a aimé votre post';
+    case 'repost':
+      return 'a repartagé votre post';
+    case 'comment':
+      return 'a commenté votre post';
+    default:
+      return '';
+  }
+}
+
 function notifUrl(item: NotificationItem): string {
   if (item.type === 'follow') {
     return item.actorHandle && item.actorHandle !== '@inconnu'
@@ -146,7 +161,14 @@ export default function NotificationsPage() {
       <main className="flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)] bg-[var(--bg-deep)]">
         <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
           <div className="flex items-center justify-between px-4 h-14">
-            <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">Notifications</h1>
+            <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">
+              Notifications
+              {unread > 0 && (
+                <span className="ml-2 align-middle text-[13px] font-bold text-brand bg-[var(--brand-glow)] rounded-full px-2.5 py-0.5">
+                  {unread} nouvelle{unread > 1 ? 's' : ''}
+                </span>
+              )}
+            </h1>
             {unread > 0 && (
               <button
                 type="button"
@@ -161,20 +183,34 @@ export default function NotificationsPage() {
         </header>
 
         {notifOn ? (
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border)] text-[13px] text-[var(--text-muted)]">
-            <Bell size={14} className="text-brand" />
-            Notifications du navigateur activées
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-card)]">
+            <span className="w-9 h-9 rounded-full bg-[var(--brand-glow)] flex items-center justify-center flex-shrink-0">
+              <Bell size={16} className="text-brand" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-bold text-[var(--text-primary)]">Notifications du navigateur</div>
+              <div className="text-[12px] text-[var(--text-secondary)]">
+                Alertes actives — vous serez notifié même en dehors de l'onglet
+              </div>
+            </div>
+            <span className="text-[12px] font-bold text-online flex-shrink-0">Activées</span>
           </div>
         ) : (
           <button
             type="button"
             onClick={enableBrowser}
-            className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--border)] w-full text-left bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+            className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] w-full text-left bg-[var(--bg-card)] cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
           >
-            <Bell size={16} className="text-brand" />
-            <span className="text-[13px] text-[var(--text-secondary)]">
-              Activer les notifications du navigateur (même onglet fermé)
+            <span className="w-9 h-9 rounded-full bg-[var(--brand-glow)] flex items-center justify-center flex-shrink-0">
+              <Bell size={16} className="text-brand" />
             </span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-bold text-[var(--text-primary)]">Notifications du navigateur</div>
+              <div className="text-[12px] text-[var(--text-secondary)]">
+                Recevoir une alerte système même onglet fermé
+              </div>
+            </div>
+            <span className="text-brand font-bold text-[13px] flex-shrink-0">Activer</span>
           </button>
         )}
 
@@ -184,12 +220,13 @@ export default function NotificationsPage() {
             <p className="m-0 text-sm text-[var(--text-muted)]">Chargement des notifications...</p>
           </div>
         ) : items.length === 0 ? (
-          <div className="py-16 px-6 text-center">
-            <div className="text-4xl mb-3" aria-hidden="true">
-              🔔
-            </div>
-            <p className="m-0 text-[var(--text-secondary)]">
-              Aucune notification pour le moment. Les likes, reposts, commentaires et abonnements apparaîtront ici.
+          <div className="py-20 px-6 flex flex-col items-center gap-4 text-center">
+            <span className="w-16 h-16 rounded-full bg-[var(--brand-glow)] flex items-center justify-center">
+              <Bell size={28} className="text-brand" />
+            </span>
+            <p className="m-0 text-[15px] text-[var(--text-primary)] font-bold">Aucune notification pour le moment</p>
+            <p className="m-0 text-[13px] text-[var(--text-secondary)] max-w-[340px]">
+              Les likes, reposts, commentaires et nouveaux abonnements apparaîtront ici.
             </p>
           </div>
         ) : (
@@ -202,14 +239,14 @@ export default function NotificationsPage() {
                   <button
                     type="button"
                     onClick={() => open(item)}
-                    className={`w-full flex gap-3 px-4 py-3 text-left border-b border-[var(--border)] cursor-pointer transition-colors ${
+                    className={`w-full flex gap-3 px-4 py-3.5 text-left border-b border-[var(--border)] cursor-pointer transition-colors ${
                       item.read
-                        ? 'bg-transparent hover:bg-[var(--bg-hover)]/40'
-                        : 'bg-[var(--bg-hover)]/60 hover:bg-[var(--bg-hover)]'
+                        ? 'bg-transparent hover:bg-[var(--bg-hover)]'
+                        : 'bg-[var(--brand-glow)]/25 hover:bg-[var(--brand-glow)]/40 border-l-[3px] border-l-brand'
                     }`}
                   >
                     <div className="relative flex-shrink-0">
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden">
                         {item.actorAvatar ? (
                           <img src={item.actorAvatar} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -217,25 +254,38 @@ export default function NotificationsPage() {
                         )}
                       </div>
                       <span
-                        className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center border-2 border-[var(--bg-base)] ${cls}`}
+                        className={`absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center border-2 border-[var(--bg-base)] ${cls}`}
                       >
-                        <Icon size={13} />
+                        <Icon size={12} />
                       </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="m-0 text-[15px] leading-snug text-[var(--text-primary)]">{notifTitle(item)}</p>
+                    <div className="flex-1 min-w-0 py-0.5">
+                      <p className="m-0 text-[14px] leading-snug">
+                        <span className="font-bold text-[var(--text-primary)]">{item.actorPseudo}</span>{' '}
+                        <span className="text-[var(--text-primary)]">{notifVerb(item)}</span>
+                        {!item.read && (
+                          <span
+                            className="ml-2 inline-block w-2 h-2 rounded-full bg-brand align-middle"
+                            aria-label="Non lue"
+                          />
+                        )}
+                      </p>
                       {item.postText && (
-                        <p className="m-0 mt-0.5 text-[13px] text-[var(--text-secondary)] truncate">{item.postText}</p>
+                        <div className="mt-1.5 flex items-center gap-2.5 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2">
+                          {item.postImage && (
+                            <img
+                              src={item.postImage}
+                              alt=""
+                              className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          )}
+                          <span className="text-[13px] text-[var(--text-secondary)] truncate">{item.postText}</span>
+                        </div>
                       )}
                       <p className="m-0 mt-1 text-[12px] text-[var(--text-muted)]">{formatTime(item.createdAt)}</p>
                     </div>
-                    {!item.read && (
-                      <span
-                        role="img"
-                        className="w-2.5 h-2.5 rounded-full bg-brand flex-shrink-0 mt-2"
-                        aria-label="Non lue"
-                      />
-                    )}
                   </button>
                 </li>
               );
