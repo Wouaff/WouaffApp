@@ -4,7 +4,7 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
 import { createSession, verifyToken } from '../middleware/auth.js';
-import { genCode, sendPasswordResetEmail, sendVerificationEmail } from '../services/email.js';
+import { genCode, getLastEmailError, sendPasswordResetEmail, sendVerificationEmail } from '../services/email.js';
 import { isStaff } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
 
@@ -227,7 +227,13 @@ router.post('/send-verification', verifyToken, async (req: Request, res: Respons
       Date.now() + 900000,
       Date.now(),
     ]);
-    await sendVerificationEmail(profile.email, code);
+    const sent = await sendVerificationEmail(profile.email, code);
+    if (!sent) {
+      res.status(500).json({
+        error: `Impossible d'envoyer l'email (SMTP). Détail : ${getLastEmailError() || 'inconnu'}`,
+      });
+      return;
+    }
     res.json({ success: true });
   } catch (err) {
     console.error('Send-verification error:', err);
