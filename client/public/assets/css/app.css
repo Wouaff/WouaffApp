@@ -8873,6 +8873,71 @@ body {
   border-color: var(--brand);
 }
 
+/* ── Écran « Compte banni » ── */
+.banned-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 20px;
+  background: var(--bg-deep);
+  background-image: url("/assets/logo/background_black.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.banned-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-card);
+  border: 1px solid rgba(237, 66, 69, 0.3);
+  border-radius: 18px;
+  padding: 36px 28px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+.banned-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: rgba(237, 66, 69, 0.12);
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.banned-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--text-primary);
+  margin: 0 0 10px;
+}
+.banned-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0 0 22px;
+}
+.banned-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.banned-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--danger);
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .admin-main {

@@ -316,7 +316,6 @@ export default function AdminPage() {
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupQ, setGroupQ] = useState('');
   const [groupDetail, setGroupDetail] = useState<Record<string, unknown> | null>(null);
-  const [groupDetailLoading, setGroupDetailLoading] = useState(false);
   const [groupEdit, setGroupEdit] = useState({ name: '', description: '', privacy: '' });
 
   /* Reports state */
@@ -528,7 +527,6 @@ export default function AdminPage() {
   };
 
   const openGroupDetail = async (gid: string) => {
-    setGroupDetailLoading(true);
     setGroupDetail(null);
     try {
       const g = await adminAPI.groups.detail(gid);
@@ -541,7 +539,6 @@ export default function AdminPage() {
     } catch {
       toast('Erreur de chargement du groupe', 'error');
     }
-    setGroupDetailLoading(false);
   };
 
   const saveGroup = async () => {
@@ -1136,6 +1133,7 @@ export default function AdminPage() {
                       <div className="admin-section-divider"><span>Messages</span></div>
                       <div className="admin-mod-list">
                         {globalResults.messages.map((m, i) => (
+                          // biome-ignore lint/suspicious/noArrayIndexKey: identifiants de message non uniques côté client
                           <div key={`${m.msgKey}-${i}`} className="admin-mod-item">
                             <div className="admin-user-avatar"><MessageSquare size={16} /></div>
                             <div className="admin-mod-body">
@@ -1235,12 +1233,11 @@ export default function AdminPage() {
               </div>
 
               {analytics && (
-                <>
-                  <div className="admin-analytics-grid">
-                    <div className="admin-card admin-analytics-card">
-                      <div className="admin-card-title"><TrendingUp size={16} /> Inscriptions / jour</div>
-                      <BarChart data={analytics.registrations} color="var(--brand)" />
-                    </div>
+                <div className="admin-analytics-grid">
+                  <div className="admin-card admin-analytics-card">
+                    <div className="admin-card-title"><TrendingUp size={16} /> Inscriptions / jour</div>
+                    <BarChart data={analytics.registrations} color="var(--brand)" />
+                  </div>
                     <div className="admin-card admin-analytics-card">
                       <div className="admin-card-title"><Edit3 size={16} /> Posts / jour</div>
                       <BarChart data={analytics.posts} color="#3b82f6" />
@@ -1293,7 +1290,6 @@ export default function AdminPage() {
                       </div>
                     </div>
                   </div>
-                </>
               )}
             </div>
           )}

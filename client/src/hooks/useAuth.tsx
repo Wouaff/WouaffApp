@@ -11,7 +11,9 @@ export interface AuthState {
   } | null;
   loading: boolean;
   emailVerified: boolean;
+  banned: boolean;
   logout: () => Promise<void>;
+  markBanned: () => void;
   refresh: () => Promise<void>;
 }
 
@@ -19,7 +21,9 @@ const AuthContext = createContext<AuthState>({
   user: null,
   loading: true,
   emailVerified: false,
+  banned: false,
   logout: async () => {},
+  markBanned: () => {},
   refresh: async () => {},
 });
 
@@ -32,11 +36,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [banned, setBanned] = useState(false);
 
   const fetchUser = useCallback(async () => {
     try {
       connectSocket();
       const res = await fetch('/api/auth/me');
+      if (res.status === 403) {
+        setBanned(true);
+        setUser(null);
+        setEmailVerified(false);
+        disconnectSocket();
+        setLoading(false);
+        return;
+      }
       if (!res.ok) throw new Error('Non connecté');
       const profile = await res.json();
       const userData = {
@@ -45,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: profile.email,
         staffRole: (profile.staffRole as 'owner' | 'moderator' | null) || null,
       };
+      setBanned(false);
       setUser(userData);
       setEmailVerified(!!profile.emailVerified);
       initSession(profile.uid);
@@ -65,10 +79,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authLogout();
     setUser(null);
     setEmailVerified(false);
+    setBanned(false);
     disconnectSocket();
   }, []);
 
-  const value = useMemo(() => ({ user, loading, emailVerified, logout, refresh: fetchUser }), [user, loading, emailVerified, logout, fetchUser]);
+  const markBanned = useCallback(() => {
+    setBanned(true);
+    setUser(null);
+    setEmailVerified(false);
+    disconnectSocket();
+  }, []);
+
+  const value = useMemo(
+    () => ({ user, loading, emailVerified, banned, logout, markBanned, refresh: fetchUser }),
+    [user, loading, emailVerified, banned, logout, markBanned, fetchUser],
+  );
 
   return (
     <AuthContext.Provider value={value}>

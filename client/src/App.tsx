@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import LoginPage from './components/Auth/LoginPage';
 import ActiveCallBar from './components/Call/ActiveCallBar';
 import IncomingCallOverlay from './components/Call/IncomingCallOverlay';
+import BannedScreen from './components/Common/BannedScreen';
 import ConnectionLostOverlay from './components/Common/ConnectionLostOverlay';
 import EmailVerificationBanner from './components/Common/EmailVerificationBanner';
 import OpenSourceBanner from './components/Common/OpenSourceBanner';
@@ -11,6 +12,7 @@ import MobileLayout from './components/Layout/MobileLayout';
 import { useAuth } from './hooks/useAuth';
 import { CallProvider } from './hooks/useCall';
 import { ThemeProvider } from './hooks/useTheme';
+import { offAccountBanned, onAccountBanned } from './services/socket';
 import AdminPage from './pages/AdminPage';
 import ChatPage from './pages/ChatPage';
 import DownloadPage from './pages/DownloadPage';
@@ -95,6 +97,17 @@ function CatchAll() {
   return <Navigate to="/" replace />;
 }
 
+function BannedGuard({ children }: { children: React.ReactNode }) {
+  const { banned, markBanned } = useAuth();
+  useEffect(() => {
+    const handle = () => markBanned();
+    onAccountBanned(handle);
+    return () => offAccountBanned(handle);
+  }, [markBanned]);
+  if (banned) return <BannedScreen />;
+  return <>{children}</>;
+}
+
 export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -105,9 +118,10 @@ export default function App() {
           <ConnectionLostOverlay />
           <OpenSourceBanner />
           <DiscordPresenceTracker />
-          <div className="flex flex-col h-dvh">
-            <TitleBar />
-            <div className="flex-1 overflow-hidden">
+          <BannedGuard>
+            <div className="flex flex-col h-dvh">
+              <TitleBar />
+              <div className="flex-1 overflow-hidden">
               <Suspense
                 fallback={
                   <div className="flex items-center justify-center h-dvh">
@@ -194,6 +208,7 @@ export default function App() {
               </Suspense>
             </div>
           </div>
+          </BannedGuard>
         </CallProvider>
       </ThemeProvider>
     </BrowserRouter>
