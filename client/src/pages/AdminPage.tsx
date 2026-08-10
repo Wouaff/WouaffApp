@@ -177,6 +177,7 @@ function SkeletonRows({ count = 4 }: { count?: number }) {
   return (
     <div className="admin-skeleton-list">
       {Array.from({ length: count }).map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: lignes statiques de skeleton
         <div key={i} className="admin-skeleton-row">
           <div className="admin-skeleton-avatar" />
           <div className="admin-skeleton-lines">
@@ -830,34 +831,31 @@ export default function AdminPage() {
                 <p>Vue d'ensemble de la plateforme Wouaff et du réseau social.</p>
               </div>
 
-              {stats && (
-                <>
-                  {statGroups.map((g) => (
-                    <div key={g.id}>
-                      <div className="admin-section-divider">
-                        <span>{g.label}</span>
-                      </div>
-                      <div className="admin-stats-grid">
-                        {STAT_CARDS.filter((s) => s.group === g.id).map((s) => (
-                          <div
-                            key={s.key}
-                            className="admin-stat-card"
-                            style={{ '--stat-color': s.color } as React.CSSProperties}
-                          >
-                            <div className="admin-stat-icon" style={{ background: `${s.color}20`, color: s.color }}>
-                              {s.icon}
-                            </div>
-                            <div className={`admin-stat-value${s.online ? ' admin-stat-online' : ''}`}>
-                              {stats[s.key as keyof typeof stats]}
-                            </div>
-                            <div className="admin-stat-label">{s.label}</div>
-                          </div>
-                        ))}
-                      </div>
+              {stats &&
+                statGroups.map((g) => (
+                  <div key={g.id}>
+                    <div className="admin-section-divider">
+                      <span>{g.label}</span>
                     </div>
-                  ))}
-                </>
-              )}
+                    <div className="admin-stats-grid">
+                      {STAT_CARDS.filter((s) => s.group === g.id).map((s) => (
+                        <div
+                          key={s.key}
+                          className="admin-stat-card"
+                          style={{ '--stat-color': s.color } as React.CSSProperties}
+                        >
+                          <div className="admin-stat-icon" style={{ background: `${s.color}20`, color: s.color }}>
+                            {s.icon}
+                          </div>
+                          <div className={`admin-stat-value${s.online ? ' admin-stat-online' : ''}`}>
+                            {stats[s.key as keyof typeof stats]}
+                          </div>
+                          <div className="admin-stat-label">{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
 
               <div className="admin-actions-row">
                 <button className="admin-btn admin-btn-primary" onClick={loadStats}>
