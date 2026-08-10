@@ -87,6 +87,35 @@ interface SidebarProps {
   onOpenUserProfile?: (uid: string) => void;
 }
 
+function buildConvsEntries(convData: { dms: Record<string, unknown>; groups: Record<string, unknown> }): ConvEntry[] {
+  const entries: ConvEntry[] = [];
+  for (const [uid, d] of Object.entries(convData.dms || {})) {
+    const entry = d as { profile?: UserProfile; lastMsg?: MessageData | null; lastTime?: number };
+    if (entry.profile) {
+      entries.push({
+        id: uid,
+        type: 'dm',
+        profile: entry.profile,
+        lastMsg: entry.lastMsg || null,
+        lastTime: entry.lastTime || 0,
+      });
+    }
+  }
+  for (const [gid, d] of Object.entries(convData.groups || {})) {
+    const entry = d as { group?: GroupData; lastMsg?: MessageData | null; lastTime?: number };
+    if (entry.group) {
+      entries.push({
+        id: gid,
+        type: 'group',
+        group: entry.group,
+        lastMsg: entry.lastMsg || null,
+        lastTime: entry.lastTime || 0,
+      });
+    }
+  }
+  return entries.sort((a, b) => (b.lastTime || 0) - (a.lastTime || 0));
+}
+
 export default function Sidebar({
   chatWith,
   currentGroupId,
@@ -136,6 +165,22 @@ export default function Sidebar({
   }, []);
 
   const fetchRef = useRef<(() => Promise<void>) | null>(null);
+
+  /* Refetch ciblé : recharge uniquement les conversations (pas stories/profil) */
+  const loadConvs = useCallback(async () => {
+    if (!user) return;
+    try {
+      const convData = await convAPI.list();
+      setConvs(buildConvsEntries(convData));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [user]);
+  const loadConvsRef = useRef(loadConvs);
+  useEffect(() => {
+    loadConvsRef.current = loadConvs;
+  }, [loadConvs]);
+
   const loadPending = useCallback(async () => {
     if (!user) return;
     try {
@@ -167,35 +212,12 @@ export default function Sidebar({
         ]);
         if (cancelled) return;
 
-        const entries: ConvEntry[] = [];
         const profiles: Record<string, UserProfile> = {};
         for (const [uid, d] of Object.entries(convData.dms || {})) {
-          const entry = d as { profile?: UserProfile; lastMsg?: MessageData | null; lastTime?: number };
-          if (entry.profile) {
-            entries.push({
-              id: uid,
-              type: 'dm',
-              profile: entry.profile,
-              lastMsg: entry.lastMsg || null,
-              lastTime: entry.lastTime || 0,
-            });
-            profiles[uid] = entry.profile;
-          }
+          const entry = d as { profile?: UserProfile };
+          if (entry.profile) profiles[uid] = entry.profile;
         }
-        for (const [gid, d] of Object.entries(convData.groups || {})) {
-          const entry = d as { group?: GroupData; lastMsg?: MessageData | null; lastTime?: number };
-          if (entry.group) {
-            entries.push({
-              id: gid,
-              type: 'group',
-              group: entry.group,
-              lastMsg: entry.lastMsg || null,
-              lastTime: entry.lastTime || 0,
-            });
-          }
-        }
-        entries.sort((a, b) => (b.lastTime || 0) - (a.lastTime || 0));
-        setConvs(entries);
+        setConvs(buildConvsEntries(convData));
 
         if (profileRes) setMyProfile(profileRes);
 
@@ -259,6 +281,7 @@ export default function Sidebar({
     if (!user) return;
 
     const fetchAll = () => fetchRef.current?.();
+    const refreshConvs = () => loadConvsRef.current?.();
 
     const handleContactRequest = () => {
       setPendingOpen(true);
@@ -276,7 +299,7 @@ export default function Sidebar({
       );
     };
 
-    const handleGroupCreated = () => fetchAll();
+    const handleGroupCreated = () => refreshConvs();
     const handleGroupUpdated = (data: { gid: string } & Record<string, unknown>) => {
       setConvs((prev) =>
         prev.map((c) => (c.type === 'group' && c.id === data.gid ? { ...c, group: { ...c.group!, ...data } } : c)),
@@ -286,11 +309,11 @@ export default function Sidebar({
       setConvs((prev) => prev.filter((c) => !(c.type === 'group' && c.id === data.gid)));
     };
     const handleGroupMemberAdded = (data: { gid: string; name?: string }) => {
-      if (data.name !== undefined) fetchAll();
+      if (data.name !== undefined) refreshConvs();
     };
     const handleGroupMemberRemoved = (data: { gid: string; kicked?: boolean }) => {
       if (data.kicked) setConvs((prev) => prev.filter((c) => !(c.type === 'group' && c.id === data.gid)));
-      else fetchAll();
+      else refreshConvs();
     };
     const handleProfileUpdated = (data: { uid: string } & Record<string, unknown>) => {
       setConvs((prev) =>
@@ -307,7 +330,7 @@ export default function Sidebar({
     };
     const handleContactRemoved = (data: { by: string }) => {
       setConvs((prev) => prev.filter((c) => !(c.type === 'dm' && c.id === data.by)));
-      fetchAll();
+      refreshConvs();
     };
     const handleStoryAdded = (data: { uid: string; storyId: string }) => {
       setStoryUsers((prev) =>
@@ -332,18 +355,18 @@ export default function Sidebar({
       fetchAll();
     };
     const handleMessageAdded = (ev: SocketMessageEvent) => {
-      fetchAll();
+      refreshConvs();
       if (ev.data.from !== user?.uid) playMessageSound();
     };
 
     onStatusChanged(handleStatusChanged);
-    onContactAdded(fetchAll);
+    onContactAdded(refreshConvs);
     onContactRemoved(handleContactRemoved);
     onContactRequest(handleContactRequest);
-    onContactRequestAccepted(fetchAll);
+    onContactRequestAccepted(refreshConvs);
     const handleContactRequestRejected = (data: { by: string }) => {
       setPendingRequests((prev) => prev.filter((r) => r.fromUid !== data.by));
-      fetchAll();
+      refreshConvs();
     };
     onContactRequestRejected(handleContactRequestRejected);
     onGroupCreated(handleGroupCreated);
@@ -361,10 +384,10 @@ export default function Sidebar({
 
     return () => {
       offStatusChanged(handleStatusChanged);
-      offContactAdded(fetchAll);
+      offContactAdded(refreshConvs);
       offContactRemoved(handleContactRemoved);
       offContactRequest(handleContactRequest);
-      offContactRequestAccepted(fetchAll);
+      offContactRequestAccepted(refreshConvs);
       offContactRequestRejected(handleContactRequestRejected);
       offGroupCreated(handleGroupCreated);
       offGroupUpdated(handleGroupUpdated);

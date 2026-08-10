@@ -1,5 +1,28 @@
+import {
+  Award,
+  Check,
+  ChevronLeft,
+  Copy,
+  Image,
+  Link2,
+  Loader2,
+  Lock,
+  Moon,
+  Palette,
+  Plus,
+  Save,
+  ShieldCheck,
+  Sparkles,
+  Sun,
+  Trash2,
+  User,
+  X,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Toast, { showToast } from '../components/Common/Toast';
+import LeftNav from '../components/Home/LeftNav';
+import RightSidebar from '../components/Home/RightSidebar';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { badges as badgesAPI, profiles as profilesAPI } from '../services/api';
@@ -8,18 +31,9 @@ import type { SocialLink } from '../utils/socialLinks';
 import { PLATFORMS, parseSocialLinks, socialLinksToJson } from '../utils/socialLinks';
 
 type BadgeDef = { name?: string; icon?: string; description?: string };
-type ToastItem = { id: number; msg: string; type: 'success' | 'error' | 'info' };
+type Tab = 'profile' | 'account' | 'badges';
 
 const THEMES = ['default', 'rose', 'confetti', 'neon', 'fire', 'aurora', 'rgb', 'glitch', 'swing'];
-
-let toastId = 0;
-function _escHtml(s: string): string {
-  return s.replace(
-    /[&<>"']/g,
-    (c: string) =>
-      (({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }) as Record<string, string>)[c],
-  );
-}
 
 function normalizeBadgeIds(raw: unknown): string[] {
   if (!raw) return [];
@@ -28,12 +42,20 @@ function normalizeBadgeIds(raw: unknown): string[] {
   return [];
 }
 
+const inputCls =
+  'w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-glow)] font-sans transition-colors';
+const cardCls = 'rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 mb-4';
+const labelCls = 'block text-[13px] font-bold text-[var(--text-primary)] mb-1.5';
+const hintCls = 'flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] mt-1.5';
+
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
-  const [activePanel, setActivePanel] = useState('profile');
+
+  const [tab, setTab] = useState<Tab>('profile');
   const [profile, setProfile] = useState<UserProfile | null>(null);
+
   const [pseudo, setPseudo] = useState('');
   const [bio, setBio] = useState('');
   const [wouaffId, setWouaffId] = useState('');
@@ -41,30 +63,23 @@ export default function SettingsPage() {
   const [banner, setBanner] = useState('');
   const [messageTheme, setMessageTheme] = useState('default');
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
+
   const [saving, setSaving] = useState(false);
-  const [settingsMsg, setSettingsMsg] = useState<{ text: string; type: string } | null>(null);
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [badgeDefs, setBadgeDefs] = useState<Record<string, BadgeDef>>({});
   const [ownedBadgeIds, setOwnedBadgeIds] = useState<string[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [animationsEnabled, setAnimationsEnabled] = useState(
+    localStorage.getItem('wouaff_animations_enabled') !== 'false',
+  );
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-  const [animationsEnabled, setAnimationsEnabled] = useState(
-    localStorage.getItem('wouaff_animations_enabled') !== 'false',
-  );
 
   const enableAnimations = (on: boolean) => {
     localStorage.setItem('wouaff_animations_enabled', on ? 'true' : 'false');
     setAnimationsEnabled(on);
   };
-
-  const toast = useCallback((msg: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const id = ++toastId;
-    setToasts((prev) => [...prev, { id, msg, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
-  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -92,10 +107,33 @@ export default function SettingsPage() {
       });
   }, [user]);
 
-  const handleSave = async () => {
+  const vipBadgeId =
+    Object.entries(badgeDefs).find(([, b]) => {
+      const n = b?.name?.toLowerCase();
+      return n === 'v.i.p' || n === 'vip';
+    })?.[0] || null;
+  const isVip = !!(vipBadgeId && ownedBadgeIds.includes(vipBadgeId));
+
+  const initial = (pseudo || profile?.pseudo || '?')[0]?.toUpperCase() || '?';
+  const handle = wouaffId || profile?.wouaffId || '@wouaff_id';
+
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/');
+  };
+
+  const copy = async (value: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      showToast(`${label} copié`, 'success');
+    } catch {
+      showToast('Impossible de copier', 'error');
+    }
+  };
+
+  const handleSave = useCallback(async () => {
     if (!user) return;
     setSaving(true);
-    setSettingsMsg(null);
     try {
       const updateData: Record<string, string> = {};
       if (pseudo !== (profile?.pseudo || '')) updateData.pseudo = pseudo;
@@ -104,14 +142,14 @@ export default function SettingsPage() {
       if (banner !== (profile?.banner || '')) {
         if (isVip) updateData.banner = banner;
         else {
-          toast('Bannière réservée aux VIP', 'error');
+          showToast('Bannière réservée aux VIP', 'error');
           setSaving(false);
           return;
         }
       }
       if (wouaffId !== (profile?.wouaffId || '')) {
         if (!wouaffId.startsWith('@')) {
-          setSettingsMsg({ text: "L'identifiant doit commencer par @", type: 'error' });
+          showToast("L'identifiant doit commencer par @", 'error');
           setSaving(false);
           return;
         }
@@ -120,7 +158,7 @@ export default function SettingsPage() {
       if (messageTheme !== ((profile as Record<string, string>)?.messageTheme || 'default')) {
         if (isVip) updateData.messageTheme = messageTheme;
         else {
-          toast('Thème de message réservé aux VIP', 'error');
+          showToast('Thème de message réservé aux VIP', 'error');
           setSaving(false);
           return;
         }
@@ -133,394 +171,316 @@ export default function SettingsPage() {
       if (Object.keys(updateData).length > 0) {
         await profilesAPI.updateMe(updateData);
       }
-      setSettingsMsg({ text: '✓ Profil mis à jour avec succès !', type: 'success' });
-      toast('Profil sauvegardé !', 'success');
+      showToast('Profil sauvegardé !', 'success');
+      setProfile((prev) => ({ ...(prev as UserProfile), ...updateData }));
     } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : 'Une erreur est survenue.';
-      setSettingsMsg({ text: errMsg, type: 'error' });
-      toast(errMsg, 'error');
+      showToast(e instanceof Error ? e.message : 'Une erreur est survenue.', 'error');
     }
     setSaving(false);
-  };
+  }, [user, profile, pseudo, bio, avatar, banner, wouaffId, messageTheme, socialLinks, isVip]);
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirm !== 'SUPPRIMER') return;
-    if (!user) return;
+    if (deleteConfirm !== 'SUPPRIMER' || !user) return;
     setDeleting(true);
     setDeleteError('');
     try {
-      const res = await fetch('/api/profiles/me', {
-        method: 'DELETE',
-      });
+      const res = await fetch('/api/profiles/me', { method: 'DELETE' });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Erreur lors de la suppression' }));
         throw new Error(err.error || 'Erreur lors de la suppression');
       }
-      toast('Compte supprimé avec succès.', 'success');
+      showToast('Compte supprimé avec succès.', 'success');
       setTimeout(() => {
         logout();
         navigate('/auth');
-      }, 1500);
+      }, 1200);
     } catch (e: unknown) {
       setDeleteError(e instanceof Error ? e.message : 'Erreur lors de la suppression.');
+      setDeleting(false);
     }
-    setDeleting(false);
   };
 
-  const initial = (profile?.pseudo || '?')[0]?.toUpperCase() || '?';
-  const vipBadgeId =
-    Object.entries(badgeDefs).find(([, b]) => {
-      const n = b?.name?.toLowerCase();
-      return n === 'v.i.p' || n === 'vip';
-    })?.[0] || null;
-  const isVip = !!(vipBadgeId && ownedBadgeIds.includes(vipBadgeId));
-  const previewBanner = banner || '';
-  const previewAvatar = avatar || '';
-  const previewPseudo = pseudo || 'Votre pseudo';
-  const previewId = wouaffId || '@wouaff_id';
-  const previewBio = bio || '';
+  const setLink = (i: number, patch: Partial<SocialLink>) => {
+    setSocialLinks((prev) => prev.map((l, j) => (j === i ? { ...l, ...patch } : l)));
+  };
 
-  const renderThemes = () => (
-    <div className="message-theme-grid">
-      {THEMES.map((t) => (
-        <div
-          key={t}
-          className={`theme-option${messageTheme === t ? ' selected' : ''}`}
-          onClick={() => {
-            if (isVip) setMessageTheme(t);
-            else toast('Thème réservé aux VIP', 'error');
-          }}
-        >
-          <div className="theme-preview">
-            <div className="theme-avatar">
-              {previewAvatar ? <img src={previewAvatar} alt="" /> : <span>{initial}</span>}
-            </div>
-            <div className={`theme-bubble msg-bubble theme-${t}`}>
-              <div className="msg-text">Salut</div>
-            </div>
-          </div>
-          <div className="theme-name">{t.charAt(0).toUpperCase() + t.slice(1)}</div>
-        </div>
-      ))}
-    </div>
-  );
+  const addLink = () => {
+    const used = new Set(socialLinks.map((l) => l.platform));
+    const next = PLATFORMS.find((p) => !used.has(p.id)) || PLATFORMS[0];
+    setSocialLinks((prev) => [...prev, { platform: next.id, url: '' }]);
+  };
+
+  const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+    { id: 'profile', label: 'Profil', icon: <User size={16} /> },
+    { id: 'account', label: 'Compte', icon: <Lock size={16} /> },
+    { id: 'badges', label: 'Badges', icon: <Award size={16} /> },
+  ];
+
+  const visibleLinks = socialLinks.filter((l) => l.url.trim());
 
   return (
-    <div id="settingsPage" className="settings-page">
-      <button
-        id="mobile-nav-toggle"
-        className="fixed top-[14px] left-[14px] z-[200] bg-[var(--bg-card2,var(--bg-card))] border border-[var(--border)] rounded-[var(--radius-sm)] text-[var(--text-primary)] w-[38px] h-[38px] flex items-center justify-center cursor-pointer shadow-[0_2px_12px_rgba(0,0,0,.3)]"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        aria-label="Menu"
-      >
-        <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
-        </svg>
-      </button>
-      <div
-        className={`fixed inset-0 bg-black/60 z-[99] backdrop-blur-[3px]${sidebarOpen ? '' : ' hidden'}`}
-        onClick={() => setSidebarOpen(false)}
-      />
+    <div className="flex h-full">
+      <LeftNav />
+      <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
+        <div className="mx-auto max-w-[600px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
+          <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
+            <div className="flex items-center gap-5 px-2 h-14">
+              <button
+                type="button"
+                onClick={goBack}
+                aria-label="Retour"
+                className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <div className="min-w-0">
+                <div className="font-extrabold text-[17px] text-[var(--text-primary)] leading-tight">Paramètres</div>
+              </div>
+            </div>
+            <div className="flex">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  aria-current={tab === t.id ? 'page' : undefined}
+                  className={`relative flex-1 flex items-center justify-center gap-1.5 py-3 border-none bg-transparent cursor-pointer transition-colors font-sans ${
+                    tab === t.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)]'
+                  }`}
+                >
+                  {t.icon}
+                  <span className={tab === t.id ? 'text-[15px] font-extrabold' : 'text-[15px] font-medium'}>
+                    {t.label}
+                  </span>
+                  {tab === t.id && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-brand rounded-full" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </header>
 
-      <div className="settings-layout">
-        <aside id="settingsSidebar" className={`settings-sidebar${sidebarOpen ? ' open' : ''}`}>
-          <div className="sidebar-top">
-            <div className="sidebar-brand">
-              <div className="sidebar-brand-icon">
-                <img
-                  src="/assets/logo/logo.png"
-                  alt="Wouaff"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
+          {tab === 'profile' && (
+            <div className="p-4">
+              {/* Aperçu du profil */}
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden mb-4">
+                <div
+                  className="h-28 bg-gradient-to-br from-brand to-brand-dark bg-cover bg-center"
+                  style={banner ? { backgroundImage: `url(${banner})` } : undefined}
                 />
-              </div>
-              <span className="sidebar-brand-name">Wouaff</span>
-            </div>
-            <div className="sidebar-title">Paramètres</div>
-          </div>
-          <nav className="settings-menu">
-            <div className="menu-group-label">Mon compte</div>
-            <div
-              className={`settings-menu-item${activePanel === 'profile' ? ' active' : ''}`}
-              onClick={() => {
-                setActivePanel('profile');
-                setSidebarOpen(false);
-              }}
-            >
-              <svg className="menu-icon" viewBox="0 0 24 24">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-              </svg>
-              Profil
-            </div>
-            <div
-              className={`settings-menu-item${activePanel === 'account' ? ' active' : ''}`}
-              onClick={() => {
-                setActivePanel('account');
-                setSidebarOpen(false);
-              }}
-            >
-              <svg className="menu-icon" viewBox="0 0 24 24">
-                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
-              </svg>
-              Compte
-            </div>
-            <div className="menu-group-label mt-2">Personnalisation</div>
-            <div
-              className={`settings-menu-item${activePanel === 'badges' ? ' active' : ''}`}
-              onClick={() => {
-                setActivePanel('badges');
-                setSidebarOpen(false);
-              }}
-            >
-              <svg className="menu-icon" viewBox="0 0 24 24">
-                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-              </svg>
-              Badges
-            </div>
-          </nav>
-          <div className="settings-footer">
-            <button className="back-btn-settings" onClick={() => navigate('/')}>
-              <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-              </svg>
-              Retour au chat
-            </button>
-            <button className="logout-btn-settings" onClick={logout}>
-              <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
-              </svg>
-              Déconnexion
-            </button>
-          </div>
-        </aside>
-
-        <div className="settings-content">
-          <main className="settings-main">
-            <div id="settings-panel-profile" className={`settings-panel${activePanel === 'profile' ? ' active' : ''}`}>
-              <div className="panel-header">
-                <h2>Profil public</h2>
-                <p>Ces informations sont visibles par les autres utilisateurs.</p>
-              </div>
-              <div className="settings-section">
-                <div className="section-title">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                  </svg>
-                  Identité
+                <div className="px-4 pb-4">
+                  <div className="w-20 h-20 -mt-10 rounded-full border-4 border-[var(--bg-card)] bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-white font-extrabold text-2xl flex-shrink-0">
+                    {avatar ? (
+                      <img src={avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{initial}</span>
+                    )}
+                  </div>
+                  <div className="mt-2 flex items-center gap-1.5">
+                    <span className="font-extrabold text-[19px] text-[var(--text-primary)]">
+                      {pseudo || 'Votre pseudo'}
+                    </span>
+                    {isVip && <Sparkles size={16} className="text-brand" aria-label="VIP" />}
+                  </div>
+                  <div className="text-[14px] text-[var(--text-muted)]">{handle}</div>
+                  {bio && (
+                    <p className="m-0 mt-2 text-[14px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap">
+                      {bio}
+                    </p>
+                  )}
+                  {visibleLinks.length > 0 && (
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {visibleLinks.map((link) => {
+                        const pf = PLATFORMS.find((p) => p.id === link.platform);
+                        return (
+                          <span
+                            key={link.platform + link.url}
+                            className="inline-flex items-center gap-1.5 text-[12px] text-brand no-underline"
+                          >
+                            {pf && (
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                className="w-3.5 h-3.5"
+                                dangerouslySetInnerHTML={{ __html: pf.svg }}
+                              />
+                            )}
+                            {pf?.label || link.platform}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <div className="settings-item">
-                  <label htmlFor="settingsPseudo">Pseudo</label>
+              </div>
+
+              {/* Identité */}
+              <div className={cardCls}>
+                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-3">
+                  <User size={14} /> Identité
+                </h3>
+                <div className="mb-3">
+                  <label htmlFor="settingsPseudo" className={labelCls}>
+                    Pseudo
+                  </label>
                   <input
                     id="settingsPseudo"
                     placeholder="Votre pseudo"
                     maxLength={32}
                     value={pseudo}
                     onChange={(e) => setPseudo(e.target.value.toLowerCase())}
+                    className={inputCls}
                   />
                 </div>
-                <div className="settings-item">
-                  <label htmlFor="settingsBio">Bio</label>
+                <div className="mb-3">
+                  <label htmlFor="settingsBio" className={labelCls}>
+                    Bio
+                  </label>
                   <textarea
                     id="settingsBio"
                     placeholder="Parlez un peu de vous..."
                     maxLength={280}
+                    rows={3}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
+                    className={`${inputCls} resize-none`}
                   />
-                  <div className="info-text">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                    </svg>
-                    280 caractères max.
-                  </div>
+                  <div className={hintCls}>{bio.length} / 280</div>
                 </div>
-                <div className="settings-item">
-                  <label htmlFor="myWouaffId">Identifiant Wouaff</label>
-                  <div className="input-with-icon">
+                <div>
+                  <label htmlFor="myWouaffId" className={labelCls}>
+                    Identifiant Wouaff
+                  </label>
+                  <div className="flex items-center gap-2">
                     <input
                       id="myWouaffId"
                       placeholder="@votre_id"
                       maxLength={32}
                       value={wouaffId}
                       onChange={(e) => setWouaffId(e.target.value)}
+                      className={inputCls}
                     />
                     <button
-                      className="input-copy-btn"
-                      onClick={() => {
-                        navigator.clipboard.writeText(wouaffId);
-                        toast('Identifiant copié !', 'success');
-                      }}
+                      type="button"
+                      onClick={() => copy(wouaffId || handle, 'Identifiant')}
                       title="Copier"
+                      className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] cursor-pointer hover:text-brand hover:border-[var(--brand)] transition-colors"
                     >
-                      <svg viewBox="0 0 24 24">
-                        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
-                      </svg>
+                      <Copy size={16} />
                     </button>
                   </div>
-                  <div className="info-text">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                    </svg>
-                    Partagez cet identifiant pour être ajouté en contact.
-                  </div>
+                  <div className={hintCls}>Partagez cet identifiant pour être ajouté en contact.</div>
                 </div>
               </div>
-              <div className="settings-section social-links-section">
-                <div className="section-title">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M3.9 8.26l2.09-.36c.2-.03.38-.15.46-.33l1.36-3.02a.6.6 0 011.06-.01l1.37 3.03c.08.18.26.3.46.33l2.09.36c.48.08.66.66.33 1l-1.6 1.56c-.14.13-.2.33-.16.52l.42 2.24c.1.52-.47.9-.92.64l-1.91-1.13a.64.64 0 00-.6 0l-1.91 1.13c-.45.26-1.02-.12-.92-.64l.42-2.24a.55.55 0 00-.16-.52l-1.6-1.56c-.33-.34-.15-.92.33-1z" />
-                    <path d="M3 13h1.5v4.5c0 .28.22.5.5.5h5a.5.5 0 00.5-.5V13H12v4.5c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V13z" />
-                  </svg>
-                  Liens sociaux
-                  <span className="vip-badge ml-2 text-[9px]">{isVip ? 'VIP' : 'Gratuit'}</span>
-                </div>
-                <div className="info-text mb-3.5">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                  </svg>
+
+              {/* Liens sociaux */}
+              <div className={cardCls}>
+                <h3 className="flex items-center justify-between gap-2 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-3">
+                  <span className="flex items-center gap-2">
+                    <Link2 size={14} /> Liens sociaux
+                  </span>
+                  <span className="flex items-center gap-1 text-[10px] normal-case tracking-normal px-2 py-0.5 rounded-full bg-[var(--brand-glow)] text-brand font-bold">
+                    {isVip ? <Sparkles size={10} /> : null}
+                    {isVip ? 'VIP' : `${socialLinks.length}/1`}
+                  </span>
+                </h3>
+                <div className={`${hintCls} mb-3`}>
                   {isVip
-                    ? "Jusqu'à 3 liens sociaux. Ces liens apparaissent sur votre profil public."
+                    ? "Jusqu'à 3 liens sociaux, affichés sur votre profil public."
                     : "Version gratuite : 1 lien social. Passez VIP pour en ajouter jusqu'à 3."}
                 </div>
                 {socialLinks.map((link, i) => {
                   const pf = PLATFORMS.find((p) => p.id === link.platform);
                   return (
-                    <div key={link.platform + link.url} className="settings-item social-link-row">
-                      <div className="social-link-inputs">
-                        <select
-                          value={link.platform}
-                          onChange={(e) => {
-                            const copy = [...socialLinks];
-                            copy[i] = { ...copy[i], platform: e.target.value };
-                            if (e.target.value === 'other') copy[i].url = '';
-                            setSocialLinks(copy);
-                          }}
-                          className="social-platform-select"
-                        >
-                          {PLATFORMS.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.label}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          type="url"
-                          placeholder={pf?.id === 'other' ? 'https://...' : `URL ${pf?.label || ''}`}
-                          value={link.url}
-                          onChange={(e) => {
-                            const copy = [...socialLinks];
-                            copy[i] = { ...copy[i], url: e.target.value };
-                            setSocialLinks(copy);
-                          }}
-                          className="social-url-input"
-                        />
-                        <button
-                          className="social-link-remove"
-                          onClick={() => setSocialLinks(socialLinks.filter((_, j) => j !== i))}
-                          title="Supprimer ce lien"
-                          aria-label="Supprimer"
-                        >
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                          </svg>
-                        </button>
-                      </div>
+                    // biome-ignore lint/suspicious/noArrayIndexKey: les liens sont réordonnés en direct
+                    <div key={i} className="flex items-center gap-2 mb-2">
+                      <select
+                        value={link.platform}
+                        onChange={(e) => {
+                          setLink(i, { platform: e.target.value });
+                          if (e.target.value === 'other') setLink(i, { url: '' });
+                        }}
+                        aria-label="Plateforme"
+                        className="flex-shrink-0 bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-2.5 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand)] font-sans cursor-pointer"
+                      >
+                        {PLATFORMS.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="url"
+                        placeholder={pf?.id === 'other' ? 'https://...' : `URL ${pf?.label || ''}`}
+                        value={link.url}
+                        onChange={(e) => setLink(i, { url: e.target.value })}
+                        aria-label="URL du lien"
+                        className={inputCls}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSocialLinks((prev) => prev.filter((_, j) => j !== i))}
+                        aria-label="Supprimer ce lien"
+                        title="Supprimer"
+                        className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] cursor-pointer hover:text-red-500 hover:border-red-500/40 transition-colors"
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </div>
                   );
                 })}
                 {socialLinks.length < (isVip ? 3 : 1) && (
                   <button
-                    className="social-link-add"
-                    onClick={() => {
-                      const used = new Set(socialLinks.map((l) => l.platform));
-                      const next = PLATFORMS.find((p) => !used.has(p.id)) || PLATFORMS[0];
-                      setSocialLinks([...socialLinks, { platform: next.id, url: '' }]);
-                    }}
+                    type="button"
+                    onClick={addLink}
+                    className="flex items-center gap-1.5 text-[13px] font-bold text-brand rounded-full border-none bg-transparent cursor-pointer hover:bg-[var(--brand-glow)] px-3 py-2 transition-colors"
                   >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                    </svg>
-                    Ajouter un lien social
+                    <Plus size={15} /> Ajouter un lien social
                   </button>
                 )}
               </div>
-              <div className="settings-section">
-                <div className="section-title">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-                  </svg>
-                  Apparence
-                </div>
-                <div className="settings-item">
-                  <label htmlFor="settingsAvatar">URL de l'avatar</label>
-                  <input
-                    id="settingsAvatar"
-                    placeholder="https://... ou /assets/..."
-                    value={avatar}
-                    onChange={(e) => setAvatar(e.target.value)}
-                  />
-                  {avatar && (
-                    <div className="img-preview-chip visible avatar-preview">
-                      <img
-                        src={avatar}
-                        alt="Aperçu avatar"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                      <span>Aperçu avatar</span>
+
+              {/* Apparence */}
+              <div className={cardCls}>
+                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-3">
+                  <Palette size={14} /> Apparence
+                </h3>
+
+                <div className="mb-3">
+                  <label htmlFor="settingsAvatar" className={labelCls}>
+                    URL de l'avatar
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="settingsAvatar"
+                      placeholder="https://... ou /assets/..."
+                      value={avatar}
+                      onChange={(e) => setAvatar(e.target.value)}
+                      className={inputCls}
+                    />
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[var(--bg-input)] border border-[var(--border)] overflow-hidden flex items-center justify-center">
+                      {avatar ? (
+                        <img
+                          src={avatar}
+                          alt="Aperçu avatar"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Image size={15} className="text-[var(--text-muted)]" />
+                      )}
                     </div>
-                  )}
-                  <div className="info-text">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                    </svg>
-                    Lien direct vers une image (JPG, PNG, GIF, WebP).
                   </div>
                 </div>
-                <div className="settings-item">
-                  <label htmlFor="themeSelectDark">Thème de l'application</label>
-                  <input
-                    type="radio"
-                    id="themeSelectDark"
-                    name="theme"
-                    className="hidden"
-                    defaultChecked={theme === 'dark'}
-                  />
-                  <input
-                    type="radio"
-                    id="themeSelectLight"
-                    name="theme"
-                    className="hidden"
-                    defaultChecked={theme === 'light'}
-                  />
-                  <div className="theme-toggle-row">
-                    <button
-                      className={`theme-toggle-btn${theme === 'dark' ? ' active' : ''}`}
-                      onClick={() => setTheme('dark')}
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7z" />
-                        <path d="M12 7v10c2.76 0 5-2.24 5-5s-2.24-5-5-5z" />
-                      </svg>
-                      Sombre
-                    </button>
-                    <button
-                      className={`theme-toggle-btn${theme === 'light' ? ' active' : ''}`}
-                      onClick={() => setTheme('light')}
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z" />
-                      </svg>
-                      Clair
-                    </button>
-                  </div>
-                </div>
-                <div className={`settings-item${!isVip ? ' vip-locked' : ''}`} id="bannerField">
-                  <label htmlFor="settingsBanner">
-                    URL de la bannière
-                    <span className="vip-badge ml-2">✦ VIP</span>
+
+                <div className={`mb-3 ${!isVip ? 'opacity-60' : ''}`}>
+                  <label htmlFor="settingsBanner" className={labelCls}>
+                    URL de la bannière{' '}
+                    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[var(--brand-glow)] text-brand font-bold ml-1 align-middle">
+                      <Sparkles size={9} /> VIP
+                    </span>
                   </label>
                   <input
                     id="settingsBanner"
@@ -528,205 +488,235 @@ export default function SettingsPage() {
                     value={banner}
                     onChange={(e) => setBanner(e.target.value)}
                     disabled={!isVip}
+                    className={inputCls}
                   />
-                  {!isVip && (
-                    <div className="vip-lock-overlay">
-                      <div className="vip-lock-text">
-                        <img
-                          className="vip-lock-badge"
-                          src="https://cdn-icons-png.flaticon.com/512/2583/2583344.png"
-                          alt="VIP"
-                        />
-                        Réservé VIP
-                      </div>
-                    </div>
-                  )}
+                  {!isVip && <div className={hintCls}>Bannière réservée aux comptes VIP.</div>}
                 </div>
-                <div className={`settings-item${!isVip ? ' vip-locked' : ''}`} id="messageThemeField">
-                  <label htmlFor="msgThemeHidden">
-                    Thème de message
-                    <span className="vip-badge ml-2">✦ VIP</span>
-                  </label>
-                  <input type="hidden" id="msgThemeHidden" />
-                  {renderThemes()}
-                  {!isVip && (
-                    <div className="vip-lock-overlay">
-                      <div className="vip-lock-text">
-                        <img
-                          className="vip-lock-badge"
-                          src="https://cdn-icons-png.flaticon.com/512/2583/2583344.png"
-                          alt="VIP"
-                        />
-                        Réservé VIP
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="settings-item">
-                  <span className="settings-label">Animations des messages</span>
-                  <div className="theme-toggle-row">
-                    <button
-                      className={`theme-toggle-btn${animationsEnabled ? ' active' : ''}`}
-                      onClick={() => enableAnimations(true)}
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                      </svg>
-                      Activées
-                    </button>
-                    <button
-                      className={`theme-toggle-btn${!animationsEnabled ? ' active' : ''}`}
-                      onClick={() => enableAnimations(false)}
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                      </svg>
-                      Désactivées
-                    </button>
-                  </div>
-                  <div className="info-text">
-                    Affiche des animations (confettis, cœurs, etc.) quand certains mots-clés sont détectés dans les
-                    messages.
-                  </div>
-                </div>
-              </div>
-              <button className={`save-btn${saving ? ' loading' : ''}`} onClick={handleSave} disabled={saving}>
-                <span className="btn-spinner"></span>
-                <span className="btn-text">
-                  <svg className="w-[15px] h-[15px] align-middle mr-1" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" />
-                  </svg>
-                  Enregistrer les modifications
-                </span>
-              </button>
-              {settingsMsg && (
-                <div id="settingsMsg" className={settingsMsg.type}>
-                  {settingsMsg.text}
-                </div>
-              )}
-            </div>
 
-            <div id="settings-panel-account" className={`settings-panel${activePanel === 'account' ? ' active' : ''}`}>
-              <div className="panel-header">
-                <h2>Informations du compte</h2>
-                <p>Données liées à votre authentification — non visibles publiquement.</p>
-              </div>
-              <div className="settings-section">
-                <div className="section-title">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
-                  </svg>
-                  Authentification
-                </div>
-                <div className="settings-item">
-                  <label htmlFor="settingsEmail">Adresse email</label>
-                  <div className="input-with-icon">
-                    <input id="settingsEmail" readOnly value={user?.email || ''} />
+                <div className="mb-3">
+                  <span className={labelCls}>Thème de l'application</span>
+                  <div className="grid grid-cols-2 gap-2">
                     <button
-                      className="input-copy-btn"
-                      onClick={() => {
-                        navigator.clipboard.writeText(user?.email || '');
-                        toast('Email copié', 'success');
-                      }}
-                      title="Copier"
+                      type="button"
+                      onClick={() => setTheme('dark')}
+                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors cursor-pointer ${
+                        theme === 'dark'
+                          ? 'border-[var(--brand)] bg-[var(--brand-glow)] text-[var(--text-primary)]'
+                          : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                      }`}
                     >
-                      <svg viewBox="0 0 24 24">
-                        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
-                      </svg>
+                      <Moon size={16} /> Sombre
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTheme('light')}
+                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors cursor-pointer ${
+                        theme === 'light'
+                          ? 'border-[var(--brand)] bg-[var(--brand-glow)] text-[var(--text-primary)]'
+                          : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                      }`}
+                    >
+                      <Sun size={16} /> Clair
                     </button>
                   </div>
                 </div>
-                <div className="settings-item">
-                  <label htmlFor="settingsUid">UID Firebase</label>
-                  <div className="input-with-icon">
-                    <input id="settingsUid" readOnly value={user?.uid || ''} />
+
+                <div className={`mb-3 ${!isVip ? 'opacity-60' : ''}`}>
+                  <span className={labelCls}>
+                    Thème des messages{' '}
+                    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[var(--brand-glow)] text-brand font-bold ml-1 align-middle">
+                      <Sparkles size={9} /> VIP
+                    </span>
+                  </span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {THEMES.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        disabled={!isVip}
+                        onClick={() => setMessageTheme(t)}
+                        title={t.charAt(0).toUpperCase() + t.slice(1)}
+                        className={`rounded-xl border p-2 flex flex-col items-center gap-1.5 cursor-pointer transition-colors ${
+                          !isVip
+                            ? 'opacity-50 cursor-not-allowed'
+                            : messageTheme === t
+                              ? 'border-[var(--brand)] bg-[var(--brand-glow)]'
+                              : 'border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)]'
+                        }`}
+                      >
+                        <span className="w-11 h-7 rounded-lg msg-bubble theme-default theme-preview-bubble">
+                          <span className="msg-text">A</span>
+                        </span>
+                        <span className="text-[10px] font-bold text-[var(--text-muted)] capitalize">{t}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <span className={labelCls}>Animations des messages</span>
+                  <div className="grid grid-cols-2 gap-2">
                     <button
-                      className="input-copy-btn"
-                      onClick={() => {
-                        navigator.clipboard.writeText(user?.uid || '');
-                        toast('UID copié', 'success');
-                      }}
-                      title="Copier"
+                      type="button"
+                      onClick={() => enableAnimations(true)}
+                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors cursor-pointer ${
+                        animationsEnabled
+                          ? 'border-[var(--brand)] bg-[var(--brand-glow)] text-[var(--text-primary)]'
+                          : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                      }`}
                     >
-                      <svg viewBox="0 0 24 24">
-                        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
-                      </svg>
+                      <Check size={16} /> Activées
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => enableAnimations(false)}
+                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors cursor-pointer ${
+                        !animationsEnabled
+                          ? 'border-[var(--brand)] bg-[var(--brand-glow)] text-[var(--text-primary)]'
+                          : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                      }`}
+                    >
+                      <X size={16} /> Désactivées
+                    </button>
+                  </div>
+                  <div className={hintCls}>
+                    Affiche des animations quand certains mots-clés sont détectés dans les messages.
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="w-full flex items-center justify-center gap-2 bg-brand hover:opacity-90 disabled:opacity-50 transition-opacity text-white font-bold text-[15px] rounded-full py-3 border-none cursor-pointer mb-6"
+              >
+                {saving ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
+                Enregistrer les modifications
+              </button>
+            </div>
+          )}
+
+          {tab === 'account' && (
+            <div className="p-4">
+              <div className={cardCls}>
+                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-3">
+                  <Lock size={14} /> Authentification
+                </h3>
+                <div className="mb-3">
+                  <label htmlFor="settingsEmail" className={labelCls}>
+                    Adresse email
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input id="settingsEmail" readOnly value={user?.email || ''} className={`${inputCls} opacity-70`} />
+                    <button
+                      type="button"
+                      onClick={() => copy(user?.email || '', 'Email')}
+                      title="Copier"
+                      className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] cursor-pointer hover:text-brand hover:border-[var(--brand)] transition-colors"
+                    >
+                      <Copy size={16} />
                     </button>
                   </div>
                 </div>
-                <div className="info-text mt-0">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" />
-                  </svg>
-                  Ces données ne sont jamais affichées publiquement.
+                <div>
+                  <label htmlFor="settingsUid" className={labelCls}>
+                    UID
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input id="settingsUid" readOnly value={user?.uid || ''} className={`${inputCls} opacity-70`} />
+                    <button
+                      type="button"
+                      onClick={() => copy(user?.uid || '', 'UID')}
+                      title="Copier"
+                      className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] cursor-pointer hover:text-brand hover:border-[var(--brand)] transition-colors"
+                    >
+                      <Copy size={16} />
+                    </button>
+                  </div>
+                  <div className={hintCls}>
+                    <ShieldCheck size={12} /> Ces données ne sont jamais affichées publiquement.
+                  </div>
                 </div>
               </div>
-              <div className="settings-section">
-                <div className="section-title">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                  </svg>
-                  Badges possédés
+
+              <div className={cardCls}>
+                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-3">
+                  <Award size={14} /> Collection de badges
+                </h3>
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl font-black text-[var(--text-primary)]">{ownedBadgeIds.length}</span>
+                  <span className="text-[13px] text-[var(--text-muted)]">badge(s) dans votre collection</span>
                 </div>
-                <div className="text-[28px] font-black text-[var(--text-primary)]">{ownedBadgeIds.length}</div>
-                <div className="text-xs text-text-muted mt-0.5">badge(s) dans votre collection</div>
+                {ownedBadgeIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setTab('badges')}
+                    className="mt-2 text-[13px] font-bold text-brand rounded-full border-none bg-transparent cursor-pointer hover:underline"
+                  >
+                    Voir mes badges →
+                  </button>
+                )}
               </div>
-              <div className="settings-section danger-zone-section">
-                <div className="section-title">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                  </svg>
-                  Zone dangereuse
-                </div>
-                <p className="text-sm text-text-secondary leading-relaxed mb-3.5">
+
+              <div className={`${cardCls} border-red-500/30`}>
+                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-[var(--danger)] mb-3">
+                  <Trash2 size={14} /> Zone dangereuse
+                </h3>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
                   La suppression de votre compte est <strong className="text-[var(--danger)]">irréversible</strong>.
                   Toutes vos données (profil, messages, badges) seront définitivement effacées.
                 </p>
-                <button className="save-btn danger-btn" onClick={() => setDeleteModalOpen(true)}>
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                  </svg>
-                  Supprimer mon compte
+                <button
+                  type="button"
+                  onClick={() => setDeleteModalOpen(true)}
+                  className="flex items-center justify-center gap-2 w-full rounded-full border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 transition-colors text-[var(--danger)] font-bold text-sm py-3 cursor-pointer"
+                >
+                  <Trash2 size={16} /> Supprimer mon compte
                 </button>
               </div>
             </div>
+          )}
 
-            <div id="settings-panel-badges" className={`settings-panel${activePanel === 'badges' ? ' active' : ''}`}>
-              <div className="panel-header">
-                <h2>Mes badges</h2>
-                <p>Badges obtenus sur Wouaff.</p>
-              </div>
-              <div className="settings-section">
-                <div className="section-title">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                  </svg>
-                  Collection
-                </div>
+          {tab === 'badges' && (
+            <div className="p-4">
+              <div className={cardCls}>
+                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-3">
+                  <Award size={14} /> Mes badges
+                </h3>
                 {ownedBadgeIds.length === 0 ? (
-                  <div className="no-badges">
-                    <div className="no-badges-icon">🏅</div>
-                    Aucun badge pour l'instant.
+                  <div className="py-12 text-center">
+                    <div className="text-5xl mb-3" aria-hidden="true">
+                      🏅
+                    </div>
+                    <p className="m-0 text-[var(--text-secondary)]">Aucun badge pour l'instant.</p>
                   </div>
                 ) : (
-                  <div className="badge-selector">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                     {ownedBadgeIds.map((id) => {
                       const b = badgeDefs[id];
                       if (!b) return null;
                       return (
-                        <div key={id} className="badge-option" title={b.description || b.name || id}>
-                          <div className="badge-option-icon">
+                        <div
+                          key={id}
+                          title={b.description || b.name || id}
+                          className="rounded-2xl border border-[var(--border)] bg-[var(--bg-input)] p-3 flex flex-col items-center gap-2 text-center"
+                        >
+                          <div className="w-12 h-12 rounded-full bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-center overflow-hidden">
                             {b.icon && (
                               <img
                                 src={b.icon}
                                 alt={b.name || id}
+                                className="w-8 h-8 object-contain"
                                 onError={(e) => {
                                   (e.target as HTMLElement).style.display = 'none';
                                 }}
                               />
                             )}
                           </div>
-                          <div className="badge-option-name">{b.name || id}</div>
+                          <span className="text-[11px] font-bold text-[var(--text-primary)] leading-tight">
+                            {b.name || id}
+                          </span>
                         </div>
                       );
                     })}
@@ -734,171 +724,63 @@ export default function SettingsPage() {
                 )}
               </div>
             </div>
-          </main>
-
-          <aside className="settings-preview">
-            <div className="preview-label">Aperçu du profil</div>
-            <div className="profile-box">
-              <div
-                className="profile-banner"
-                style={
-                  previewBanner
-                    ? {
-                        backgroundImage: `url(${previewBanner.replace(/"/g, '%22')})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      }
-                    : {}
-                }
-              ></div>
-              <div className="profile-avatar-wrap">
-                <div className="profile-avatar-lg">
-                  {previewAvatar ? (
-                    <img
-                      src={previewAvatar}
-                      alt={previewPseudo}
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                        (e.target as HTMLElement).parentElement!.textContent = initial;
-                      }}
-                    />
-                  ) : (
-                    <span>{initial}</span>
-                  )}
-                </div>
-              </div>
-              <div className="profile-body-content">
-                <div className="profile-name-row">{previewPseudo}</div>
-                <div className="profile-wouaff-id">{previewId}</div>
-                <div className="profile-badges-row">
-                  {ownedBadgeIds.map((id) => {
-                    const b = badgeDefs[id];
-                    if (!b) return null;
-                    return (
-                      <span key={id} className="badge-chip">
-                        {b.icon && (
-                          <img
-                            src={b.icon}
-                            alt=""
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = 'none';
-                            }}
-                          />
-                        )}
-                        {b.name || id}
-                      </span>
-                    );
-                  })}
-                </div>
-                <div className="profile-section" id="previewStatusSection">
-                  <div className="profile-section-label">Statut</div>
-                  <div className="profile-section-val">
-                    <span className="profile-status-dot bg-[var(--online)]" />
-                    En ligne
-                  </div>
-                </div>
-                {previewBio && (
-                  <div className="profile-section">
-                    <div className="profile-section-label">Bio</div>
-                    <div className="profile-section-val">{previewBio}</div>
-                  </div>
-                )}
-                {socialLinks.filter((l) => l.url.trim()).length > 0 && (
-                  <div className="profile-section">
-                    <div className="profile-section-label">Liens sociaux</div>
-                    <div className="profile-section-val">
-                      <div className="preview-social-links">
-                        {socialLinks
-                          .filter((l) => l.url.trim())
-                          .map((link) => {
-                            const pf = PLATFORMS.find((p) => p.id === link.platform);
-                            return (
-                              <a
-                                key={link.platform + link.url}
-                                href={link.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="preview-social-link"
-                                title={link.url}
-                                style={pf ? ({ '--sl-color': pf.color } as React.CSSProperties) : {}}
-                              >
-                                {pf && (
-                                  <svg
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    className="w-[18px] h-[18px]"
-                                    dangerouslySetInnerHTML={{ __html: pf.svg }}
-                                  />
-                                )}
-                                <span>{pf?.label || link.platform}</span>
-                              </a>
-                            );
-                          })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </aside>
-        </div>
-      </div>
-
-      <div
-        className={`delete-modal${deleteModalOpen ? ' visible' : ''}`}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) setDeleteModalOpen(false);
-        }}
-      >
-        <div className="delete-modal-box" onClick={(e) => e.stopPropagation()}>
-          <h3>⚠️ Supprimer le compte</h3>
-          <p>
-            Cette action est <strong className="text-[var(--danger)]">irréversible</strong>. Tapez{' '}
-            <strong className="text-[var(--danger)]">SUPPRIMER</strong> ci-dessous pour confirmer.
-          </p>
-          <input
-            type="text"
-            placeholder="SUPPRIMER"
-            value={deleteConfirm}
-            onChange={(e) => setDeleteConfirm(e.target.value)}
-            onFocus={(e) => e.target.select()}
-          />
-          <div className="delete-modal-actions">
-            <button
-              className="cancel-btn"
-              onClick={() => {
-                setDeleteModalOpen(false);
-                setDeleteConfirm('');
-                setDeleteError('');
-              }}
-            >
-              Annuler
-            </button>
-            <button
-              className={`confirm-btn${deleting ? ' loading' : ''}`}
-              disabled={deleteConfirm !== 'SUPPRIMER' || deleting}
-              onClick={handleDeleteAccount}
-            >
-              <span className="btn-spinner"></span>
-              <span className="btn-text">Supprimer</span>
-            </button>
-          </div>
-          {deleteError && (
-            <div id="deleteError" className="visible">
-              {deleteError}
-            </div>
           )}
         </div>
-      </div>
+      </main>
+      <RightSidebar />
 
-      <div className="toast-settings">
-        {toasts.map((t) => (
-          <div key={t.id} className={`toast-item ${t.type}`}>
-            <span>{t.type === 'success' ? '✓' : t.type === 'error' ? '✕' : 'ℹ'}</span>
-            <span>{t.msg}</span>
+      {deleteModalOpen && (
+        <div
+          className="modal-overlay active"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteModalOpen(false);
+          }}
+        >
+          <div className="w-full max-w-[420px] rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
+            <div className="px-5 pt-5 pb-4">
+              <h3 className="text-[18px] font-extrabold text-[var(--text-primary)] m-0 mb-1">Supprimer le compte</h3>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-4">
+                Cette action est <strong className="text-[var(--danger)]">irréversible</strong>. Tapez{' '}
+                <strong className="text-[var(--danger)]">SUPPRIMER</strong> pour confirmer.
+              </p>
+              <input
+                type="text"
+                placeholder="SUPPRIMER"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                aria-label="Confirmer la suppression"
+                className={inputCls}
+              />
+              {deleteError && <div className="text-[12px] text-[var(--danger)] mt-2">{deleteError}</div>}
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-[var(--border)]">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteModalOpen(false);
+                  setDeleteConfirm('');
+                  setDeleteError('');
+                }}
+                className="px-4 py-2 rounded-full text-sm font-bold text-[var(--text-secondary)] border border-[var(--border)] bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={deleteConfirm !== 'SUPPRIMER' || deleting}
+                onClick={handleDeleteAccount}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors border-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                Supprimer
+              </button>
+            </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      <Toast />
     </div>
   );
 }

@@ -1960,6 +1960,25 @@ body {
   animation: swingCombined 4s linear infinite;
 }
 
+/* Aperçu miniature des thèmes de message (page Paramètres) */
+.theme-preview-bubble {
+  padding: 2px 6px;
+  cursor: default;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--msg-sent, var(--brand));
+  color: #fff;
+  flex-direction: row;
+}
+.theme-preview-bubble .msg-text {
+  font-size: 11px;
+  line-height: 1;
+}
+.theme-preview-bubble.theme-swing {
+  animation: none;
+}
+
 .msg-footer {
   display: flex;
   align-items: center;

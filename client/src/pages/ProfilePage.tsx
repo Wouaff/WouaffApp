@@ -1,5 +1,5 @@
 import { BadgeCheck, ChevronLeft, UserPlus } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import FollowModal from '../components/Home/FollowModal';
 import LeftNav from '../components/Home/LeftNav';
@@ -133,8 +133,21 @@ export default function ProfilePage() {
   }, []);
 
   const updatePost = useCallback((id: string, fn: (p: SocialPost) => SocialPost) => {
-    setPosts((prev) => prev.map((i) => (i.post.id === id ? { ...i, post: fn(i.post) } : i)));
+    setPosts((prev) => {
+      const idx = prev.findIndex((i) => i.post.id === id);
+      if (idx === -1) return prev;
+      const next = prev.slice();
+      next[idx] = { ...next[idx], post: fn(next[idx].post) };
+      return next;
+    });
   }, []);
+
+  const postsRef = useRef(posts);
+  useEffect(() => {
+    postsRef.current = posts;
+  }, [posts]);
+
+  const openPost = useCallback((p: SocialPost) => setSelectedPostId(p.id), []);
 
   const handleLike = useCallback(
     async (id: string) => {
@@ -152,7 +165,7 @@ export default function ProfilePage() {
 
   const handleRepost = useCallback(
     async (id: string) => {
-      const wasReposted = posts.find((i) => i.post.id === id)?.post.reposted;
+      const wasReposted = postsRef.current.find((i) => i.post.id === id)?.post.reposted;
       updatePost(id, (p) => ({ ...p, reposted: !p.reposted, reposts: p.reposts + (p.reposted ? -1 : 1) }));
       try {
         const res = await postsAPI.repost(id);
@@ -169,7 +182,7 @@ export default function ProfilePage() {
         updatePost(id, (p) => ({ ...p, reposted: !!wasReposted, reposts: p.reposts + (p.reposted ? -1 : 1) }));
       }
     },
-    [updatePost, posts, user],
+    [updatePost, user],
   );
 
   const handleCommentDelta = useCallback(
@@ -410,7 +423,7 @@ export default function ProfilePage() {
                 repostInfo={item.repost}
                 onLike={handleLike}
                 onRepost={handleRepost}
-                onOpen={(p) => setSelectedPostId(p.id)}
+                onOpen={openPost}
               />
             ))
           )}

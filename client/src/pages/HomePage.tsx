@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { showToast, default as Toast } from '../components/Common/Toast';
 import ComposeBox from '../components/Home/ComposeBox';
@@ -71,6 +71,32 @@ export default function HomePage() {
     loadPosts();
   }, [loadPosts]);
 
+  /* Mise à jour ciblée : seul l'item concerné change d'identité → les PostCard memoïsés
+     des autres items ne re-rendent pas. */
+  const updateItem = useCallback((id: string, fn: (item: FeedItem) => FeedItem) => {
+    setItems((prev) => {
+      const idx = prev.findIndex((i) => i.post.id === id);
+      if (idx === -1) return prev;
+      const next = prev.slice();
+      next[idx] = fn(next[idx]);
+      return next;
+    });
+  }, []);
+
+  const updatePost = useCallback(
+    (id: string, fn: (p: SocialPost) => SocialPost) => {
+      updateItem(id, (item) => ({ ...item, post: fn(item.post) }));
+    },
+    [updateItem],
+  );
+
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  const openPost = useCallback((p: SocialPost) => setSelectedPostId(p.id), []);
+
   /* Ouverture d'un post depuis une notification (événement ou ?post=ID) */
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -112,25 +138,15 @@ export default function HomePage() {
     };
     const handleLiked = (data: { postId: string; uid: string; liked: boolean; likes: number }) => {
       if (data.uid === user.uid) return;
-      setItems((prev) =>
-        prev.map((i) =>
-          i.post.id === data.postId ? { ...i, post: { ...i.post, liked: data.liked, likes: data.likes } } : i,
-        ),
-      );
+      updateItem(data.postId, (i) => ({ ...i, post: { ...i.post, liked: data.liked, likes: data.likes } }));
     };
     const handleReposted = (data: { postId: string; uid: string; reposted: boolean; reposts: number }) => {
       if (data.uid === user.uid) return;
-      setItems((prev) =>
-        prev.map((i) =>
-          i.post.id === data.postId ? { ...i, post: { ...i.post, reposted: data.reposted, reposts: data.reposts } } : i,
-        ),
-      );
+      updateItem(data.postId, (i) => ({ ...i, post: { ...i.post, reposted: data.reposted, reposts: data.reposts } }));
     };
     const handleComment = (data: { postId: string; comment: PostComment }) => {
       if (data.comment.uid === user.uid) return;
-      setItems((prev) =>
-        prev.map((i) => (i.post.id === data.postId ? { ...i, post: { ...i.post, comments: i.post.comments + 1 } } : i)),
-      );
+      updateItem(data.postId, (i) => ({ ...i, post: { ...i.post, comments: i.post.comments + 1 } }));
     };
     const handleDeleted = (data: { postId: string }) => {
       setItems((prev) => prev.filter((i) => i.post.id !== data.postId));
@@ -159,7 +175,7 @@ export default function HomePage() {
       offPostRepost(handleRepost);
       offPostUnrepost(handleUnrepost);
     };
-  }, [user]);
+  }, [user, updateItem]);
 
   const handlePost = useCallback(async (text: string, image?: string, audio?: string, audioDuration?: number) => {
     try {
@@ -172,10 +188,6 @@ export default function HomePage() {
     } catch (e) {
       showToast((e as Error).message || 'Erreur lors de la publication', 'error');
     }
-  }, []);
-
-  const updatePost = useCallback((id: string, fn: (p: SocialPost) => SocialPost) => {
-    setItems((prev) => prev.map((i) => (i.post.id === id ? { ...i, post: fn(i.post) } : i)));
   }, []);
 
   const handleLike = useCallback(
@@ -194,7 +206,7 @@ export default function HomePage() {
 
   const handleRepost = useCallback(
     async (id: string) => {
-      const wasReposted = items.find((i) => i.post.id === id)?.post.reposted;
+      const wasReposted = itemsRef.current.find((i) => i.post.id === id)?.post.reposted;
       updatePost(id, (p) => ({ ...p, reposted: !p.reposted, reposts: p.reposts + (p.reposted ? -1 : 1) }));
       try {
         const res = await postsAPI.repost(id);
@@ -211,7 +223,7 @@ export default function HomePage() {
         updatePost(id, (p) => ({ ...p, reposted: !!wasReposted, reposts: p.reposts + (p.reposted ? -1 : 1) }));
       }
     },
-    [updatePost, items, user],
+    [updatePost, user],
   );
 
   const handleCommentDelta = useCallback(
@@ -296,7 +308,7 @@ export default function HomePage() {
                 repostInfo={item.repost}
                 onLike={handleLike}
                 onRepost={handleRepost}
-                onOpen={(p) => setSelectedPostId(p.id)}
+                onOpen={openPost}
               />
             ))
           )}

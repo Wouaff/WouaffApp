@@ -38,8 +38,16 @@ router.get('/pending', async (req: Request, res: Response) => {
   const [incoming, outgoing] = await Promise.all([getPendingRequests(authReq.uid!), getSentRequests(authReq.uid!)]);
   const uids = [...incoming.map((r) => r.fromUid), ...outgoing.map((r) => r.toUid)];
   const profiles = await getProfiles(uids);
-  const incomingProfiles = incoming.map((r) => ({ fromUid: r.fromUid, profile: profiles.get(r.fromUid) || null, createdAt: r.createdAt }));
-  const outgoingProfiles = outgoing.map((r) => ({ toUid: r.toUid, profile: profiles.get(r.toUid) || null, createdAt: r.createdAt }));
+  const incomingProfiles = incoming.map((r) => ({
+    fromUid: r.fromUid,
+    profile: profiles.get(r.fromUid) || null,
+    createdAt: r.createdAt,
+  }));
+  const outgoingProfiles = outgoing.map((r) => ({
+    toUid: r.toUid,
+    profile: profiles.get(r.toUid) || null,
+    createdAt: r.createdAt,
+  }));
   res.json({ incoming: incomingProfiles, outgoing: outgoingProfiles });
 });
 

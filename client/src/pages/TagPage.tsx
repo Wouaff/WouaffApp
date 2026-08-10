@@ -1,5 +1,5 @@
 import { ChevronLeft, TrendingUp } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import LeftNav from '../components/Home/LeftNav';
 import PostCard from '../components/Home/PostCard';
@@ -36,8 +36,21 @@ export default function TagPage() {
   }, [loadPosts]);
 
   const updatePost = useCallback((id: string, fn: (p: SocialPost) => SocialPost) => {
-    setItems((prev) => prev.map((i) => (i.post.id === id ? { ...i, post: fn(i.post) } : i)));
+    setItems((prev) => {
+      const idx = prev.findIndex((i) => i.post.id === id);
+      if (idx === -1) return prev;
+      const next = prev.slice();
+      next[idx] = { ...next[idx], post: fn(next[idx].post) };
+      return next;
+    });
   }, []);
+
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  const openPost = useCallback((p: SocialPost) => setSelectedPostId(p.id), []);
 
   const handleLike = useCallback(
     async (id: string) => {
@@ -55,7 +68,7 @@ export default function TagPage() {
 
   const handleRepost = useCallback(
     async (id: string) => {
-      const wasReposted = items.find((i) => i.post.id === id)?.post.reposted;
+      const wasReposted = itemsRef.current.find((i) => i.post.id === id)?.post.reposted;
       updatePost(id, (p) => ({ ...p, reposted: !p.reposted, reposts: p.reposts + (p.reposted ? -1 : 1) }));
       try {
         const res = await postsAPI.repost(id);
@@ -70,7 +83,7 @@ export default function TagPage() {
         updatePost(id, (p) => ({ ...p, reposted: !!wasReposted, reposts: p.reposts + (p.reposted ? -1 : 1) }));
       }
     },
-    [updatePost, items],
+    [updatePost],
   );
 
   const handleCommentDelta = useCallback(
@@ -147,7 +160,7 @@ export default function TagPage() {
               repostInfo={item.repost}
               onLike={handleLike}
               onRepost={handleRepost}
-              onOpen={(p) => setSelectedPostId(p.id)}
+              onOpen={openPost}
             />
           ))
         )}

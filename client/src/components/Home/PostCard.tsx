@@ -1,5 +1,5 @@
 import { BadgeCheck, Flag, Heart, MessageCircle, Repeat2, Share2 } from 'lucide-react';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { RepostInfo, SocialPost } from '../../types';
@@ -29,7 +29,7 @@ function formatTime(ts: number): string {
   return `il y a ${d} j`;
 }
 
-export default function PostCard({ post, repostInfo, onLike, onRepost, onOpen }: PostCardProps) {
+const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, onOpen }: PostCardProps) {
   const { user } = useAuth();
   const [reportOpen, setReportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -206,4 +206,6 @@ export default function PostCard({ post, repostInfo, onLike, onRepost, onOpen }:
       {shareOpen && <SharePostModal post={post} onClose={() => setShareOpen(false)} />}
     </article>
   );
-}
+});
+
+export default PostCard;

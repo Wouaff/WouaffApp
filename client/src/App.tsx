@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import LoginPage from './components/Auth/LoginPage';
 import ActiveCallBar from './components/Call/ActiveCallBar';
@@ -13,20 +13,22 @@ import { useAuth } from './hooks/useAuth';
 import { CallProvider } from './hooks/useCall';
 import { ThemeProvider } from './hooks/useTheme';
 import AdminPage from './pages/AdminPage';
-import ChatPage from './pages/ChatPage';
-import DownloadPage from './pages/DownloadPage';
-import FeedPage from './pages/FeedPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import HomePage from './pages/HomePage';
-import MaintenancePage from './pages/MaintenancePage';
-import NotificationsPage from './pages/NotificationsPage';
-import PostPage from './pages/PostPage';
-import ProfilePage from './pages/ProfilePage';
-import PublicGroupsPage from './pages/PublicGroupsPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import SettingsPage from './pages/SettingsPage';
-import TagPage from './pages/TagPage';
-import VerifyEmailPage from './pages/VerifyEmailPage';
+
+const HomePage = lazy(() => import('./pages/HomePage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const DownloadPage = lazy(() => import('./pages/DownloadPage'));
+const FeedPage = lazy(() => import('./pages/FeedPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const MaintenancePage = lazy(() => import('./pages/MaintenancePage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const PostPage = lazy(() => import('./pages/PostPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const PublicGroupsPage = lazy(() => import('./pages/PublicGroupsPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const TagPage = lazy(() => import('./pages/TagPage'));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
+
 import { offAccountBanned, onAccountBanned } from './services/socket';
 
 const PAGE_MAP = {
