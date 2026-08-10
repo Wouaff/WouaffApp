@@ -54,6 +54,8 @@ async function toPostData(
     time: row.createdAt as number,
     text: row.text as string,
     image: (row.image as string) || undefined,
+    audio: (row.audio as string) || undefined,
+    audioDuration: (row.audioDuration as number) || 0,
     likes: row.likesCount as number,
     reposts: row.repostsCount as number,
     comments: row.commentsCount as number,
@@ -88,7 +90,7 @@ async function fetchRepostedMap(uid: string, ids: string[]): Promise<Set<string>
 }
 
 const REPOST_SELECT = `SELECT r.uid AS repostedByUid, r.createdAt AS repostedAt,
-            p.id, p.uid, p.text, p.image, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+            p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid,
             ru.pseudo AS reposterPseudo, ru.avatar AS reposterAvatar, ru.wouaffId AS reposterWouaffId,
             rs.uid AS reposterStaffUid
@@ -124,11 +126,17 @@ async function getRepostItem(repostedByUid: string, postId: string, viewerUid?: 
 
 router.post('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const { text, image } = req.body as { text?: string; image?: string };
+  const { text, image, audio, audioDuration } = req.body as {
+    text?: string;
+    image?: string;
+    audio?: string;
+    audioDuration?: number;
+  };
   const content = (text || '').trim();
   const img = typeof image === 'string' ? image.trim() : '';
-  if (!content && !img) {
-    res.status(400).json({ error: 'Texte ou image requis' });
+  const aud = typeof audio === 'string' ? audio.trim() : '';
+  if (!content && !img && !aud) {
+    res.status(400).json({ error: 'Texte, image ou audio requis' });
     return;
   }
   if (content.length > MAX_LENGTH) {
@@ -139,12 +147,20 @@ router.post('/', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Image invalide' });
     return;
   }
+  if (aud && !aud.startsWith('data:audio/')) {
+    res.status(400).json({ error: 'Audio invalide' });
+    return;
+  }
+  const dur =
+    typeof audioDuration === 'number' && Number.isFinite(audioDuration)
+      ? Math.min(600, Math.max(0, Math.round(audioDuration)))
+      : 0;
   const id = randomUUID();
   const now = Date.now();
   try {
     await query(
-      'INSERT INTO posts (id, uid, text, image, likesCount, repostsCount, commentsCount, createdAt) VALUES (?,?,?,?,0,0,0,?)',
-      [id, authReq.uid!, content, img || null, now],
+      'INSERT INTO posts (id, uid, text, image, audio, audioDuration, likesCount, repostsCount, commentsCount, createdAt) VALUES (?,?,?,?,?,?,0,0,0,?)',
+      [id, authReq.uid!, content, img || null, aud || null, dur, now],
     );
     if (content) await insertHashtags(id, authReq.uid!, 'post', now, content);
     if (content) await insertPostMentions(id, content);
@@ -160,6 +176,8 @@ router.post('/', async (req: Request, res: Response) => {
       time: now,
       text: content,
       image: img || undefined,
+      audio: aud || undefined,
+      audioDuration: dur || undefined,
       likes: 0,
       reposts: 0,
       comments: 0,
@@ -197,7 +215,7 @@ router.get('/', async (req: Request, res: Response) => {
   const postWhere = postWheres.length > 0 ? `WHERE ${postWheres.join(' AND ')}` : '';
   postParams.push(window, offset);
   const postRows = await query<Array<Record<string, unknown>>>(
-    `SELECT p.id, p.uid, p.text, p.image, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+    `SELECT p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
      FROM posts p
      LEFT JOIN users pr ON pr.uid = p.uid
@@ -222,7 +240,7 @@ router.get('/', async (req: Request, res: Response) => {
   repostParams.push(window, offset);
   const repostRows = await query<Array<Record<string, unknown>>>(
     `SELECT r.uid AS repostedByUid, r.createdAt AS repostedAt,
-            p.id, p.uid, p.text, p.image, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+            p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid,
             ru.pseudo AS reposterPseudo, ru.avatar AS reposterAvatar, ru.wouaffId AS reposterWouaffId,
             rs.uid AS reposterStaffUid
@@ -272,7 +290,7 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getOne<Record<string, unknown>>(
-    `SELECT p.id, p.uid, p.text, p.image, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+    `SELECT p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
      FROM posts p
      LEFT JOIN users pr ON pr.uid = p.uid

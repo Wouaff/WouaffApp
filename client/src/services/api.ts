@@ -491,7 +491,8 @@ export const posts = {
     return request<FeedItem[]>('GET', `/posts?${params.toString()}`);
   },
   get: (id: string) => request<SocialPost>('GET', `/posts/${id}`),
-  create: (text: string, image?: string) => request<SocialPost>('POST', '/posts', { text, image }),
+  create: (text: string, image?: string, audio?: string, audioDuration?: number) =>
+    request<SocialPost>('POST', '/posts', { text, image, audio, audioDuration }),
   like: (id: string) => request<{ liked: boolean; likes: number }>('POST', `/posts/${id}/like`),
   repost: (id: string) =>
     request<{ reposted: boolean; reposts: number; item?: FeedItem }>('POST', `/posts/${id}/repost`),

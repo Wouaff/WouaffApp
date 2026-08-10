@@ -164,6 +164,8 @@ export interface SocialPost {
   time: number;
   text: string;
   image?: string;
+  audio?: string;
+  audioDuration?: number;
   likes: number;
   reposts: number;
   comments: number;

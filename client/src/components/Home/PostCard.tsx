@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { RepostInfo, SocialPost } from '../../types';
+import VoiceMessage from '../Chat/VoiceMessage';
 import PostText from './PostText';
 import ReportPostModal from './ReportPostModal';
 
@@ -123,6 +124,12 @@ export default function PostCard({ post, repostInfo, onLike, onRepost, onOpen }:
               loading="lazy"
               decoding="async"
             />
+          )}
+
+          {post.audio && (
+            <div className="mt-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-input)] px-1.5 py-1 max-w-[425px]">
+              <VoiceMessage audioData={post.audio} duration={post.audioDuration} />
+            </div>
           )}
 
           <div className="flex items-center justify-between mt-3 max-w-[425px]" onClick={(e) => e.stopPropagation()}>

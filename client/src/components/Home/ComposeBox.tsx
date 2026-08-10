@@ -1,4 +1,4 @@
-import { Image, Smile, X } from 'lucide-react';
+import { Image, Mic, Smile, Square, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
@@ -6,6 +6,7 @@ import type { MentionUser } from '../../types';
 import { compressImage } from '../../utils/audio';
 import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
 import EmojiPicker from '../Chat/EmojiPicker';
+import VoiceMessage from '../Chat/VoiceMessage';
 import { showToast } from '../Common/Toast';
 import MentionSuggestions from './MentionSuggestions';
 
@@ -13,7 +14,7 @@ const MAX_LENGTH = 280;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
 interface ComposeBoxProps {
-  onPost: (text: string, image?: string) => void;
+  onPost: (text: string, image?: string, audio?: string, audioDuration?: number) => void;
 }
 
 export default function ComposeBox({ onPost }: ComposeBoxProps) {
@@ -21,10 +22,17 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   const [text, setText] = useState('');
   const [image, setImage] = useState('');
   const [imageLoading, setImageLoading] = useState(false);
+  const [audio, setAudio] = useState('');
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [recording, setRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const applyMention = useCallback((mentionUser: MentionUser, token: MentionToken) => {
     setText((prev) => replaceMentionAt(prev, token, `${mentionUser.handle} `));
@@ -58,7 +66,76 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   }, [showEmojiPicker]);
 
   const remaining = MAX_LENGTH - text.length;
-  const canPost = (text.trim().length > 0 || image.length > 0) && remaining >= 0 && !imageLoading;
+  const canPost =
+    (text.trim().length > 0 || image.length > 0 || audio.length > 0) && remaining >= 0 && !imageLoading && !recording;
+
+  const startRecording = async () => {
+    if (recording) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      mediaRecorderRef.current = recorder;
+      recordingChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordingChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => {
+          t.stop();
+        });
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+        const blob = new Blob(recordingChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onload = () => {
+          setAudio(reader.result as string);
+          setAudioDuration(recordingTime);
+        };
+        reader.readAsDataURL(blob);
+        setRecording(false);
+        setRecordingTime(0);
+      };
+      recorder.start();
+      setRecording(true);
+      setRecordingTime(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime((t) => t + 1);
+      }, 1000);
+    } catch (e) {
+      console.error('Mic access denied', e);
+      showToast('Accès au microphone refusé', 'error');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const cancelRecording = () => {
+    const rec = mediaRecorderRef.current;
+    if (rec && rec.state !== 'inactive') {
+      rec.ondataavailable = null;
+      rec.onstop = null;
+      try {
+        rec.stop();
+      } catch {
+        /* déjà arrêté */
+      }
+      rec.stream?.getTracks().forEach((t) => {
+        t.stop();
+      });
+    }
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    setRecording(false);
+    setRecordingTime(0);
+  };
 
   const insertEmoji = (emoji: string) => {
     const el = textareaRef.current;
@@ -111,9 +188,11 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
 
   const submit = () => {
     if (!canPost) return;
-    onPost(text.trim(), image || undefined);
+    onPost(text.trim(), image || undefined, audio || undefined, audioDuration || undefined);
     setText('');
     setImage('');
+    setAudio('');
+    setAudioDuration(0);
     setShowEmojiPicker(false);
   };
 
@@ -170,6 +249,49 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
           </div>
         )}
 
+        {recording && (
+          <div className="mt-2 flex items-center gap-3 rounded-xl bg-red-500/10 border border-red-500/30 px-3 py-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+            <span className="text-[13px] font-bold text-red-500 tabular-nums">
+              {Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, '0')}
+            </span>
+            <span className="text-[13px] text-[var(--text-secondary)] flex-1">Enregistrement vocal...</span>
+            <button
+              type="button"
+              onClick={stopRecording}
+              className="bg-red-500 text-white text-[12px] font-bold rounded-full px-3 py-1.5 border-none cursor-pointer flex items-center gap-1.5 hover:opacity-90 transition-opacity flex-shrink-0"
+            >
+              <Square size={12} />
+              Arrêter
+            </button>
+            <button
+              type="button"
+              onClick={cancelRecording}
+              aria-label="Annuler l'enregistrement"
+              className="w-7 h-7 rounded-full flex items-center justify-center border-none bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] transition-colors flex-shrink-0"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
+
+        {audio && !recording && (
+          <div className="mt-2 flex items-center gap-1 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] px-1.5 py-1">
+            <VoiceMessage audioData={audio} duration={audioDuration} />
+            <button
+              type="button"
+              onClick={() => {
+                setAudio('');
+                setAudioDuration(0);
+              }}
+              aria-label="Retirer l'audio"
+              className="w-8 h-8 rounded-full flex items-center justify-center border-none bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] hover:text-red-500 transition-colors flex-shrink-0"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-1 text-brand">
             <button
@@ -179,6 +301,14 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
               className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-brand hover:bg-[var(--brand-glow)] transition-colors"
             >
               <Image size={19} />
+            </button>
+            <button
+              type="button"
+              onClick={startRecording}
+              title="Message vocal"
+              className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-brand hover:bg-[var(--brand-glow)] transition-colors"
+            >
+              <Mic size={19} />
             </button>
             <input
               ref={fileInputRef}

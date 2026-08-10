@@ -160,9 +160,9 @@ export default function HomePage() {
     };
   }, [user]);
 
-  const handlePost = useCallback(async (text: string, image?: string) => {
+  const handlePost = useCallback(async (text: string, image?: string, audio?: string, audioDuration?: number) => {
     try {
-      const post = await postsAPI.create(text, image);
+      const post = await postsAPI.create(text, image, audio, audioDuration);
       setItems((prev) => {
         const item = toPostItem(post);
         return prev.some((i) => i.key === item.key) ? prev : [item, ...prev];

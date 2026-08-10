@@ -6,6 +6,7 @@ import { posts as postsAPI } from '../../services/api';
 import { offPostComment, offPostDeleted, onPostComment, onPostDeleted } from '../../services/socket';
 import type { MentionUser, PostComment, SocialPost } from '../../types';
 import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
+import VoiceMessage from '../Chat/VoiceMessage';
 import { showToast } from '../Common/Toast';
 import MentionSuggestions from './MentionSuggestions';
 import PostText from './PostText';
@@ -191,6 +192,11 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
                 loading="lazy"
                 decoding="async"
               />
+            )}
+            {post.audio && (
+              <div className="mt-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-input)] px-1.5 py-1 max-w-[425px]">
+                <VoiceMessage audioData={post.audio} duration={post.audioDuration} />
+              </div>
             )}
           </div>
         </div>
