@@ -484,10 +484,11 @@ export const status = {
 
 /* ── Posts (feed social) ── */
 export const posts = {
-  list: (page = 1, limit = 20, uid?: string, tag?: string) => {
+  list: (page = 1, limit = 20, uid?: string, tag?: string, feed?: 'forYou' | 'following') => {
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (uid) params.set('uid', uid);
     if (tag) params.set('tag', tag);
+    if (feed) params.set('feed', feed);
     return request<FeedItem[]>('GET', `/posts?${params.toString()}`);
   },
   get: (id: string) => request<SocialPost>('GET', `/posts/${id}`),

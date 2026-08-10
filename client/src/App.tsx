@@ -20,6 +20,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import HomePage from './pages/HomePage';
 import MaintenancePage from './pages/MaintenancePage';
 import NotificationsPage from './pages/NotificationsPage';
+import PostPage from './pages/PostPage';
 import ProfilePage from './pages/ProfilePage';
 import PublicGroupsPage from './pages/PublicGroupsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -95,6 +96,7 @@ function MaintenanceGuard({ children, skip }: { children: React.ReactNode; skip?
 function CatchAll() {
   const loc = useLocation();
   if (loc.pathname.match(/^\/@(.+)/)) return <ProfilePage />;
+  if (loc.pathname.match(/^\/post\/(.+)/)) return <PostPage />;
   return <Navigate to="/" replace />;
 }
 

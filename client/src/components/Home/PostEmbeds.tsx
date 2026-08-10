@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { renderLinkPreviews } from '../../utils/chatHelpers';
-import { fetchLinkPreview, getSocialEmbed, parseUrls, type LinkPreview } from '../../utils/links';
+import { fetchLinkPreview, getSocialEmbed, type LinkPreview, parseUrls } from '../../utils/links';
 
 interface PostEmbedsProps {
   text: string;
@@ -11,6 +11,7 @@ export default function PostEmbeds({ text }: PostEmbedsProps) {
   const urls = useMemo(() => [...new Set(parseUrls(text))], [text]);
   const [previews, setPreviews] = useState<Record<string, LinkPreview | null>>({});
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: previews délibérément exclues (mise à jour via setPreviews)
   useEffect(() => {
     let cancelled = false;
     const pending = urls.filter((u) => !(u in previews));

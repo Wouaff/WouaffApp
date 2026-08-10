@@ -200,6 +200,7 @@ router.get('/', async (req: Request, res: Response) => {
   const offset = (page - 1) * limit;
   const uidFilter = (req.query.uid as string) || '';
   const tagFilter = (req.query.tag as string) || '';
+  const feed = (req.query.feed as string) === 'following' ? 'following' : 'forYou';
   const window = Math.max(limit, limit * 3);
 
   const postParams: Array<string | number> = [];
@@ -211,6 +212,10 @@ router.get('/', async (req: Request, res: Response) => {
   if (tagFilter) {
     postWheres.push('p.id IN (SELECT postId FROM hashtag_occurrences WHERE tag = ?)');
     postParams.push(tagFilter.toLowerCase());
+  }
+  if (feed === 'following' && !uidFilter) {
+    postWheres.push('p.uid IN (SELECT followedUid FROM follows WHERE followerUid = ?)');
+    postParams.push(authReq.uid!);
   }
   const postWhere = postWheres.length > 0 ? `WHERE ${postWheres.join(' AND ')}` : '';
   postParams.push(window, offset);
@@ -235,6 +240,10 @@ router.get('/', async (req: Request, res: Response) => {
   if (tagFilter) {
     repostWheres.push('p.id IN (SELECT postId FROM hashtag_occurrences WHERE tag = ?)');
     repostParams.push(tagFilter.toLowerCase());
+  }
+  if (feed === 'following' && !uidFilter) {
+    repostWheres.push('r.uid IN (SELECT followedUid FROM follows WHERE followerUid = ?)');
+    repostParams.push(authReq.uid!);
   }
   const repostWhere = repostWheres.length > 0 ? `WHERE ${repostWheres.join(' AND ')}` : '';
   repostParams.push(window, offset);
@@ -279,11 +288,24 @@ router.get('/', async (req: Request, res: Response) => {
       },
     });
   }
-  items.sort((a, b) => {
-    const ta = a.type === 'repost' && a.repost ? a.repost.time : a.post.time;
-    const tb = b.type === 'repost' && b.repost ? b.repost.time : b.post.time;
-    return tb - ta;
-  });
+  if (feed === 'following') {
+    items.sort((a, b) => {
+      const ta = a.type === 'repost' && a.repost ? a.repost.time : a.post.time;
+      const tb = b.type === 'repost' && b.repost ? b.repost.time : b.post.time;
+      return tb - ta;
+    });
+  } else {
+    /* "Pour toi" : score de pertinence = engagement pondéré (likes + 2×reposts + 3×commentaires)
+       divisé par la fraîcheur (les posts récents sont favorisés, l'impact décroît avec le temps) */
+    const score = (item: PostFeedItem): number => {
+      const post = item.post;
+      const ts = item.type === 'repost' && item.repost ? item.repost.time : post.time;
+      const ageHours = (Date.now() - ts) / 3600000;
+      const engagement = post.likes + post.reposts * 2 + post.comments * 3;
+      return engagement / (ageHours + 2) ** 1.5;
+    };
+    items.sort((a, b) => score(b) - score(a) || b.post.time - a.post.time);
+  }
   res.json(items.slice(0, limit));
 });
 

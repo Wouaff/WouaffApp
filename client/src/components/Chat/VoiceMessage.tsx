@@ -37,9 +37,15 @@ const VoiceMessage = memo(function VoiceMessage({ audioData, duration }: VoiceMe
       audio.ontimeupdate = () => {
         if (audio.duration) setProgress((audio.currentTime / audio.duration) * 100);
       };
-      audio.play().then(() => setPlaying(true)).catch(() => {});
+      audio
+        .play()
+        .then(() => setPlaying(true))
+        .catch(() => {});
     } else if (audioRef.current?.paused) {
-      audioRef.current.play().then(() => setPlaying(true)).catch(() => {});
+      audioRef.current
+        .play()
+        .then(() => setPlaying(true))
+        .catch(() => {});
     } else if (audioRef.current) {
       audioRef.current.pause();
       setPlaying(false);
@@ -53,6 +59,17 @@ const VoiceMessage = memo(function VoiceMessage({ audioData, duration }: VoiceMe
     const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
     audio.currentTime = ratio * audio.duration;
     setProgress(ratio * 100);
+  };
+
+  const seekByKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const audio = audioRef.current;
+    if (!audio?.duration) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const delta = e.key === 'ArrowRight' ? 5 : -5;
+      audio.currentTime = Math.min(audio.duration, Math.max(0, audio.currentTime + delta));
+      setProgress((audio.currentTime / audio.duration) * 100);
+    }
   };
 
   const filled = (i: number) => progress >= ((i + 1) / BARS.length) * 100;
@@ -81,7 +98,9 @@ const VoiceMessage = memo(function VoiceMessage({ audioData, duration }: VoiceMe
         <div
           className="flex items-center gap-[3px] h-8 cursor-pointer"
           onClick={seek}
+          onKeyDown={seekByKey}
           role="slider"
+          tabIndex={0}
           aria-label="Progression audio"
           aria-valuenow={Math.round(progress)}
           aria-valuemin={0}
@@ -89,6 +108,7 @@ const VoiceMessage = memo(function VoiceMessage({ audioData, duration }: VoiceMe
         >
           {BARS.map((h, i) => (
             <span
+              // biome-ignore lint/suspicious/noArrayIndexKey: barres de waveform statiques
               key={i}
               className={`w-[3px] rounded-full transition-colors ${
                 filled(i) ? 'bg-brand' : 'bg-[var(--text-muted)]/35'

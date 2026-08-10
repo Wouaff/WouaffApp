@@ -44,7 +44,7 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
       showToast('Lien copié dans le presse-papiers', 'success');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      showToast("Impossible de copier le lien", 'error');
+      showToast('Impossible de copier le lien', 'error');
     }
   }, [url]);
 
@@ -92,12 +92,18 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
         <div className="px-5 py-4">
           <div className="flex gap-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] p-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
-              {post.avatar ? <img src={post.avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
+              {post.avatar ? (
+                <img src={post.avatar} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span>{initial}</span>
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1 flex-wrap">
                 <span className="font-bold text-[var(--text-primary)] text-[14px]">{post.pseudo}</span>
-                {post.verified && <BadgeCheck size={15} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />}
+                {post.verified && (
+                  <BadgeCheck size={15} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />
+                )}
                 <span className="text-[var(--text-muted)] text-[13px]">· {formatTime(post.time)}</span>
               </div>
               {post.text && (

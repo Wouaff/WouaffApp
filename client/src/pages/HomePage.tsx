@@ -56,7 +56,8 @@ export default function HomePage() {
     setLoading(true);
     setError('');
     try {
-      const data = await postsAPI.list(1, 50);
+      const feed = tab === 'following' ? 'following' : 'forYou';
+      const data = await postsAPI.list(1, 50, undefined, undefined, feed);
       setItems(data);
     } catch (e) {
       console.error(e);
@@ -64,7 +65,7 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tab]);
 
   useEffect(() => {
     loadPosts();
@@ -282,7 +283,9 @@ export default function HomePage() {
                 🐺
               </div>
               <p className="m-0 text-[var(--text-secondary)]">
-                Aucun post pour le moment. Publie le premier pour lancer la conversation !
+                {tab === 'following'
+                  ? 'Aucun post de vos abonnements pour le moment. Suis des comptes pour voir leurs posts ici !'
+                  : 'Aucun post pour le moment. Publie le premier pour lancer la conversation !'}
               </p>
             </div>
           ) : (
