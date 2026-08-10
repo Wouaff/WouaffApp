@@ -77,6 +77,8 @@ export const profiles = {
   updateMe: (data: Record<string, unknown>) => request<{ success: boolean }>('PUT', '/profiles/me', data),
   mutual: (uid: string) =>
     request<Array<{ uid: string; pseudo: string; avatar: string | null }>>('GET', `/profiles/${uid}/mutual`),
+  follow: (uid: string) => request<{ following: boolean }>('POST', `/profiles/${uid}/follow`),
+  unfollow: (uid: string) => request<{ following: boolean }>('DELETE', `/profiles/${uid}/follow`),
 };
 
 /* ── Groups ── */
@@ -236,7 +238,8 @@ export const status = {
 
 /* ── Posts (feed social) ── */
 export const posts = {
-  list: (page = 1, limit = 20) => request<SocialPost[]>('GET', `/posts?page=${page}&limit=${limit}`),
+  list: (page = 1, limit = 20, uid?: string) =>
+    request<SocialPost[]>('GET', `/posts?page=${page}&limit=${limit}${uid ? `&uid=${encodeURIComponent(uid)}` : ''}`),
   get: (id: string) => request<SocialPost>('GET', `/posts/${id}`),
   create: (text: string) => request<SocialPost>('POST', '/posts', { text }),
   like: (id: string) => request<{ liked: boolean; likes: number }>('POST', `/posts/${id}/like`),

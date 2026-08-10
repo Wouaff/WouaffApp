@@ -1,12 +1,12 @@
 import { BadgeCheck, Heart, MessageCircle, Repeat2, Share2 } from 'lucide-react';
-import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { SocialPost } from '../../types';
 
 interface PostCardProps {
   post: SocialPost;
   onLike: (id: string) => void;
   onRepost: (id: string) => void;
-  onComment: (id: string, text: string) => void;
+  onOpen: (post: SocialPost) => void;
 }
 
 function formatTime(ts: number): string {
@@ -21,28 +21,49 @@ function formatTime(ts: number): string {
   return `il y a ${d} j`;
 }
 
-export default function PostCard({ post, onLike, onRepost, onComment }: PostCardProps) {
+export default function PostCard({ post, onLike, onRepost, onOpen }: PostCardProps) {
   const initial = (post.pseudo || '?')[0]?.toUpperCase() || '?';
-  const [replying, setReplying] = useState(false);
-  const [replyText, setReplyText] = useState('');
 
-  const submitComment = () => {
-    const value = replyText.trim();
-    if (!value) return;
-    onComment(post.id, value);
-    setReplyText('');
-    setReplying(false);
-  };
+  const profileHref =
+    post.handle && post.handle.length > 1 && post.handle !== '@inconnu' ? `/@${post.handle.replace(/^@/, '')}` : null;
+
+  const avatarCircle = (
+    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
+      {post.avatar ? <img src={post.avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
+    </div>
+  );
 
   return (
-    <article className="flex gap-3 p-4 border-b border-[var(--border)] transition-colors hover:bg-[var(--bg-hover)]/40">
-      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
-        {post.avatar ? <img src={post.avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
-      </div>
+    <article
+      className="flex gap-3 p-4 border-b border-[var(--border)] transition-colors hover:bg-[var(--bg-hover)]/40 cursor-pointer"
+      onClick={() => onOpen(post)}
+    >
+      {profileHref ? (
+        <Link
+          to={profileHref}
+          className="flex-shrink-0 block"
+          aria-label={`Voir le profil de ${post.pseudo}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {avatarCircle}
+        </Link>
+      ) : (
+        avatarCircle
+      )}
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 flex-wrap">
-          <span className="font-bold text-[var(--text-primary)] text-[15px]">{post.pseudo}</span>
+          {profileHref ? (
+            <Link
+              to={profileHref}
+              className="font-bold text-[var(--text-primary)] text-[15px] hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {post.pseudo}
+            </Link>
+          ) : (
+            <span className="font-bold text-[var(--text-primary)] text-[15px]">{post.pseudo}</span>
+          )}
           {post.verified && <BadgeCheck size={17} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />}
           <span className="text-[var(--text-muted)] text-[15px]">·</span>
           <span className="text-[var(--text-muted)] text-[15px]">{formatTime(post.time)}</span>
@@ -52,13 +73,11 @@ export default function PostCard({ post, onLike, onRepost, onComment }: PostCard
           {post.text}
         </p>
 
-        <div className="flex items-center justify-between mt-3 max-w-[425px]">
+        <div className="flex items-center justify-between mt-3 max-w-[425px]" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            onClick={() => setReplying((r) => !r)}
-            className={`flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors ${
-              replying ? 'text-brand' : 'text-[var(--text-muted)] hover:text-brand hover:bg-[var(--brand-glow)]'
-            }`}
+            onClick={() => onOpen(post)}
+            className="flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors text-[var(--text-muted)] hover:text-brand hover:bg-[var(--brand-glow)]"
             aria-label={`Commenter (${post.comments})`}
           >
             <MessageCircle size={17} />
@@ -98,31 +117,6 @@ export default function PostCard({ post, onLike, onRepost, onComment }: PostCard
             <Share2 size={17} />
           </button>
         </div>
-
-        {replying && (
-          <div className="flex items-center gap-2 mt-3">
-            <input
-              type="text"
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') submitComment();
-              }}
-              placeholder="Répondre..."
-              maxLength={280}
-              aria-label={`Répondre à ${post.pseudo}`}
-              className="flex-1 min-w-0 bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
-            />
-            <button
-              type="button"
-              onClick={submitComment}
-              disabled={!replyText.trim()}
-              className="bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-white font-bold text-sm rounded-full px-4 py-2 border-none cursor-pointer"
-            >
-              Répondre
-            </button>
-          </div>
-        )}
       </div>
     </article>
   );

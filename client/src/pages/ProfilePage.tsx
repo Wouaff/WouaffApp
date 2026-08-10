@@ -1,105 +1,178 @@
-import { useEffect, useState } from 'react';
+import { BadgeCheck, ChevronLeft, UserPlus } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import PostCard from '../components/Home/PostCard';
+import PostModal from '../components/Home/PostModal';
 import { useAuth } from '../hooks/useAuth';
-import { profiles as profilesAPI } from '../services/api';
+import { posts as postsAPI, profiles as profilesAPI } from '../services/api';
+import type { SocialPost } from '../types';
 import { PLATFORMS, parseSocialLinks } from '../utils/socialLinks';
 
 interface BadgeDef {
   name?: string;
   icon?: string;
 }
+
 interface ProfileData {
   uid: string;
   profile: Record<string, unknown>;
   badges: Record<string, BadgeDef>;
+  followersCount: number;
+  followingCount: number;
+  postsCount: number;
+  isFollowing: boolean;
+  isMe: boolean;
+  verified: boolean;
 }
 
 type PageState = 'loading' | 'error' | 'profile';
-
-function esc(s: string): string {
-  return s.replace(
-    /[&<>"']/g,
-    (c: string) =>
-      (({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }) as Record<string, string>)[c],
-  );
-}
 
 export default function ProfilePage() {
   const loc = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const rawId = loc.pathname.match(/^\/@(.+)/)?.[1] || null;
-  const [state, setState] = useState<PageState>('loading');
-  const [errorCode, setErrorCode] = useState('404');
-  const [errorMsg, setErrorMsg] = useState('');
-  const [data, setData] = useState<ProfileData | null>(null);
-  const [mutualFriends, setMutualFriends] = useState<Array<{ uid: string; pseudo: string; avatar: string | null }>>([]);
-
   const wouaffId = rawId ? `@${rawId.replace(/^@/, '')}` : null;
 
-  useEffect(() => {
+  const [state, setState] = useState<PageState>('loading');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [data, setData] = useState<ProfileData | null>(null);
+  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [followers, setFollowers] = useState(0);
+  const [followPending, setFollowPending] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+
+  const selectedPost = posts.find((p) => p.id === selectedPostId) || null;
+
+  const loadProfile = useCallback(async () => {
     if (!wouaffId || wouaffId === '@') {
-      setErrorCode('400');
-      setErrorMsg('Aucun identifiant spécifié.');
       setState('error');
+      setErrorMsg('Aucun identifiant spécifié.');
       return;
     }
-    (async () => {
-      try {
-        const res = await fetch(`/api/public/profile/${encodeURIComponent(wouaffId)}`);
-        if (!res.ok) {
-          if (res.status === 404) {
-            setErrorCode('404');
-            setErrorMsg("Ce profil n'existe pas.");
-          } else {
-            setErrorCode('Erreur');
-            setErrorMsg('Impossible de charger le profil.');
-          }
-          setState('error');
-          return;
-        }
-        const json = (await res.json()) as ProfileData;
-        if (!json.profile) {
-          setErrorCode('404');
-          setErrorMsg("Ce profil n'existe pas.");
-          setState('error');
-          return;
-        }
-        setData(json);
-        setState('profile');
-        document.title = `${esc((json.profile.pseudo as string) || 'Utilisateur')} (@${esc(((json.profile.wouaffId as string) || '').replace(/^@/, ''))}) — Wouaff`;
-        if (user && json.uid && json.uid !== user.uid) {
-          profilesAPI
-            .mutual(json.uid)
-            .then(setMutualFriends)
-            .catch(() => {});
-        }
-      } catch {
-        setErrorCode('Erreur');
-        setErrorMsg('Impossible de charger le profil.');
+    setState('loading');
+    try {
+      const res = await fetch(`/api/public/profile/${encodeURIComponent(wouaffId)}`);
+      if (!res.ok) {
         setState('error');
+        setErrorMsg(res.status === 404 ? "Ce profil n'existe pas." : 'Impossible de charger le profil.');
+        return;
       }
-    })();
-  }, [wouaffId, user?.uid, user]);
+      const json = (await res.json()) as ProfileData;
+      if (!json.profile) {
+        setState('error');
+        setErrorMsg("Ce profil n'existe pas.");
+        return;
+      }
+      setData(json);
+      setFollowing(json.isFollowing);
+      setFollowers(json.followersCount);
+      setState('profile');
+      const handle = String(json.profile.wouaffId || wouaffId).replace(/^@/, '');
+      document.title = `${json.profile.pseudo || 'Utilisateur'} (@${handle}) — Wouaff`;
+    } catch {
+      setState('error');
+      setErrorMsg('Impossible de charger le profil.');
+    }
+  }, [wouaffId]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const loadPosts = useCallback(async (uid: string) => {
+    setPostsLoading(true);
+    try {
+      setPosts(await postsAPI.list(1, 50, uid));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setPostsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (data?.uid) loadPosts(data.uid);
+  }, [data?.uid, loadPosts]);
+
+  const handleFollow = useCallback(async () => {
+    if (!data) return;
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    setFollowPending(true);
+    try {
+      if (following) {
+        await profilesAPI.unfollow(data.uid);
+        setFollowing(false);
+        setFollowers((f) => Math.max(0, f - 1));
+      } else {
+        await profilesAPI.follow(data.uid);
+        setFollowing(true);
+        setFollowers((f) => f + 1);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setFollowPending(false);
+    }
+  }, [data, following, user, navigate]);
+
+  const handleLike = useCallback(async (id: string) => {
+    setPosts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) } : p)),
+    );
+    try {
+      const res = await postsAPI.like(id);
+      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, liked: res.liked, likes: res.likes } : p)));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const handleRepost = useCallback(async (id: string) => {
+    setPosts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, reposted: !p.reposted, reposts: p.reposts + (p.reposted ? -1 : 1) } : p)),
+    );
+    try {
+      const res = await postsAPI.repost(id);
+      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, reposted: res.reposted, reposts: res.reposts } : p)));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const handleCommentDelta = useCallback((id: string, delta: number) => {
+    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, comments: Math.max(0, p.comments + delta) } : p)));
+  }, []);
+
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/');
+  };
 
   if (state === 'loading') {
     return (
-      <div className="profile-page">
-        <div className="profile-state active">
-          <div className="profile-spinner" />
-          <p className="profile-state-text">Chargement du profil...</p>
-        </div>
+      <div className="h-full flex items-center justify-center bg-[var(--bg-deep)]">
+        <div className="spinner" />
       </div>
     );
   }
 
   if (state === 'error') {
     return (
-      <div className="profile-page">
-        <div className="profile-state active">
-          <div className="profile-error-code">{errorCode}</div>
-          <p className="profile-state-text">{errorMsg}</p>
-          <Link to="/" className="profile-error-link">
+      <div className="h-full flex items-center justify-center bg-[var(--bg-deep)] px-4">
+        <div className="text-center">
+          <div className="text-6xl mb-3">🐺</div>
+          <h1 className="text-2xl font-extrabold m-0 mb-1 text-[var(--text-primary)]">Profil introuvable</h1>
+          <p className="m-0 mb-5 text-[var(--text-secondary)]">{errorMsg}</p>
+          <Link
+            to="/"
+            className="inline-block bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 no-underline"
+          >
             Retour à l'accueil
           </Link>
         </div>
@@ -109,56 +182,99 @@ export default function ProfilePage() {
 
   if (!data) return null;
   const { profile } = data;
-  const p = profile as Record<string, unknown>;
+  const p = profile;
   const pseudo = (p.pseudo as string) || 'Utilisateur';
-  const handle = (p.wouaffId as string) || wouaffId || '@---';
+  const handle = ((p.wouaffId as string) || wouaffId || '').replace(/^@/, '');
   const avatar = p.avatar as string | undefined;
+  const banner = p.banner as string | undefined;
   const bio = p.bio as string | undefined;
   const socialLinks = parseSocialLinks(p.social_links).filter((l) => l.url.trim());
   const ownedBadgesRaw = p.ownedBadges as string[] | Record<string, string> | undefined;
-  const uid = data.uid;
-
   let badgeIds: string[] = [];
   if (ownedBadgesRaw) {
     if (Array.isArray(ownedBadgesRaw)) badgeIds = ownedBadgesRaw.filter(Boolean) as string[];
     else if (typeof ownedBadgesRaw === 'object') badgeIds = Object.values(ownedBadgesRaw).filter(Boolean) as string[];
   }
   const validBadges = badgeIds.map((id) => data.badges[id]).filter((b): b is BadgeDef => !!b && !!b.icon);
+  const initial = (pseudo[0] || '?').toUpperCase();
 
-  const firstLetter = pseudo.charAt(0).toUpperCase();
+  const actionBtn = data.isMe ? (
+    <button
+      type="button"
+      onClick={() => navigate('/settings')}
+      className="border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors font-bold text-sm rounded-full px-5 py-2 bg-transparent cursor-pointer"
+    >
+      Modifier le profil
+    </button>
+  ) : (
+    <button
+      type="button"
+      onClick={handleFollow}
+      disabled={followPending}
+      className={`transition-colors font-bold text-sm rounded-full px-5 py-2 cursor-pointer border-none disabled:opacity-50 ${
+        following
+          ? 'bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border)]'
+          : 'bg-brand text-white hover:opacity-90'
+      }`}
+    >
+      {following ? 'Abonné' : 'Suivre'}
+    </button>
+  );
 
   return (
-    <div className="profile-page">
-      <div className="profile-state active">
-        <div className="profile-card">
-          <div className="pp-avatar-wrap">
-            {avatar ? (
-              <img
-                className="pp-avatar"
-                src={avatar}
-                alt="Avatar"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                  (e.target as HTMLElement)
-                    .parentElement!.querySelector('.pp-avatar-fallback')
-                    ?.classList.add('active');
-                }}
-              />
-            ) : null}
-            <div className={`pp-avatar-fallback${!avatar ? ' active' : ''}`}>{firstLetter}</div>
+    <div className="h-full overflow-y-auto bg-[var(--bg-deep)]">
+      <div className="mx-auto max-w-[600px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
+        <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
+          <div className="flex items-center gap-5 px-2 h-14">
+            <button
+              type="button"
+              onClick={goBack}
+              aria-label="Retour"
+              className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <div className="min-w-0">
+              <div className="font-extrabold text-[17px] text-[var(--text-primary)] leading-tight truncate">
+                {pseudo}
+              </div>
+              <div className="text-[12px] text-[var(--text-muted)]">{data.postsCount} posts</div>
+            </div>
           </div>
-          <div className="profile-name">{pseudo}</div>
-          <div className="profile-handle">{handle}</div>
-          {bio ? <div className="profile-bio">{bio}</div> : null}
+        </header>
+
+        <div
+          className="h-40 bg-gradient-to-br from-brand to-brand-dark bg-cover bg-center flex-shrink-0"
+          style={banner ? { backgroundImage: `url(${banner})` } : undefined}
+        />
+
+        <div className="flex items-start justify-between px-4">
+          <div className="w-24 h-24 -mt-12 rounded-full border-4 border-[var(--bg-base)] bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-white font-extrabold text-3xl flex-shrink-0">
+            {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
+          </div>
+          <div className="mt-3">{actionBtn}</div>
+        </div>
+
+        <div className="px-4 pt-2 pb-3">
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">{pseudo}</h1>
+            {data.verified && <BadgeCheck size={20} className="text-brand" aria-label="Compte vérifié" />}
+          </div>
+          <div className="text-[15px] text-[var(--text-muted)]">@{handle}</div>
+
+          {bio && (
+            <p className="m-0 mt-3 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap">{bio}</p>
+          )}
+
           {validBadges.length > 0 && (
-            <div className="profile-badges">
+            <div className="flex items-center gap-1.5 mt-3">
               {validBadges.map((b) => (
                 <img
                   key={b.icon}
-                  className="profile-badge-icon"
                   src={b.icon}
                   alt={b.name || ''}
                   title={b.name || ''}
+                  className="w-6 h-6 object-contain"
                   onError={(e) => {
                     (e.target as HTMLElement).style.display = 'none';
                   }}
@@ -166,8 +282,9 @@ export default function ProfilePage() {
               ))}
             </div>
           )}
+
           {socialLinks.length > 0 && (
-            <div className="profile-social-links">
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
               {socialLinks.map((link) => {
                 const pf = PLATFORMS.find((p) => p.id === link.platform);
                 return (
@@ -176,15 +293,14 @@ export default function ProfilePage() {
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="profile-social-link"
+                    className="inline-flex items-center gap-1.5 text-[13px] text-brand no-underline hover:underline"
                     title={link.url}
-                    style={pf ? ({ '--sl-color': pf.color } as React.CSSProperties) : {}}
                   >
                     {pf && (
                       <svg
                         viewBox="0 0 24 24"
                         fill="currentColor"
-                        className="w-5 h-5"
+                        className="w-4 h-4"
                         dangerouslySetInnerHTML={{ __html: pf.svg }}
                       />
                     )}
@@ -194,57 +310,72 @@ export default function ProfilePage() {
               })}
             </div>
           )}
-          {mutualFriends.length > 0 && (
-            <div className="profile-mutual">
-              <div className="profile-mutual-label">
-                {mutualFriends.length} ami{mutualFriends.length > 1 ? 's' : ''} en commun
-              </div>
-              <div className="profile-mutual-list">
-                {mutualFriends.slice(0, 10).map((mf) => (
-                  <Link key={mf.uid} to={`/@${mf.pseudo}`} className="profile-mutual-item" title={mf.pseudo}>
-                    {mf.avatar ? (
-                      <img src={mf.avatar} alt={mf.pseudo} className="profile-mutual-avatar" />
-                    ) : (
-                      <div className="profile-mutual-avatar profile-mutual-fallback">
-                        {mf.pseudo.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </Link>
-                ))}
-              </div>
+
+          <div className="flex items-center gap-4 mt-3">
+            <span className="text-[14px] text-[var(--text-primary)]">
+              <strong>{data.postsCount}</strong> <span className="text-[var(--text-muted)]">posts</span>
+            </span>
+            <span className="text-[14px] text-[var(--text-primary)]">
+              <strong>{followers}</strong> <span className="text-[var(--text-muted)]">abonnés</span>
+            </span>
+            <span className="text-[14px] text-[var(--text-primary)]">
+              <strong>{data.followingCount}</strong> <span className="text-[var(--text-muted)]">abonnements</span>
+            </span>
+          </div>
+        </div>
+
+        <div className="border-b border-[var(--border)]">
+          <button
+            type="button"
+            className="w-full relative flex items-center justify-center py-3.5 border-none bg-transparent cursor-pointer text-[var(--text-primary)]"
+            aria-current="page"
+          >
+            <span className="text-[15px] font-extrabold">Posts</span>
+            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-brand rounded-full" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border)]">
+          <UserPlus size={16} className="text-[var(--text-muted)]" />
+          <span className="text-[13px] text-[var(--text-muted)]">Les posts de @{handle}</span>
+        </div>
+
+        {postsLoading ? (
+          <div className="py-12 flex justify-center">
+            <div className="spinner" />
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="py-16 px-6 text-center">
+            <div className="text-4xl mb-3" aria-hidden="true">
+              🐺
             </div>
-          )}
-          <div className="profile-actions">
-            {user ? (
-              <>
-                <button className="profile-btn profile-btn-primary" onClick={() => navigate(`/?chat=${uid}`)}>
-                  Message
-                </button>
-                <button className="profile-btn profile-btn-secondary" onClick={() => navigate(`/?add=${uid}`)}>
-                  Ajouter
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/auth" className="profile-btn profile-btn-primary">
-                  Message
-                </Link>
-                <Link to="/auth" className="profile-btn profile-btn-secondary">
-                  Ajouter
-                </Link>
-              </>
-            )}
+            <p className="m-0 text-[var(--text-secondary)]">
+              {data.isMe
+                ? "Vous n'avez pas encore publié de post."
+                : `@${handle} n'a pas encore publié de post.`}
+            </p>
           </div>
-        </div>
-        {!user && (
-          <div className="profile-login-note">
-            <Link to="/auth">Connectez-vous</Link> pour discuter sur Wouaff
-          </div>
+        ) : (
+          posts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              onLike={handleLike}
+              onRepost={handleRepost}
+              onOpen={(p) => setSelectedPostId(p.id)}
+            />
+          ))
         )}
-        <div className="profile-footer">
-          <Link to="/">Wouaff</Link> &mdash; Chat &amp; Réseau Social
-        </div>
       </div>
+      {selectedPost && (
+        <PostModal
+          post={selectedPost}
+          onClose={() => setSelectedPostId(null)}
+          onLike={handleLike}
+          onRepost={handleRepost}
+          onCommentDelta={handleCommentDelta}
+        />
+      )}
     </div>
   );
 }

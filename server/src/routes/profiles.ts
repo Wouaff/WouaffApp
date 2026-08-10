@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import type { Server } from 'socket.io';
+import { query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
 import {
   deleteUserProfile,
@@ -41,6 +42,32 @@ router.get('/:uid/mutual', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const mutual = await getMutualContacts(authReq.uid!, req.params.uid);
   res.json(mutual);
+});
+
+/* POST /profiles/:uid/follow — suivre un utilisateur */
+router.post('/:uid/follow', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  if (authReq.uid === req.params.uid) {
+    res.status(400).json({ error: 'Impossible de se suivre soi-même' });
+    return;
+  }
+  const target = await getProfile(req.params.uid);
+  if (!target) {
+    res.status(404).json({ error: 'Utilisateur introuvable' });
+    return;
+  }
+  await query(
+    'INSERT INTO follows (followerUid, followedUid, createdAt) VALUES (?,?,?) ON DUPLICATE KEY UPDATE createdAt=VALUES(createdAt)',
+    [authReq.uid!, req.params.uid, Date.now()],
+  );
+  res.json({ following: true });
+});
+
+/* DELETE /profiles/:uid/follow — ne plus suivre */
+router.delete('/:uid/follow', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  await query('DELETE FROM follows WHERE followerUid = ? AND followedUid = ?', [authReq.uid!, req.params.uid]);
+  res.json({ following: false });
 });
 
 /* GET /profiles/:uid/publicKey */

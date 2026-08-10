@@ -113,15 +113,24 @@ router.get('/', async (req: Request, res: Response) => {
   const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
   const offset = (page - 1) * limit;
+  const uidFilter = (req.query.uid as string) || '';
+  const params: Array<string | number> = [];
+  let where = '';
+  if (uidFilter) {
+    where = 'WHERE p.uid = ?';
+    params.push(uidFilter);
+  }
+  params.push(limit, offset);
   const rows = await query<Array<Record<string, unknown>>>(
     `SELECT p.id, p.uid, p.text, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
      FROM posts p
      LEFT JOIN users pr ON pr.uid = p.uid
      LEFT JOIN staff s ON s.uid = p.uid
+     ${where}
      ORDER BY p.createdAt DESC
      LIMIT ? OFFSET ?`,
-    [limit, offset],
+    params,
   );
   const ids = rows.map((r) => r.id as string);
   const likedMap = authReq.uid ? await fetchLikedMap(authReq.uid, ids) : undefined;

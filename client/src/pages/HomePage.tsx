@@ -3,6 +3,7 @@ import { showToast, default as Toast } from '../components/Common/Toast';
 import ComposeBox from '../components/Home/ComposeBox';
 import LeftNav from '../components/Home/LeftNav';
 import PostCard from '../components/Home/PostCard';
+import PostModal from '../components/Home/PostModal';
 import RightSidebar from '../components/Home/RightSidebar';
 import { useAuth } from '../hooks/useAuth';
 import { posts as postsAPI } from '../services/api';
@@ -28,6 +29,9 @@ export default function HomePage() {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+
+  const selectedPost = posts.find((p) => p.id === selectedPostId) || null;
 
   const loadPosts = useCallback(async () => {
     setLoading(true);
@@ -125,14 +129,8 @@ export default function HomePage() {
     }
   }, []);
 
-  const handleComment = useCallback(async (id: string, text: string) => {
-    try {
-      await postsAPI.addComment(id, text);
-      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, comments: p.comments + 1 } : p)));
-      showToast('💬 Commentaire publié !');
-    } catch (e) {
-      showToast((e as Error).message || 'Erreur lors du commentaire', 'error');
-    }
+  const handleCommentDelta = useCallback((id: string, delta: number) => {
+    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, comments: Math.max(0, p.comments + delta) } : p)));
   }, []);
 
   const visiblePosts = useMemo(() => posts, [posts]);
@@ -201,11 +199,26 @@ export default function HomePage() {
           </div>
         ) : (
           visiblePosts.map((post) => (
-            <PostCard key={post.id} post={post} onLike={handleLike} onRepost={handleRepost} onComment={handleComment} />
+            <PostCard
+              key={post.id}
+              post={post}
+              onLike={handleLike}
+              onRepost={handleRepost}
+              onOpen={(p) => setSelectedPostId(p.id)}
+            />
           ))
         )}
       </main>
       <RightSidebar />
+      {selectedPost && (
+        <PostModal
+          post={selectedPost}
+          onClose={() => setSelectedPostId(null)}
+          onLike={handleLike}
+          onRepost={handleRepost}
+          onCommentDelta={handleCommentDelta}
+        />
+      )}
       <Toast />
     </div>
   );

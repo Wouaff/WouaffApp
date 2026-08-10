@@ -1,4 +1,4 @@
-import { Bell, Bookmark, Compass, Film, Home, MessageSquare, PenSquare, Settings, User } from 'lucide-react';
+import { Bell, Bookmark, Compass, Film, Home, MessageSquare, Settings, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -17,7 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/chat', label: 'Messages', icon: MessageSquare },
   { path: '/feed', label: 'Feed', icon: Film },
   { path: '/bookmarks', label: 'Signets', icon: Bookmark, soon: true },
-  { path: '/settings', label: 'Profil', icon: User },
+  { path: '/profile', label: 'Profil', icon: User },
 ];
 
 function focusCompose() {
@@ -29,6 +29,7 @@ export default function LeftNav() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [avatar, setAvatar] = useState('');
+  const [myHandle, setMyHandle] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -37,16 +38,27 @@ export default function LeftNav() {
       .then((profile) => {
         if (cancelled || !profile) return;
         setAvatar((profile.avatar as string) || '');
+        const wouaffId = (profile.wouaffId as string) || '';
+        setMyHandle(wouaffId.startsWith('@') ? wouaffId : wouaffId ? `@${wouaffId}` : '');
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, []);
+
+  const handleNav = (path: string) => {
+    if (path === '/profile') {
+      navigate(myHandle ? `/@${myHandle.replace(/^@/, '')}` : '/settings');
+      return;
+    }
+    navigate(path);
+  };
 
   const isActive = (item: NavItem) => {
     if (item.soon) return false;
     if (item.path === '/') return location.pathname === '/';
+    if (item.path === '/profile') return location.pathname.startsWith('/@');
     return location.pathname.startsWith(item.path);
   };
 
@@ -76,7 +88,7 @@ export default function LeftNav() {
                 } ${item.soon ? 'opacity-60' : 'hover:bg-[var(--bg-hover)]'}`}
                 onClick={() => {
                   if (item.soon) return;
-                  navigate(item.path);
+                  handleNav(item.path);
                 }}
                 aria-current={active ? 'page' : undefined}
                 title={item.soon ? `${item.label} — bientôt disponible` : item.label}

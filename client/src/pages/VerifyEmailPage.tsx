@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 export default function VerifyEmailPage() {
@@ -9,7 +9,7 @@ export default function VerifyEmailPage() {
   const [code, setCode] = useState('');
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  const submit = async (value: string) => {
+  const submit = useCallback(async (value: string) => {
     if (!value) {
       setStatus('error');
       setMessage('Saisissez le code à 6 chiffres reçu par email.');
@@ -26,9 +26,7 @@ export default function VerifyEmailPage() {
       const data = await res.json();
       if (data.success) {
         setStatus('success');
-        setMessage(
-          data.alreadyVerified ? 'Votre email est déjà vérifié.' : 'Email vérifié avec succès !',
-        );
+        setMessage(data.alreadyVerified ? 'Votre email est déjà vérifié.' : 'Email vérifié avec succès !');
       } else {
         setStatus('error');
         setMessage(data.error || 'Échec de la vérification.');
@@ -37,13 +35,13 @@ export default function VerifyEmailPage() {
       setStatus('error');
       setMessage('Erreur lors de la vérification.');
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (urlToken) {
       submit(urlToken);
     }
-  }, [urlToken]);
+  }, [urlToken, submit]);
 
   const handleDigit = (idx: number, value: string) => {
     const digit = value.replace(/\D/g, '').slice(-1);
@@ -96,9 +94,7 @@ export default function VerifyEmailPage() {
             <>
               <div className="text-5xl mb-4">🔒</div>
               <h2 className="text-lg font-bold mb-2">Vérification de votre email</h2>
-              <p className="text-text-secondary text-sm mb-6">
-                Saisissez le code à 6 chiffres reçu par email.
-              </p>
+              <p className="text-text-secondary text-sm mb-6">Saisissez le code à 6 chiffres reçu par email.</p>
 
               {status === 'error' && message && (
                 <div className="bg-red-500/10 border border-red-500 rounded-lg px-3 py-2.5 mb-4 text-sm text-red-500">
