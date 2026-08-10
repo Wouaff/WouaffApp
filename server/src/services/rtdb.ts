@@ -417,9 +417,9 @@ const PROFILE_COLUMNS = new Set([
 export async function updateProfile(uid: string, data: Record<string, unknown>): Promise<void> {
   if (data.email !== undefined) {
     const current = await getOne<{ email: string | null }>('SELECT email FROM users WHERE uid = ?', [uid]);
-    const newEmail = (data.email as string | null)?.trim().toLowerCase();
-    const currentEmail = (current?.email || '').trim().toLowerCase();
-    if (newEmail && newEmail !== currentEmail) {
+    const newEmail = (data.email as string | null)?.trim() || null;
+    const currentEmail = (current?.email || '').trim();
+    if (newEmail && newEmail.toLowerCase() !== currentEmail.toLowerCase()) {
       const existing = await getOne<{ uid: string }>('SELECT uid FROM users WHERE email = ?', [newEmail]);
       if (existing) {
         const conflict = new Error('Cet email est déjà utilisé par un autre compte');
@@ -427,7 +427,11 @@ export async function updateProfile(uid: string, data: Record<string, unknown>):
         throw conflict;
       }
     }
-    data.email = newEmail || null;
+    if (!newEmail || newEmail.toLowerCase() === currentEmail.toLowerCase()) {
+      delete data.email;
+    } else {
+      data.email = newEmail;
+    }
   }
   if (data.wouaffId !== undefined) {
     const newId = data.wouaffId as string;
@@ -925,6 +929,24 @@ export async function getRecentUsers(limit = 20): Promise<Record<string, Record<
 }
 
 export async function updateProfileByAdmin(uid: string, data: Record<string, unknown>): Promise<void> {
+  if (data.email !== undefined) {
+    const current = await getOne<{ email: string | null }>('SELECT email FROM users WHERE uid=?', [uid]);
+    const newEmail = (data.email as string | null)?.trim() || null;
+    const currentEmail = (current?.email || '').trim();
+    if (newEmail && newEmail.toLowerCase() !== currentEmail.toLowerCase()) {
+      const existing = await getOne<{ uid: string }>('SELECT uid FROM users WHERE email=?', [newEmail]);
+      if (existing) {
+        const conflict = new Error('Cet email est déjà utilisé par un autre compte');
+        (conflict as Error & { status: number }).status = 409;
+        throw conflict;
+      }
+    }
+    if (!newEmail || newEmail.toLowerCase() === currentEmail.toLowerCase()) {
+      delete data.email;
+    } else {
+      data.email = newEmail;
+    }
+  }
   if (data.wouaffId !== undefined) {
     const newId = data.wouaffId as string;
     const oldRow = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM users WHERE uid=?', [uid]);
