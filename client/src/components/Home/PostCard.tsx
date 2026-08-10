@@ -4,8 +4,10 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { RepostInfo, SocialPost } from '../../types';
 import VoiceMessage from '../Chat/VoiceMessage';
+import PostEmbeds from './PostEmbeds';
 import PostText from './PostText';
 import ReportPostModal from './ReportPostModal';
+import SharePostModal from './SharePostModal';
 
 interface PostCardProps {
   post: SocialPost;
@@ -30,6 +32,7 @@ function formatTime(ts: number): string {
 export default function PostCard({ post, repostInfo, onLike, onRepost, onOpen }: PostCardProps) {
   const { user } = useAuth();
   const [reportOpen, setReportOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const isOwn = !!user && post.uid === user.uid;
   const initial = (post.pseudo || '?')[0]?.toUpperCase() || '?';
 
@@ -116,6 +119,8 @@ export default function PostCard({ post, repostInfo, onLike, onRepost, onOpen }:
             </p>
           )}
 
+          <PostEmbeds text={post.text} />
+
           {post.image && (
             <img
               src={post.image}
@@ -169,9 +174,13 @@ export default function PostCard({ post, repostInfo, onLike, onRepost, onOpen }:
 
             <button
               type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShareOpen(true);
+              }}
               className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:text-brand hover:bg-[var(--brand-glow)] transition-colors"
-              aria-label="Partager"
-              title="Partager (bientôt)"
+              aria-label="Partager ce post"
+              title="Partager"
             >
               <Share2 size={17} />
             </button>
@@ -194,6 +203,7 @@ export default function PostCard({ post, repostInfo, onLike, onRepost, onOpen }:
         </div>
       </div>
       {reportOpen && <ReportPostModal postId={post.id} onClose={() => setReportOpen(false)} />}
+      {shareOpen && <SharePostModal post={post} onClose={() => setShareOpen(false)} />}
     </article>
   );
 }

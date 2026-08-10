@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-const TOKEN_RE = /(?<=^|\s)@[a-z0-9_]{1,50}|#[\p{L}\p{N}_]+/gu;
+const TOKEN_RE = /((?<=^|\s)@[a-z0-9_]{1,50}|#[\p{L}\p{N}_]+|https?:\/\/[^\s<]+[^\s<.,;:!?)\]}>'"])/gu;
 
 interface PostTextProps {
   text: string;
@@ -10,10 +10,26 @@ export default function PostText({ text }: PostTextProps) {
   const parts = text.split(TOKEN_RE);
   let hashtagCount = 0;
   let mentionCount = 0;
+  let urlCount = 0;
 
   return (
     <>
       {parts.map((part) => {
+        if (part.length > 1 && part.startsWith('http')) {
+          urlCount += 1;
+          return (
+            <a
+              key={`u-${part}-${urlCount}`}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand hover:underline break-all"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {part}
+            </a>
+          );
+        }
         if (part.length > 1 && part.startsWith('#')) {
           hashtagCount += 1;
           const tag = part.slice(1);

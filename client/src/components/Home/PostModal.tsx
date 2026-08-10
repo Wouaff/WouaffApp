@@ -9,8 +9,10 @@ import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
 import VoiceMessage from '../Chat/VoiceMessage';
 import { showToast } from '../Common/Toast';
 import MentionSuggestions from './MentionSuggestions';
+import PostEmbeds from './PostEmbeds';
 import PostText from './PostText';
 import ReportPostModal from './ReportPostModal';
+import SharePostModal from './SharePostModal';
 
 interface PostModalProps {
   post: SocialPost;
@@ -39,6 +41,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const commentInputRef = useRef<HTMLInputElement>(null);
   const isOwn = !!user && post.uid === user.uid;
 
@@ -184,6 +187,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
                 <PostText text={post.text} />
               </p>
             )}
+            <PostEmbeds text={post.text} />
             {post.image && (
               <img
                 src={post.image}
@@ -224,7 +228,13 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
             <Heart size={17} fill={post.liked ? 'currentColor' : 'none'} />
             <span>{post.likes}</span>
           </button>
-          <button type="button" className={actionBtn} aria-label="Partager" title="Partager (bientôt)">
+          <button
+            type="button"
+            onClick={() => setShareOpen(true)}
+            className={actionBtn}
+            aria-label="Partager ce post"
+            title="Partager"
+          >
             <Share2 size={17} />
           </button>
           {!isOwn && (
@@ -328,6 +338,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
         </div>
       </div>
       {reportOpen && <ReportPostModal postId={post.id} onClose={() => setReportOpen(false)} />}
+      {shareOpen && <SharePostModal post={post} onClose={() => setShareOpen(false)} />}
     </div>
   );
 }

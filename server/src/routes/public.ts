@@ -137,4 +137,43 @@ router.get('/profile/:wouaffId/following', async (req: Request, res: Response) =
   }
 });
 
+/* GET /public/posts/:id — un post partageable (sans authentification) */
+router.get('/posts/:id', async (req: Request, res: Response) => {
+  try {
+    const row = await getOne<Record<string, unknown>>(
+      `SELECT p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+              pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
+       FROM posts p
+       LEFT JOIN users pr ON pr.uid = p.uid
+       LEFT JOIN staff s ON s.uid = p.uid
+       WHERE p.id = ?`,
+      [req.params.id],
+    );
+    if (!row) {
+      res.status(404).json({ error: 'Post introuvable' });
+      return;
+    }
+    res.json({
+      id: row.id,
+      uid: row.uid,
+      pseudo: (row.pseudo as string) || 'Utilisateur',
+      handle: (row.wouaffId as string) ? `@${row.wouaffId}` : '@inconnu',
+      avatar: row.avatar as string,
+      time: row.createdAt as number,
+      text: row.text as string,
+      image: (row.image as string) || undefined,
+      audio: (row.audio as string) || undefined,
+      audioDuration: (row.audioDuration as number) || 0,
+      likes: row.likesCount as number,
+      reposts: row.repostsCount as number,
+      comments: row.commentsCount as number,
+      liked: false,
+      reposted: false,
+      verified: !!row.staffUid,
+    });
+  } catch {
+    res.status(500).json({ error: 'Erreur lors du chargement du post' });
+  }
+});
+
 export default router;
