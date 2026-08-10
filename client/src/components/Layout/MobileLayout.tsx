@@ -2,14 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import BottomNav from '../Navigation/BottomNav';
-import HamburgerMenu from './HamburgerMenu';
 
 export default function MobileLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [storyBadge, setStoryBadge] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const touchStart = useRef({ x: 0, y: 0, t: 0 });
   const swipeHint = useRef(false);
 
@@ -80,27 +78,7 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
       <div className={`swipe-hint${!isChat && !isAdmin && !swipeHint.current ? ' show' : ''}`}>
         Balayez vers la droite pour revenir à l'accueil
       </div>
-      {user && !isAdmin && (
-        <>
-          <button className="hamburger-btn" onClick={() => setMenuOpen(true)} aria-label="Menu">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--text-primary)"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
-          <HamburgerMenu open={menuOpen} onClose={() => setMenuOpen(false)} storyBadge={storyBadge} />
-          <BottomNav storyBadge={storyBadge} />
-        </>
-      )}
+      {user && !isAdmin && <BottomNav storyBadge={storyBadge} />}
     </div>
   );
 }
