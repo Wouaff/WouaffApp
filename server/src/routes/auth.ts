@@ -250,12 +250,25 @@ router.post('/verify-email', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Code requis' });
       return;
     }
-    const row = await getOne<{ uid: string; id: number }>(
-      'SELECT uid, id FROM email_tokens WHERE token=? AND type=? AND used=0 AND expiresAt>?',
-      [value, 'verify', Date.now()],
+    const row = await getOne<{ uid: string; id: number; used: number; expiresAt: number }>(
+      'SELECT uid, id, used, expiresAt FROM email_tokens WHERE token=? AND type=?',
+      [value, 'verify'],
     );
     if (!row) {
-      res.status(400).json({ error: 'Code invalide ou expiré' });
+      res.status(400).json({ error: 'Code invalide' });
+      return;
+    }
+    if (row.expiresAt <= Date.now()) {
+      res.status(400).json({ error: 'Code expiré. Demandez un nouveau code.' });
+      return;
+    }
+    if (row.used) {
+      const user = await getOne<{ emailVerified: number }>('SELECT emailVerified FROM users WHERE uid=?', [row.uid]);
+      if (user?.emailVerified) {
+        res.json({ success: true, alreadyVerified: true });
+        return;
+      }
+      res.status(400).json({ error: 'Code déjà utilisé' });
       return;
     }
     await query('UPDATE users SET emailVerified=1 WHERE uid=?', [row.uid]);

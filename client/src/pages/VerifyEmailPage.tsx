@@ -1,38 +1,69 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token') || '';
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const urlToken = searchParams.get('token') || '';
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [code, setCode] = useState('');
+  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  useEffect(() => {
-    if (!token) {
+  const submit = async (value: string) => {
+    if (!value) {
       setStatus('error');
-      setMessage('Lien de vérification invalide.');
+      setMessage('Saisissez le code à 6 chiffres reçu par email.');
       return;
     }
-    fetch('/api/auth/verify-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setStatus('success');
-          setMessage('Email vérifié avec succès !');
-        } else {
-          setStatus('error');
-          setMessage(data.error || 'Échec de la vérification.');
-        }
-      })
-      .catch(() => {
-        setStatus('error');
-        setMessage('Erreur lors de la vérification.');
+    setStatus('loading');
+    setMessage('');
+    try {
+      const res = await fetch('/api/auth/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: value }),
       });
-  }, [token]);
+      const data = await res.json();
+      if (data.success) {
+        setStatus('success');
+        setMessage(
+          data.alreadyVerified ? 'Votre email est déjà vérifié.' : 'Email vérifié avec succès !',
+        );
+      } else {
+        setStatus('error');
+        setMessage(data.error || 'Échec de la vérification.');
+      }
+    } catch {
+      setStatus('error');
+      setMessage('Erreur lors de la vérification.');
+    }
+  };
+
+  useEffect(() => {
+    if (urlToken) {
+      submit(urlToken);
+    }
+  }, [urlToken]);
+
+  const handleDigit = (idx: number, value: string) => {
+    const digit = value.replace(/\D/g, '').slice(-1);
+    setCode((prev) => {
+      const arr = prev.split('');
+      arr[idx] = digit;
+      const next = arr.join('');
+      if (digit && idx < 5) setTimeout(() => inputsRef.current[idx + 1]?.focus(), 0);
+      return next;
+    });
+  };
+
+  const handleKeyDown = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !code[idx] && idx > 0) {
+      inputsRef.current[idx - 1]?.focus();
+    }
+    if (e.key === 'Enter') {
+      submit(code);
+    }
+  };
 
   return (
     <div className="flex items-center justify-center min-h-dvh bg-[var(--bg-page)] p-4">
@@ -61,11 +92,46 @@ export default function VerifyEmailPage() {
               </Link>
             </>
           )}
-          {status === 'error' && (
+          {(status === 'idle' || status === 'error') && (
             <>
-              <div className="text-5xl mb-4">❌</div>
-              <h2 className="text-lg font-bold">Échec de la vérification</h2>
-              <p className="text-[#ea4335] text-sm mt-2">{message}</p>
+              <div className="text-5xl mb-4">🔒</div>
+              <h2 className="text-lg font-bold mb-2">Vérification de votre email</h2>
+              <p className="text-text-secondary text-sm mb-6">
+                Saisissez le code à 6 chiffres reçu par email.
+              </p>
+
+              {status === 'error' && message && (
+                <div className="bg-red-500/10 border border-red-500 rounded-lg px-3 py-2.5 mb-4 text-sm text-red-500">
+                  {message}
+                </div>
+              )}
+
+              <div className="flex justify-center gap-2 mb-6" role="group" aria-label="Code de vérification">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <input
+                    key={i}
+                    ref={(el) => {
+                      inputsRef.current[i] = el;
+                    }}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={code[i] || ''}
+                    onChange={(e) => handleDigit(i, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(i, e)}
+                    maxLength={1}
+                    aria-label={`Chiffre ${i + 1}`}
+                    className="w-12 h-14 text-center text-xl font-extrabold bg-[var(--bg-input)] border border-[var(--border)] rounded-xl text-[var(--text-primary)] outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-glow)] font-sans transition-colors"
+                  />
+                ))}
+              </div>
+
+              <button
+                className="w-full bg-brand text-white px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans"
+                onClick={() => submit(code)}
+              >
+                Vérifier
+              </button>
               <Link to="/auth" className="text-brand mt-4 inline-block text-sm">
                 Retour à la connexion
               </Link>
