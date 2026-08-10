@@ -1,4 +1,5 @@
 import { Bell, Bookmark, Compass, Film, Home, MessageSquare, PenSquare, Settings, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -27,6 +28,21 @@ export default function LeftNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [avatar, setAvatar] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/profiles/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((profile) => {
+        if (cancelled || !profile) return;
+        setAvatar((profile.avatar as string) || '');
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const isActive = (item: NavItem) => {
     if (item.soon) return false;
@@ -108,7 +124,7 @@ export default function LeftNav() {
             aria-label="Profil et paramètres"
           >
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
-              <span>{initial}</span>
+              {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
             </div>
             <div className="flex flex-col min-w-0 text-left flex-1">
               <span className="text-[15px] font-bold text-[var(--text-primary)] truncate">
