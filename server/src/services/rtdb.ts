@@ -102,7 +102,10 @@ export async function getGroupConversations(uid: string): Promise<Record<string,
   }
   const invitesAll = gids.length > 0
     ? await query<Array<{ gid: string; inviteId: string }>>(
-        `SELECT gid, inviteId FROM (SELECT gid, inviteId, ROW_NUMBER() OVER (PARTITION BY gid ORDER BY createdAt DESC) as rn FROM group_invites) t WHERE t.rn = 1 AND t.gid IN (${gids.map(() => '?').join(',')})`,
+        `SELECT gi.gid, gi.inviteId
+         FROM group_invites gi
+         WHERE gi.gid IN (${gids.map(() => '?').join(',')})
+           AND gi.createdAt = (SELECT MAX(gi2.createdAt) FROM group_invites gi2 WHERE gi2.gid = gi.gid)`,
         gids,
       )
     : [];

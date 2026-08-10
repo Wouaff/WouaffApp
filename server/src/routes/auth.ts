@@ -4,7 +4,7 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
 import { createSession, verifyToken } from '../middleware/auth.js';
-import { sendPasswordResetEmail, sendVerificationEmail } from '../services/email.js';
+import { genCode, sendPasswordResetEmail, sendVerificationEmail } from '../services/email.js';
 import { isStaff } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
 
@@ -60,15 +60,15 @@ router.post('/register', async (req: Request, res: Response) => {
     setSessionCookie(res, sessionId);
 
     /* Send verification email */
-    const token = genToken();
+    const code = genCode();
     await query('INSERT INTO email_tokens (uid, token, type, expiresAt, createdAt) VALUES (?,?,?,?,?)', [
       uid,
-      token,
+      code,
       'verify',
-      Date.now() + 86400000,
+      Date.now() + 900000,
       Date.now(),
     ]);
-    sendVerificationEmail(email, token).catch(() => {});
+    sendVerificationEmail(email, code).catch(() => {});
 
     res.status(201).json({ uid, pseudo: finalPseudo, wouaffId, emailVerified: false });
   } catch (err) {
@@ -218,15 +218,16 @@ router.post('/send-verification', verifyToken, async (req: Request, res: Respons
       res.json({ success: true, alreadyVerified: true });
       return;
     }
-    const token = genToken();
+    await query('UPDATE email_tokens SET used=1 WHERE uid=? AND type=? AND used=0', [authReq.uid!, 'verify']);
+    const code = genCode();
     await query('INSERT INTO email_tokens (uid, token, type, expiresAt, createdAt) VALUES (?,?,?,?,?)', [
       authReq.uid!,
-      token,
+      code,
       'verify',
-      Date.now() + 86400000,
+      Date.now() + 900000,
       Date.now(),
     ]);
-    await sendVerificationEmail(profile.email, token);
+    await sendVerificationEmail(profile.email, code);
     res.json({ success: true });
   } catch (err) {
     console.error('Send-verification error:', err);
@@ -237,17 +238,18 @@ router.post('/send-verification', verifyToken, async (req: Request, res: Respons
 /* POST /auth/verify-email */
 router.post('/verify-email', async (req: Request, res: Response) => {
   try {
-    const { token } = req.body as { token?: string };
-    if (!token) {
-      res.status(400).json({ error: 'Token requis' });
+    const { code, token } = req.body as { code?: string; token?: string };
+    const value = (code || token || '').trim();
+    if (!value) {
+      res.status(400).json({ error: 'Code requis' });
       return;
     }
     const row = await getOne<{ uid: string; id: number }>(
       'SELECT uid, id FROM email_tokens WHERE token=? AND type=? AND used=0 AND expiresAt>?',
-      [token, 'verify', Date.now()],
+      [value, 'verify', Date.now()],
     );
     if (!row) {
-      res.status(400).json({ error: 'Token invalide ou expiré' });
+      res.status(400).json({ error: 'Code invalide ou expiré' });
       return;
     }
     await query('UPDATE users SET emailVerified=1 WHERE uid=?', [row.uid]);
