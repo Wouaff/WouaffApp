@@ -44,8 +44,12 @@ router.post('/register', async (req: Request, res: Response) => {
       res.status(409).json({ error: 'Cet email est déjà utilisé' });
       return;
     }
+    if (pseudo && /[A-Z]/.test(pseudo)) {
+      res.status(400).json({ error: 'Le pseudo ne peut pas contenir de majuscules' });
+      return;
+    }
     const uid = genUid();
-    const finalPseudo = pseudo || email.split('@')[0];
+    const finalPseudo = (pseudo || email.split('@')[0]).toLowerCase();
     const passwordHash = await bcrypt.hash(password, 10);
     const wouaffId = `@${finalPseudo}`;
     await query(

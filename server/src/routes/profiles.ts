@@ -79,6 +79,10 @@ router.get('/:uid/publicKey', async (req: Request, res: Response) => {
 /* PUT /profiles/me — mettre à jour mon profil */
 router.put('/me', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
+  if (typeof req.body.pseudo === 'string' && /[A-Z]/.test(req.body.pseudo)) {
+    res.status(400).json({ error: 'Le pseudo ne peut pas contenir de majuscules' });
+    return;
+  }
   await updateProfile(authReq.uid!, req.body);
   const io: Server = req.app.get('io');
   if (io) {

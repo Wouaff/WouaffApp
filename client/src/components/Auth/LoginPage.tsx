@@ -8,7 +8,7 @@ function validateEmail(email: string) {
 }
 
 function validatePseudo(pseudo: string) {
-  return pseudo.length >= 3 && pseudo.length <= 20 && /^[a-zA-Z0-9_]+$/.test(pseudo);
+  return pseudo.length >= 3 && pseudo.length <= 20 && /^[a-z0-9_]+$/.test(pseudo);
 }
 
 function getPasswordReqs(password: string) {
@@ -65,7 +65,7 @@ export default function LoginPage() {
           return;
         }
         if (!validatePseudo(pseudo)) {
-          setError('Le pseudo doit contenir 3-20 caractères (lettres, chiffres et _).');
+          setError('Le pseudo doit contenir 3-20 caractères en minuscules (a-z, chiffres et _).');
           return;
         }
         if (!confirmPassword) {
@@ -160,7 +160,7 @@ export default function LoginPage() {
                 placeholder="Pseudo"
                 maxLength={20}
                 value={pseudo}
-                onChange={(e) => setPseudo(e.target.value)}
+                onChange={(e) => setPseudo(e.target.value.toLowerCase())}
                 autoComplete="username"
                 onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
                 className="w-full bg-[var(--bg-input)] rounded-xl px-4 py-3.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:ring-2 focus:ring-[var(--brand)] font-sans transition-all duration-200"

@@ -316,7 +316,7 @@ export default function SettingsPage() {
                     placeholder="Votre pseudo"
                     maxLength={32}
                     value={pseudo}
-                    onChange={(e) => setPseudo(e.target.value)}
+                    onChange={(e) => setPseudo(e.target.value.toLowerCase())}
                   />
                 </div>
                 <div className="settings-item">
