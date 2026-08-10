@@ -1,4 +1,4 @@
-import { Image, Mic, Smile, Square, X } from 'lucide-react';
+import { BarChart3, Image, Mic, Smile, Square, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
@@ -12,9 +12,22 @@ import MentionSuggestions from './MentionSuggestions';
 
 const MAX_LENGTH = 280;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_POLL_OPTIONS = 4;
+const MIN_POLL_OPTIONS = 2;
+
+interface PollDraft {
+  question: string;
+  options: string[];
+}
 
 interface ComposeBoxProps {
-  onPost: (text: string, image?: string, audio?: string, audioDuration?: number) => void;
+  onPost: (
+    text: string,
+    image?: string,
+    audio?: string,
+    audioDuration?: number,
+    poll?: { question?: string; options: string[] },
+  ) => void;
 }
 
 export default function ComposeBox({ onPost }: ComposeBoxProps) {
@@ -27,12 +40,40 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [poll, setPoll] = useState<PollDraft | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const togglePoll = () => {
+    setPoll((p) => (p ? null : { question: '', options: ['', ''] }));
+  };
+
+  const setPollOption = (i: number, value: string) => {
+    setPoll((p) => {
+      if (!p) return p;
+      const options = [...p.options];
+      options[i] = value;
+      return { ...p, options };
+    });
+  };
+
+  const addPollOption = () => {
+    setPoll((p) => {
+      if (!p || p.options.length >= MAX_POLL_OPTIONS) return p;
+      return { ...p, options: [...p.options, ''] };
+    });
+  };
+
+  const removePollOption = (i: number) => {
+    setPoll((p) => {
+      if (!p || p.options.length <= MIN_POLL_OPTIONS) return p;
+      return { ...p, options: p.options.filter((_, idx) => idx !== i) };
+    });
+  };
 
   const applyMention = useCallback((mentionUser: MentionUser, token: MentionToken) => {
     setText((prev) => replaceMentionAt(prev, token, `${mentionUser.handle} `));
@@ -66,8 +107,13 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   }, [showEmojiPicker]);
 
   const remaining = MAX_LENGTH - text.length;
+  const pollValid =
+    !!poll && poll.options.filter((o) => o.trim()).length >= MIN_POLL_OPTIONS;
   const canPost =
-    (text.trim().length > 0 || image.length > 0 || audio.length > 0) && remaining >= 0 && !imageLoading && !recording;
+    (text.trim().length > 0 || image.length > 0 || audio.length > 0 || pollValid) &&
+    remaining >= 0 &&
+    !imageLoading &&
+    !recording;
 
   const startRecording = async () => {
     if (recording) return;
@@ -188,11 +234,19 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
 
   const submit = () => {
     if (!canPost) return;
-    onPost(text.trim(), image || undefined, audio || undefined, audioDuration || undefined);
+    const pollPayload =
+      poll && poll.options.filter((o) => o.trim()).length >= MIN_POLL_OPTIONS
+        ? {
+            question: poll.question.trim(),
+            options: poll.options.map((o) => o.trim()).filter(Boolean),
+          }
+        : undefined;
+    onPost(text.trim(), image || undefined, audio || undefined, audioDuration || undefined, pollPayload);
     setText('');
     setImage('');
     setAudio('');
     setAudioDuration(0);
+    setPoll(null);
     setShowEmojiPicker(false);
   };
 
@@ -292,6 +346,66 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
           </div>
         )}
 
+        {poll && (
+          <div className="mt-2 rounded-2xl bg-[var(--bg-input)] border border-[var(--border)] p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="flex items-center gap-1.5 text-[13px] font-bold text-brand">
+                <BarChart3 size={15} />
+                Sondage
+              </span>
+              <button
+                type="button"
+                onClick={togglePoll}
+                aria-label="Retirer le sondage"
+                className="w-7 h-7 rounded-full flex items-center justify-center border-none bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] hover:text-red-500 transition-colors"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <input
+              type="text"
+              value={poll.question}
+              onChange={(e) => setPoll((p) => (p ? { ...p, question: e.target.value } : p))}
+              placeholder="Question (optionnel)"
+              maxLength={140}
+              className="w-full mb-2 bg-[var(--bg-base)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
+            />
+            <div className="flex flex-col gap-2">
+              {poll.options.map((opt, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={opt}
+                    onChange={(e) => setPollOption(i, e.target.value)}
+                    placeholder={`Option ${i + 1}`}
+                    maxLength={80}
+                    className="flex-1 min-w-0 bg-[var(--bg-base)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
+                  />
+                  {poll.options.length > MIN_POLL_OPTIONS && (
+                    <button
+                      type="button"
+                      onClick={() => removePollOption(i)}
+                      aria-label={`Retirer l'option ${i + 1}`}
+                      className="w-8 h-8 rounded-full flex items-center justify-center border-none bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] hover:text-red-500 transition-colors flex-shrink-0"
+                    >
+                      <X size={15} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {poll.options.length < MAX_POLL_OPTIONS && (
+              <button
+                type="button"
+                onClick={addPollOption}
+                className="mt-2 text-[13px] font-bold text-brand rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:bg-[var(--brand-glow)] transition-colors"
+              >
+                + Ajouter une option
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-1 text-brand">
             <button
@@ -309,6 +423,16 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
               className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-brand hover:bg-[var(--brand-glow)] transition-colors"
             >
               <Mic size={19} />
+            </button>
+            <button
+              type="button"
+              onClick={togglePoll}
+              title="Sondage"
+              className={`w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer transition-colors ${
+                poll ? 'bg-[var(--brand-glow)] text-brand' : 'text-brand hover:bg-[var(--brand-glow)]'
+              }`}
+            >
+              <BarChart3 size={19} />
             </button>
             <input
               ref={fileInputRef}

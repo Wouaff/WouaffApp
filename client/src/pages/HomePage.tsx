@@ -14,6 +14,7 @@ import {
   offPostDeleted,
   offPostLiked,
   offPostNew,
+  offPostPoll,
   offPostRepost,
   offPostReposted,
   offPostUnrepost,
@@ -21,11 +22,12 @@ import {
   onPostDeleted,
   onPostLiked,
   onPostNew,
+  onPostPoll,
   onPostRepost,
   onPostReposted,
   onPostUnrepost,
 } from '../services/socket';
-import type { FeedItem, PostComment, SocialPost } from '../types';
+import type { FeedItem, PostComment, PostPoll, SocialPost } from '../types';
 
 type FeedTab = 'forYou' | 'following';
 
@@ -159,6 +161,9 @@ export default function HomePage() {
         prev.filter((i) => !(i.type === 'repost' && i.repost?.uid === data.uid && i.post.id === data.postId)),
       );
     };
+    const handlePoll = (data: { postId: string; poll: PostPoll }) => {
+      updateItem(data.postId, (i) => ({ ...i, post: { ...i.post, poll: data.poll } }));
+    };
     onPostNew(handleNew);
     onPostLiked(handleLiked);
     onPostReposted(handleReposted);
@@ -166,6 +171,7 @@ export default function HomePage() {
     onPostDeleted(handleDeleted);
     onPostRepost(handleRepost);
     onPostUnrepost(handleUnrepost);
+    onPostPoll(handlePoll);
     return () => {
       offPostNew(handleNew);
       offPostLiked(handleLiked);
@@ -174,21 +180,50 @@ export default function HomePage() {
       offPostDeleted(handleDeleted);
       offPostRepost(handleRepost);
       offPostUnrepost(handleUnrepost);
+      offPostPoll(handlePoll);
     };
   }, [user, updateItem]);
 
-  const handlePost = useCallback(async (text: string, image?: string, audio?: string, audioDuration?: number) => {
-    try {
-      const post = await postsAPI.create(text, image, audio, audioDuration);
-      setItems((prev) => {
-        const item = toPostItem(post);
-        return prev.some((i) => i.key === item.key) ? prev : [item, ...prev];
-      });
-      showToast('✅ Post publié !');
-    } catch (e) {
-      showToast((e as Error).message || 'Erreur lors de la publication', 'error');
-    }
-  }, []);
+  const handlePost = useCallback(
+    async (text: string, image?: string, audio?: string, audioDuration?: number, poll?: { question?: string; options: string[] }) => {
+      try {
+        const post = await postsAPI.create(text, image, audio, audioDuration, poll);
+        setItems((prev) => {
+          const item = toPostItem(post);
+          return prev.some((i) => i.key === item.key) ? prev : [item, ...prev];
+        });
+        showToast('✅ Post publié !');
+      } catch (e) {
+        showToast((e as Error).message || 'Erreur lors de la publication', 'error');
+      }
+    },
+    [],
+  );
+
+  const handleVote = useCallback(
+    async (id: string, option: number) => {
+      updatePost(id, (p) =>
+        p.poll
+          ? {
+              ...p,
+              poll: {
+                ...p.poll,
+                votedIndex: option,
+                votes: p.poll.votes.map((v, i) => v + (i === option ? 1 : 0)),
+                total: p.poll.total + 1,
+              },
+            }
+          : p,
+      );
+      try {
+        const res = await postsAPI.vote(id, option);
+        updatePost(id, (p) => ({ ...p, poll: res.poll }));
+      } catch (e) {
+        console.error(e);
+      }
+    },
+    [updatePost],
+  );
 
   const handleLike = useCallback(
     async (id: string) => {
@@ -308,6 +343,7 @@ export default function HomePage() {
                 repostInfo={item.repost}
                 onLike={handleLike}
                 onRepost={handleRepost}
+                onVote={handleVote}
                 onOpen={openPost}
               />
             ))
@@ -321,6 +357,7 @@ export default function HomePage() {
           onClose={() => setSelectedPostId(null)}
           onLike={handleLike}
           onRepost={handleRepost}
+          onVote={handleVote}
           onCommentDelta={handleCommentDelta}
         />
       )}

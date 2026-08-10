@@ -8,7 +8,8 @@ import PostModal from '../components/Home/PostModal';
 import RightSidebar from '../components/Home/RightSidebar';
 import { useAuth } from '../hooks/useAuth';
 import { posts as postsAPI, profiles as profilesAPI } from '../services/api';
-import type { FeedItem, SocialPost } from '../types';
+import { offPostPoll, onPostPoll } from '../services/socket';
+import type { FeedItem, PostPoll, SocialPost } from '../types';
 import { PLATFORMS, parseSocialLinks } from '../utils/socialLinks';
 
 interface BadgeDef {
@@ -191,6 +192,40 @@ export default function ProfilePage() {
     },
     [updatePost],
   );
+
+  const handleVote = useCallback(
+    async (id: string, option: number) => {
+      updatePost(id, (p) =>
+        p.poll
+          ? {
+              ...p,
+              poll: {
+                ...p.poll,
+                votedIndex: option,
+                votes: p.poll.votes.map((v, i) => v + (i === option ? 1 : 0)),
+                total: p.poll.total + 1,
+              },
+            }
+          : p,
+      );
+      try {
+        const res = await postsAPI.vote(id, option);
+        updatePost(id, (p) => ({ ...p, poll: res.poll }));
+      } catch (e) {
+        console.error(e);
+      }
+    },
+    [updatePost],
+  );
+
+  useEffect(() => {
+    if (!user) return;
+    const onPoll = (data: { postId: string; poll: PostPoll }) => {
+      updatePost(data.postId, (p) => ({ ...p, poll: data.poll }));
+    };
+    onPostPoll(onPoll);
+    return () => offPostPoll(onPoll);
+  }, [user, updatePost]);
 
   const goBack = () => {
     if (window.history.length > 1) navigate(-1);
@@ -423,6 +458,7 @@ export default function ProfilePage() {
                 repostInfo={item.repost}
                 onLike={handleLike}
                 onRepost={handleRepost}
+                onVote={handleVote}
                 onOpen={openPost}
               />
             ))
@@ -436,6 +472,7 @@ export default function ProfilePage() {
           onClose={() => setSelectedPostId(null)}
           onLike={handleLike}
           onRepost={handleRepost}
+          onVote={handleVote}
           onCommentDelta={handleCommentDelta}
         />
       )}

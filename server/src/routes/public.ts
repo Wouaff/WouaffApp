@@ -141,7 +141,7 @@ router.get('/profile/:wouaffId/following', async (req: Request, res: Response) =
 router.get('/posts/:id', async (req: Request, res: Response) => {
   try {
     const row = await getOne<Record<string, unknown>>(
-      `SELECT p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+      `SELECT p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.poll, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
               pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
        FROM posts p
        LEFT JOIN users pr ON pr.uid = p.uid
@@ -152,6 +152,29 @@ router.get('/posts/:id', async (req: Request, res: Response) => {
     if (!row) {
       res.status(404).json({ error: 'Post introuvable' });
       return;
+    }
+    let poll: Record<string, unknown> | null = null;
+    if (row.poll) {
+      try {
+        const parsed = JSON.parse(row.poll as string) as { question?: string; options?: string[] };
+        if (Array.isArray(parsed.options) && parsed.options.length > 0) {
+          const votes = await query<Array<{ postId: string; optionIndex: number }>>(
+            'SELECT postId, optionIndex FROM poll_votes WHERE postId = ?',
+            [req.params.id],
+          );
+          const counts = new Array(parsed.options.length).fill(0);
+          for (const v of votes) counts[v.optionIndex] = (counts[v.optionIndex] || 0) + 1;
+          poll = {
+            question: parsed.question || 'Sondage',
+            options: parsed.options,
+            votes: counts,
+            total: votes.length,
+            votedIndex: null,
+          };
+        }
+      } catch {
+        /* sondage invalide ignoré */
+      }
     }
     res.json({
       id: row.id,
@@ -164,6 +187,7 @@ router.get('/posts/:id', async (req: Request, res: Response) => {
       image: (row.image as string) || undefined,
       audio: (row.audio as string) || undefined,
       audioDuration: (row.audioDuration as number) || 0,
+      poll: poll || undefined,
       likes: row.likesCount as number,
       reposts: row.repostsCount as number,
       comments: row.commentsCount as number,

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { RepostInfo, SocialPost } from '../../types';
 import VoiceMessage from '../Chat/VoiceMessage';
+import Poll from './Poll';
 import PostEmbeds from './PostEmbeds';
 import PostText from './PostText';
 import ReportPostModal from './ReportPostModal';
@@ -14,6 +15,7 @@ interface PostCardProps {
   repostInfo?: RepostInfo;
   onLike: (id: string) => void;
   onRepost: (id: string) => void;
+  onVote: (id: string, option: number) => void;
   onOpen: (post: SocialPost) => void;
 }
 
@@ -29,7 +31,7 @@ function formatTime(ts: number): string {
   return `il y a ${d} j`;
 }
 
-const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, onOpen }: PostCardProps) {
+const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, onVote, onOpen }: PostCardProps) {
   const { user } = useAuth();
   const [reportOpen, setReportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -120,6 +122,8 @@ const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, on
           )}
 
           <PostEmbeds text={post.text} />
+
+          {post.poll && <Poll poll={post.poll} onVote={(option) => onVote(post.id, option)} />}
 
           {post.image && (
             <img

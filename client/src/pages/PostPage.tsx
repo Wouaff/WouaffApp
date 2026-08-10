@@ -96,6 +96,32 @@ export default function PostPage() {
     [requireAuth, updatePost],
   );
 
+  const handleVote = useCallback(
+    async (postId: string, option: number) => {
+      if (!requireAuth()) return;
+      updatePost((p) =>
+        p.poll
+          ? {
+              ...p,
+              poll: {
+                ...p.poll,
+                votedIndex: option,
+                votes: p.poll.votes.map((v, i) => v + (i === option ? 1 : 0)),
+                total: p.poll.total + 1,
+              },
+            }
+          : p,
+      );
+      try {
+        const res = await postsAPI.vote(postId, option);
+        updatePost((p) => ({ ...p, poll: res.poll }));
+      } catch {
+        /* ignore */
+      }
+    },
+    [requireAuth, updatePost],
+  );
+
   const goBack = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate('/');
@@ -168,7 +194,7 @@ export default function PostPage() {
             </div>
           </header>
 
-          <PostCard post={post} onLike={handleLike} onRepost={handleRepost} onOpen={() => setShareOpen(true)} />
+          <PostCard post={post} onLike={handleLike} onRepost={handleRepost} onVote={handleVote} onOpen={() => setShareOpen(true)} />
         </div>
       </main>
       <RightSidebar />

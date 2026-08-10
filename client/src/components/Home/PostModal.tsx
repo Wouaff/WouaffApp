@@ -9,6 +9,7 @@ import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
 import VoiceMessage from '../Chat/VoiceMessage';
 import { showToast } from '../Common/Toast';
 import MentionSuggestions from './MentionSuggestions';
+import Poll from './Poll';
 import PostEmbeds from './PostEmbeds';
 import PostText from './PostText';
 import ReportPostModal from './ReportPostModal';
@@ -19,6 +20,7 @@ interface PostModalProps {
   onClose: () => void;
   onLike: (id: string) => void;
   onRepost: (id: string) => void;
+  onVote: (id: string, option: number) => void;
   onCommentDelta: (id: string, delta: number) => void;
 }
 
@@ -34,7 +36,7 @@ function formatTime(ts: number): string {
   return `il y a ${d} j`;
 }
 
-export default function PostModal({ post, onClose, onLike, onRepost, onCommentDelta }: PostModalProps) {
+export default function PostModal({ post, onClose, onLike, onRepost, onVote, onCommentDelta }: PostModalProps) {
   const { user } = useAuth();
   const [comments, setComments] = useState<PostComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -188,6 +190,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onCommentDe
               </p>
             )}
             <PostEmbeds text={post.text} />
+            {post.poll && <Poll poll={post.poll} onVote={(option) => onVote(post.id, option)} />}
             {post.image && (
               <img
                 src={post.image}

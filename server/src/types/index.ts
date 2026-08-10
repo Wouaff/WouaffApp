@@ -76,6 +76,14 @@ export interface VideoComment {
   avatar?: string;
 }
 
+export interface PostPoll {
+  question: string;
+  options: string[];
+  votes: number[];
+  total: number;
+  votedIndex: number | null;
+}
+
 export interface PostData {
   id: string;
   uid: string;
@@ -87,6 +95,7 @@ export interface PostData {
   image?: string;
   audio?: string;
   audioDuration?: number;
+  poll?: PostPoll | null;
   likes: number;
   reposts: number;
   comments: number;

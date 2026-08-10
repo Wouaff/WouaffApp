@@ -6,11 +6,59 @@ import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
 import { createNotification } from '../services/notifications.js';
 import { getProfile, reportPost } from '../services/rtdb.js';
-import type { AuthRequest, PostComment, PostData, PostFeedItem } from '../types/index.js';
+import type { AuthRequest, PostComment, PostData, PostFeedItem, PostPoll } from '../types/index.js';
 import { extractHashtags } from '../utils/hashtags.js';
 import { insertCommentMentions, insertPostMentions } from '../utils/mentions.js';
 
 const MAX_LENGTH = 280;
+
+interface PollVotes {
+  votes: number[];
+  total: number;
+  votedIndex: number | null;
+}
+
+async function fetchPollVotes(
+  ids: string[],
+  viewerUid?: string,
+): Promise<Map<string, PollVotes>> {
+  const map = new Map<string, PollVotes>();
+  if (ids.length === 0) return map;
+  const placeholders = ids.map(() => '?').join(',');
+  const rows = await query<Array<{ postId: string; uid: string; optionIndex: number }>>(
+    `SELECT postId, uid, optionIndex FROM poll_votes WHERE postId IN (${placeholders})`,
+    ids,
+  );
+  for (const id of ids) map.set(id, { votes: [], total: 0, votedIndex: null });
+  for (const r of rows) {
+    const entry = map.get(r.postId);
+    if (!entry) continue;
+    entry.votes[r.optionIndex] = (entry.votes[r.optionIndex] || 0) + 1;
+    entry.total += 1;
+    if (viewerUid && r.uid === viewerUid) entry.votedIndex = r.optionIndex;
+  }
+  return map;
+}
+
+function parsePoll(row: Record<string, unknown>, votes?: PollVotes): PostPoll | null {
+  if (!row.poll) return null;
+  let parsed: { question?: string; options?: string[] };
+  try {
+    parsed = JSON.parse(row.poll as string);
+  } catch {
+    return null;
+  }
+  const options = Array.isArray(parsed.options) ? parsed.options : [];
+  if (options.length === 0) return null;
+  const votesArr = votes?.votes && votes.votes.length === options.length ? votes.votes : new Array(options.length).fill(0);
+  return {
+    question: (parsed.question as string) || 'Sondage',
+    options,
+    votes: votesArr,
+    total: votes?.total ?? 0,
+    votedIndex: votes?.votedIndex ?? null,
+  };
+}
 
 const router: Router = Router();
 router.use(verifyToken);
@@ -44,6 +92,7 @@ async function toPostData(
   row: Record<string, unknown>,
   likedMap?: Set<string>,
   repostedMap?: Set<string>,
+  pollVotes?: Map<string, PollVotes>,
 ): Promise<PostData> {
   return {
     id: row.id as string,
@@ -56,6 +105,7 @@ async function toPostData(
     image: (row.image as string) || undefined,
     audio: (row.audio as string) || undefined,
     audioDuration: (row.audioDuration as number) || 0,
+    poll: parsePoll(row, pollVotes?.get(row.id as string)),
     likes: row.likesCount as number,
     reposts: row.repostsCount as number,
     comments: row.commentsCount as number,
@@ -90,7 +140,7 @@ async function fetchRepostedMap(uid: string, ids: string[]): Promise<Set<string>
 }
 
 const REPOST_SELECT = `SELECT r.uid AS repostedByUid, r.createdAt AS repostedAt,
-            p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+            p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.poll, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid,
             ru.pseudo AS reposterPseudo, ru.avatar AS reposterAvatar, ru.wouaffId AS reposterWouaffId,
             rs.uid AS reposterStaffUid
@@ -109,10 +159,11 @@ async function getRepostItem(repostedByUid: string, postId: string, viewerUid?: 
   if (!row) return null;
   const likedMap = viewerUid ? await fetchLikedMap(viewerUid, [postId]) : undefined;
   const repostedMap = viewerUid ? await fetchRepostedMap(viewerUid, [postId]) : undefined;
+  const pollVotes = await fetchPollVotes([postId], viewerUid);
   return {
     type: 'repost',
     key: `repost:${repostedByUid}:${postId}`,
-    post: await toPostData(row, likedMap, repostedMap),
+    post: await toPostData(row, likedMap, repostedMap, pollVotes),
     repost: {
       uid: repostedByUid,
       pseudo: (row.reposterPseudo as string) || 'Utilisateur',
@@ -126,17 +177,32 @@ async function getRepostItem(repostedByUid: string, postId: string, viewerUid?: 
 
 router.post('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const { text, image, audio, audioDuration } = req.body as {
+  const { text, image, audio, audioDuration, poll } = req.body as {
     text?: string;
     image?: string;
     audio?: string;
     audioDuration?: number;
+    poll?: { question?: string; options?: string[] };
   };
   const content = (text || '').trim();
   const img = typeof image === 'string' ? image.trim() : '';
   const aud = typeof audio === 'string' ? audio.trim() : '';
-  if (!content && !img && !aud) {
-    res.status(400).json({ error: 'Texte, image ou audio requis' });
+  let pollJson: string | null = null;
+  let pollOptions: string[] = [];
+  let pollQuestion = '';
+  if (poll && Array.isArray(poll.options)) {
+    pollOptions = poll.options
+      .map((o) => (typeof o === 'string' ? o.trim().slice(0, 80) : ''))
+      .filter(Boolean);
+    if (pollOptions.length < 2 || pollOptions.length > 4) {
+      res.status(400).json({ error: 'Un sondage doit avoir entre 2 et 4 options' });
+      return;
+    }
+    pollQuestion = typeof poll.question === 'string' ? poll.question.trim().slice(0, 140) : '';
+    pollJson = JSON.stringify({ question: pollQuestion, options: pollOptions });
+  }
+  if (!content && !img && !aud && !pollJson) {
+    res.status(400).json({ error: 'Texte, image, audio ou sondage requis' });
     return;
   }
   if (content.length > MAX_LENGTH) {
@@ -159,8 +225,8 @@ router.post('/', async (req: Request, res: Response) => {
   const now = Date.now();
   try {
     await query(
-      'INSERT INTO posts (id, uid, text, image, audio, audioDuration, likesCount, repostsCount, commentsCount, createdAt) VALUES (?,?,?,?,?,?,0,0,0,?)',
-      [id, authReq.uid!, content, img || null, aud || null, dur, now],
+      'INSERT INTO posts (id, uid, text, image, audio, audioDuration, poll, likesCount, repostsCount, commentsCount, createdAt) VALUES (?,?,?,?,?,?,?,0,0,0,?)',
+      [id, authReq.uid!, content, img || null, aud || null, dur, pollJson, now],
     );
     if (content) await insertHashtags(id, authReq.uid!, 'post', now, content);
     if (content) await insertPostMentions(id, content);
@@ -178,6 +244,15 @@ router.post('/', async (req: Request, res: Response) => {
       image: img || undefined,
       audio: aud || undefined,
       audioDuration: dur || undefined,
+      poll: pollJson
+        ? {
+            question: pollQuestion || 'Sondage',
+            options: pollOptions,
+            votes: new Array(pollOptions.length).fill(0),
+            total: 0,
+            votedIndex: null,
+          }
+        : undefined,
       likes: 0,
       reposts: 0,
       comments: 0,
@@ -249,7 +324,7 @@ router.get('/', async (req: Request, res: Response) => {
   repostParams.push(window, offset);
   const repostRows = await query<Array<Record<string, unknown>>>(
     `SELECT r.uid AS repostedByUid, r.createdAt AS repostedAt,
-            p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+            p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.poll, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid,
             ru.pseudo AS reposterPseudo, ru.avatar AS reposterAvatar, ru.wouaffId AS reposterWouaffId,
             rs.uid AS reposterStaffUid
@@ -268,16 +343,21 @@ router.get('/', async (req: Request, res: Response) => {
   const ids = [...postRows, ...repostRows].map((r) => r.id as string);
   const likedMap = authReq.uid ? await fetchLikedMap(authReq.uid, ids) : undefined;
   const repostedMap = authReq.uid ? await fetchRepostedMap(authReq.uid, ids) : undefined;
+  const pollVotes = await fetchPollVotes(ids, authReq.uid);
 
   const items: PostFeedItem[] = [];
   for (const row of postRows) {
-    items.push({ type: 'post', key: `post:${row.id}`, post: await toPostData(row, likedMap, repostedMap) });
+    items.push({
+      type: 'post',
+      key: `post:${row.id}`,
+      post: await toPostData(row, likedMap, repostedMap, pollVotes),
+    });
   }
   for (const row of repostRows) {
     items.push({
       type: 'repost',
       key: `repost:${row.repostedByUid}:${row.id}`,
-      post: await toPostData(row, likedMap, repostedMap),
+      post: await toPostData(row, likedMap, repostedMap, pollVotes),
       repost: {
         uid: row.repostedByUid as string,
         pseudo: (row.reposterPseudo as string) || 'Utilisateur',
@@ -314,7 +394,8 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
   const likedMap = authReq.uid ? await fetchLikedMap(authReq.uid, [req.params.id]) : undefined;
   const repostedMap = authReq.uid ? await fetchRepostedMap(authReq.uid, [req.params.id]) : undefined;
-  res.json(await toPostData(row, likedMap, repostedMap));
+  const pollVotes = await fetchPollVotes([req.params.id], authReq.uid);
+  res.json(await toPostData(row, likedMap, repostedMap, pollVotes));
 });
 
 router.delete('/:id', async (req: Request, res: Response) => {
@@ -496,6 +577,49 @@ router.post('/:id/comments', async (req: Request, res: Response) => {
     });
   }
   res.json(comment);
+});
+
+/* POST /posts/:id/vote — voter à un sondage (un vote par utilisateur, modifiable) */
+router.post('/:id/vote', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { option } = req.body as { option?: number };
+  const post = await getOne<{ poll: string | null }>('SELECT poll FROM posts WHERE id = ?', [req.params.id]);
+  if (!post) {
+    res.status(404).json({ error: 'Post introuvable' });
+    return;
+  }
+  if (!post.poll) {
+    res.status(400).json({ error: "Ce post n'a pas de sondage" });
+    return;
+  }
+  let parsed: { question?: string; options?: string[] };
+  try {
+    parsed = JSON.parse(post.poll);
+  } catch {
+    res.status(400).json({ error: 'Sondage invalide' });
+    return;
+  }
+  const options = parsed.options || [];
+  if (typeof option !== 'number' || option < 0 || option >= options.length || !Number.isFinite(option)) {
+    res.status(400).json({ error: 'Option invalide' });
+    return;
+  }
+  await query(
+    'INSERT INTO poll_votes (postId, uid, optionIndex, createdAt) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE optionIndex=VALUES(optionIndex), createdAt=VALUES(createdAt)',
+    [req.params.id, authReq.uid!, option, Date.now()],
+  );
+  const pollVotes = await fetchPollVotes([req.params.id], authReq.uid);
+  const v = pollVotes.get(req.params.id)!;
+  const pollData: PostPoll = {
+    question: parsed.question || 'Sondage',
+    options,
+    votes: v.votes,
+    total: v.total,
+    votedIndex: v.votedIndex,
+  };
+  const io: Server = req.app.get('io');
+  if (io) io.emit('post:poll', { postId: req.params.id, poll: pollData });
+  res.json({ poll: pollData });
 });
 
 router.get('/:id/comments', async (req: Request, res: Response) => {

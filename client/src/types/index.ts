@@ -155,6 +155,14 @@ export interface VideoComment {
   avatar?: string;
 }
 
+export interface PostPoll {
+  question: string;
+  options: string[];
+  votes: number[];
+  total: number;
+  votedIndex: number | null;
+}
+
 export interface SocialPost {
   id: string;
   uid?: string;
@@ -166,6 +174,7 @@ export interface SocialPost {
   image?: string;
   audio?: string;
   audioDuration?: number;
+  poll?: PostPoll | null;
   likes: number;
   reposts: number;
   comments: number;

@@ -5,6 +5,7 @@ import type {
   MentionUser,
   NotificationItem,
   PostComment,
+  PostPoll,
   SearchResult,
   SocialPost,
   StoryData,
@@ -493,8 +494,9 @@ export const posts = {
   },
   get: (id: string) => request<SocialPost>('GET', `/posts/${id}`),
   getPublic: (id: string) => request<SocialPost>('GET', `/public/posts/${id}`),
-  create: (text: string, image?: string, audio?: string, audioDuration?: number) =>
-    request<SocialPost>('POST', '/posts', { text, image, audio, audioDuration }),
+  create: (text: string, image?: string, audio?: string, audioDuration?: number, poll?: { question?: string; options: string[] }) =>
+    request<SocialPost>('POST', '/posts', { text, image, audio, audioDuration, poll }),
+  vote: (id: string, option: number) => request<{ poll: PostPoll }>('POST', `/posts/${id}/vote`, { option }),
   like: (id: string) => request<{ liked: boolean; likes: number }>('POST', `/posts/${id}/like`),
   repost: (id: string) =>
     request<{ reposted: boolean; reposts: number; item?: FeedItem }>('POST', `/posts/${id}/repost`),

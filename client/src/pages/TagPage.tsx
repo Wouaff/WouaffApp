@@ -93,6 +93,31 @@ export default function TagPage() {
     [updatePost],
   );
 
+  const handleVote = useCallback(
+    async (id: string, option: number) => {
+      updatePost(id, (p) =>
+        p.poll
+          ? {
+              ...p,
+              poll: {
+                ...p.poll,
+                votedIndex: option,
+                votes: p.poll.votes.map((v, i) => v + (i === option ? 1 : 0)),
+                total: p.poll.total + 1,
+              },
+            }
+          : p,
+      );
+      try {
+        const res = await postsAPI.vote(id, option);
+        updatePost(id, (p) => ({ ...p, poll: res.poll }));
+      } catch (e) {
+        console.error(e);
+      }
+    },
+    [updatePost],
+  );
+
   const goBack = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate('/');
@@ -160,6 +185,7 @@ export default function TagPage() {
               repostInfo={item.repost}
               onLike={handleLike}
               onRepost={handleRepost}
+              onVote={handleVote}
               onOpen={openPost}
             />
           ))
@@ -172,6 +198,7 @@ export default function TagPage() {
           onClose={() => setSelectedPostId(null)}
           onLike={handleLike}
           onRepost={handleRepost}
+          onVote={handleVote}
           onCommentDelta={handleCommentDelta}
         />
       )}
