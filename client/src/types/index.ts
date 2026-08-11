@@ -164,6 +164,13 @@ export interface PostPoll {
   votedIndex: number | null;
 }
 
+export interface GifResult {
+  id: string;
+  url: string;
+  preview: string;
+  title: string;
+}
+
 export interface SocialPost {
   id: string;
   uid?: string;

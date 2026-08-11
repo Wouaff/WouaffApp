@@ -212,7 +212,7 @@ router.post('/', async (req: Request, res: Response) => {
     res.status(400).json({ error: `Maximum ${MAX_LENGTH} caractères` });
     return;
   }
-  if (img && !img.startsWith('data:image/')) {
+  if (img && !img.startsWith('data:image/') && !/^https?:\/\//i.test(img)) {
     res.status(400).json({ error: 'Image invalide' });
     return;
   }

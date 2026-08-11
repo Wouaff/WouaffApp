@@ -143,23 +143,6 @@ export default function LeftNav() {
         </button>
 
         <div className="mt-auto">
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 mb-3">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg" aria-hidden="true">
-                🛡️
-              </span>
-              <div className="font-extrabold text-sm text-[var(--text-primary)]">100% souverain</div>
-            </div>
-            <ul className="list-none p-0 m-0 flex flex-col gap-1.5 text-xs text-[var(--text-secondary)]">
-              <li>🇫🇷 Hébergé en France</li>
-              <li>⚖️ RGPD &amp; lois européennes</li>
-              <li>🔒 Politique zéro log</li>
-            </ul>
-            <p className="m-0 mt-2 text-[11px] text-[var(--text-muted)] leading-snug">
-              Aucune donnée ne quitte le territoire français.
-            </p>
-          </div>
-
           <button
             className="flex items-center gap-3 rounded-full p-2.5 w-full cursor-pointer border-none bg-transparent hover:bg-[var(--bg-hover)] transition-colors"
             onClick={() => navigate('/settings')}

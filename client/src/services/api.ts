@@ -1,5 +1,6 @@
 import type {
   FeedItem,
+  GifResult,
   GroupData,
   GroupEntry,
   MentionUser,
@@ -515,6 +516,13 @@ export const posts = {
 /* ── Tendances ── */
 export const trends = {
   list: (limit = 10) => request<TrendItem[]>('GET', `/trends?limit=${limit}`),
+};
+
+/* ── GIFs (Giphy) ── */
+export const gifs = {
+  trending: () => request<{ results: GifResult[]; error?: string }>('GET', '/gifs/trending'),
+  search: (q: string) =>
+    request<{ results: GifResult[]; error?: string }>('GET', `/gifs/search?q=${encodeURIComponent(q)}`),
 };
 
 /* ── Blocks / Reports ── */

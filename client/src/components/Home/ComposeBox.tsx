@@ -8,11 +8,11 @@ import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
 import EmojiPicker from '../Chat/EmojiPicker';
 import VoiceMessage from '../Chat/VoiceMessage';
 import { showToast } from '../Common/Toast';
+import GifPicker from './GifPicker';
 import MentionSuggestions from './MentionSuggestions';
 
 const MAX_LENGTH = 280;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
-const MAX_GIF_SIZE = 6 * 1024 * 1024;
 const MAX_POLL_OPTIONS = 4;
 const MIN_POLL_OPTIONS = 2;
 
@@ -41,10 +41,10 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const [poll, setPoll] = useState<PollDraft | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const gifInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
@@ -236,31 +236,9 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
     reader.readAsDataURL(file);
   };
 
-  const pickGif = (file: File) => {
-    if (file.type !== 'image/gif') {
-      showToast('Veuillez sélectionner un GIF.', 'error');
-      return;
-    }
-    if (file.size > MAX_GIF_SIZE) {
-      showToast('GIF trop volumineux (max 6 Mo).', 'error');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target) setImage(e.target.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) pickImage(file);
-    e.target.value = '';
-  };
-
-  const onGifChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) pickGif(file);
     e.target.value = '';
   };
 
@@ -324,7 +302,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
               alt="Aperçu"
               className="max-h-[320px] w-full object-cover rounded-2xl border border-[var(--border)]"
             />
-            {image.startsWith('data:image/gif') && (
+            {(image.startsWith('data:image/gif') || /\.gif($|\?)/i.test(image)) && (
               <span className="absolute top-2 left-2 bg-black/60 text-white text-[11px] font-extrabold rounded px-1.5 py-0.5">
                 GIF
               </span>
@@ -474,20 +452,12 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             </button>
             <button
               type="button"
-              onClick={() => gifInputRef.current?.click()}
+              onClick={() => setShowGifPicker(true)}
               title="Ajouter un GIF"
               className="h-9 px-2 rounded-full border-none bg-transparent cursor-pointer text-brand font-extrabold text-[12px] hover:bg-[var(--brand-glow)] transition-colors"
             >
               GIF
             </button>
-            <input
-              ref={gifInputRef}
-              type="file"
-              accept="image/gif"
-              onChange={onGifChange}
-              className="hidden"
-              tabIndex={-1}
-            />
             <input
               ref={fileInputRef}
               type="file"
@@ -533,6 +503,15 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
           </div>
         </div>
       </div>
+      {showGifPicker && (
+        <GifPicker
+          onSelect={(url) => {
+            setImage(url);
+            setShowGifPicker(false);
+          }}
+          onClose={() => setShowGifPicker(false)}
+        />
+      )}
     </div>
   );
 }
