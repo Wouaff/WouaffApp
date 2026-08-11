@@ -109,8 +109,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   }, [showEmojiPicker]);
 
   const remaining = MAX_LENGTH - text.length;
-  const pollValid =
-    !!poll && poll.options.filter((o) => o.trim()).length >= MIN_POLL_OPTIONS;
+  const pollValid = !!poll && poll.options.filter((o) => o.trim()).length >= MIN_POLL_OPTIONS;
   const canPost =
     (text.trim().length > 0 || image.length > 0 || audio.length > 0 || pollValid) &&
     remaining >= 0 &&
@@ -410,6 +409,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             />
             <div className="flex flex-col gap-2">
               {poll.options.map((opt, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: options de sondage ordonnées
                 <div key={i} className="flex items-center gap-2">
                   <input
                     type="text"

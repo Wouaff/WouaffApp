@@ -25,10 +25,7 @@ interface PollVotes {
   votedIndex: number | null;
 }
 
-async function fetchPollVotes(
-  ids: string[],
-  viewerUid?: string,
-): Promise<Map<string, PollVotes>> {
+async function fetchPollVotes(ids: string[], viewerUid?: string): Promise<Map<string, PollVotes>> {
   const map = new Map<string, PollVotes>();
   if (ids.length === 0) return map;
   const placeholders = ids.map(() => '?').join(',');
@@ -57,7 +54,8 @@ function parsePoll(row: Record<string, unknown>, votes?: PollVotes): PostPoll | 
   }
   const options = Array.isArray(parsed.options) ? parsed.options : [];
   if (options.length === 0) return null;
-  const votesArr = votes?.votes && votes.votes.length === options.length ? votes.votes : new Array(options.length).fill(0);
+  const votesArr =
+    votes?.votes && votes.votes.length === options.length ? votes.votes : new Array(options.length).fill(0);
   return {
     question: (parsed.question as string) || 'Sondage',
     options,
@@ -198,9 +196,7 @@ router.post('/', async (req: Request, res: Response) => {
   let pollOptions: string[] = [];
   let pollQuestion = '';
   if (poll && Array.isArray(poll.options)) {
-    pollOptions = poll.options
-      .map((o) => (typeof o === 'string' ? o.trim().slice(0, 80) : ''))
-      .filter(Boolean);
+    pollOptions = poll.options.map((o) => (typeof o === 'string' ? o.trim().slice(0, 80) : '')).filter(Boolean);
     if (pollOptions.length < 2 || pollOptions.length > 4) {
       res.status(400).json({ error: 'Un sondage doit avoir entre 2 et 4 options' });
       return;

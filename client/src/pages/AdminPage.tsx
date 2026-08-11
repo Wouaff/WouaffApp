@@ -2143,7 +2143,11 @@ export default function AdminPage() {
                           onClick={() => adminAvatarFileRef.current?.click()}
                           disabled={adminImgLoading === 'avatar'}
                         >
-                          {adminImgLoading === 'avatar' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                          {adminImgLoading === 'avatar' ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Upload size={14} />
+                          )}
                           {adminImgLoading === 'avatar' ? '...' : 'Fichier'}
                         </button>
                         <input
@@ -2175,7 +2179,11 @@ export default function AdminPage() {
                           onClick={() => adminBannerFileRef.current?.click()}
                           disabled={adminImgLoading === 'banner'}
                         >
-                          {adminImgLoading === 'banner' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                          {adminImgLoading === 'banner' ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Upload size={14} />
+                          )}
                           {adminImgLoading === 'banner' ? '...' : 'Fichier'}
                         </button>
                         <input

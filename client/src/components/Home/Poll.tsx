@@ -29,6 +29,7 @@ export default function Poll({ poll, onVote }: PollProps) {
           const p = pct(i);
           return (
             <button
+              // biome-ignore lint/suspicious/noArrayIndexKey: options de sondage ordonnées
               key={i}
               type="button"
               onClick={() => onVote(i)}
@@ -45,9 +46,7 @@ export default function Poll({ poll, onVote }: PollProps) {
               )}
               <span className="relative flex items-center justify-between gap-2">
                 <span className="text-[14px] text-[var(--text-primary)] truncate">{opt}</span>
-                {voted && (
-                  <span className="text-[13px] font-bold text-[var(--text-secondary)] tabular-nums">{p}%</span>
-                )}
+                {voted && <span className="text-[13px] font-bold text-[var(--text-secondary)] tabular-nums">{p}%</span>}
               </span>
             </button>
           );

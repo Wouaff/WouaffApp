@@ -495,7 +495,7 @@ export default function SettingsPage() {
                       {avatar ? (
                         <img
                           src={avatar}
-                          alt="Aperçu de la photo de profil"
+                          alt=""
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             (e.target as HTMLElement).style.display = 'none';
@@ -512,8 +512,16 @@ export default function SettingsPage() {
                         disabled={imageLoading === 'avatar'}
                         className="flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-primary)] font-bold text-[13px] px-4 py-2.5 cursor-pointer disabled:opacity-50"
                       >
-                        {imageLoading === 'avatar' ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
-                        {imageLoading === 'avatar' ? 'Traitement...' : avatar ? 'Changer la photo' : 'Importer une photo'}
+                        {imageLoading === 'avatar' ? (
+                          <Loader2 size={15} className="animate-spin" />
+                        ) : (
+                          <Camera size={15} />
+                        )}
+                        {imageLoading === 'avatar'
+                          ? 'Traitement...'
+                          : avatar
+                            ? 'Changer la photo'
+                            : 'Importer une photo'}
                       </button>
                       {avatar && (
                         <button
@@ -569,8 +577,16 @@ export default function SettingsPage() {
                         disabled={!isVip || imageLoading === 'banner'}
                         className="flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-primary)] font-bold text-[12px] px-3.5 py-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {imageLoading === 'banner' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                        {imageLoading === 'banner' ? 'Traitement...' : banner ? 'Changer la bannière' : 'Importer une bannière'}
+                        {imageLoading === 'banner' ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Upload size={14} />
+                        )}
+                        {imageLoading === 'banner'
+                          ? 'Traitement...'
+                          : banner
+                            ? 'Changer la bannière'
+                            : 'Importer une bannière'}
                       </button>
                       {banner && (
                         <button

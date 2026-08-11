@@ -494,8 +494,13 @@ export const posts = {
   },
   get: (id: string) => request<SocialPost>('GET', `/posts/${id}`),
   getPublic: (id: string) => request<SocialPost>('GET', `/public/posts/${id}`),
-  create: (text: string, image?: string, audio?: string, audioDuration?: number, poll?: { question?: string; options: string[] }) =>
-    request<SocialPost>('POST', '/posts', { text, image, audio, audioDuration, poll }),
+  create: (
+    text: string,
+    image?: string,
+    audio?: string,
+    audioDuration?: number,
+    poll?: { question?: string; options: string[] },
+  ) => request<SocialPost>('POST', '/posts', { text, image, audio, audioDuration, poll }),
   vote: (id: string, option: number) => request<{ poll: PostPoll }>('POST', `/posts/${id}/vote`, { option }),
   like: (id: string) => request<{ liked: boolean; likes: number }>('POST', `/posts/${id}/like`),
   repost: (id: string) =>

@@ -65,7 +65,8 @@ export default function SearchPage() {
     if (id) navigate(`/@${id}`);
   };
 
-  const initial = (s: SearchResult) => (s.profile?.pseudo || s.wouaffId?.replace(/^@/, '') || '?')[0]?.toUpperCase() || '?';
+  const initial = (s: SearchResult) =>
+    (s.profile?.pseudo || s.wouaffId?.replace(/^@/, '') || '?')[0]?.toUpperCase() || '?';
 
   return (
     <div className="flex h-full">
@@ -108,9 +109,7 @@ export default function SearchPage() {
           </div>
         ) : results.length === 0 ? (
           <div className="py-20 px-6 text-center">
-            <p className="m-0 text-[var(--text-secondary)]">
-              Aucun compte trouvé pour «&nbsp;{q.trim()}&nbsp;».
-            </p>
+            <p className="m-0 text-[var(--text-secondary)]">Aucun compte trouvé pour «&nbsp;{q.trim()}&nbsp;».</p>
           </div>
         ) : (
           <ul className="list-none m-0 p-0">
@@ -127,7 +126,13 @@ export default function SearchPage() {
                   >
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
                       {r.profile?.avatar ? (
-                        <img src={r.profile.avatar} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                        <img
+                          src={r.profile.avatar}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
                       ) : (
                         <span>{initial(r)}</span>
                       )}

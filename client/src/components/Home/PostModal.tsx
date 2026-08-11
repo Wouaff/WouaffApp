@@ -1,4 +1,4 @@
-import { BadgeCheck, Flag, Heart, MessageCircle, Reply, Repeat2, Share2, Trash2, X } from 'lucide-react';
+import { BadgeCheck, Flag, Heart, MessageCircle, Repeat2, Reply, Share2, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
@@ -339,7 +339,8 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
             <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-3 py-1.5">
               <Reply size={12} className="text-brand" />
               <span>
-                Réponse à <span className="font-bold text-brand">{replyTo.handle || replyTo.pseudo || 'commentaire'}</span>
+                Réponse à{' '}
+                <span className="font-bold text-brand">{replyTo.handle || replyTo.pseudo || 'commentaire'}</span>
               </span>
               <button
                 type="button"

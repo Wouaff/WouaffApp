@@ -38,10 +38,39 @@ export default function VerifyEmailPage() {
   }, []);
 
   useEffect(() => {
-    if (urlToken) {
-      submit(urlToken);
+    /* Le lien de l'email contient le code : on le pré-remplit mais on n'auto-valide pas
+       (les scanners d'email / prévisualisateurs consommeraient le code avant l'utilisateur). */
+    const clean = urlToken.trim();
+    if (clean) {
+      if (/^\d{6}$/.test(clean)) {
+        setCode(clean);
+        inputsRef.current[0]?.focus();
+      } else {
+        submit(clean);
+      }
     }
   }, [urlToken, submit]);
+
+  const resend = async () => {
+    setStatus('loading');
+    setMessage('');
+    try {
+      const res = await fetch('/api/auth/send-verification', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setStatus('idle');
+        setMessage('Un nouveau code vient de vous être envoyé par email.');
+        setCode('');
+        inputsRef.current[0]?.focus();
+      } else {
+        setStatus('error');
+        setMessage(data.error || "Impossible d'envoyer un nouveau code.");
+      }
+    } catch {
+      setStatus('error');
+      setMessage("Impossible d'envoyer un nouveau code.");
+    }
+  };
 
   const handleDigit = (idx: number, value: string) => {
     const digit = value.replace(/\D/g, '').slice(-1);
@@ -102,6 +131,12 @@ export default function VerifyEmailPage() {
                 </div>
               )}
 
+              {status === 'idle' && message && (
+                <div className="bg-green-500/10 border border-green-500 rounded-lg px-3 py-2.5 mb-4 text-sm text-green-500">
+                  {message}
+                </div>
+              )}
+
               <div className="flex justify-center gap-2 mb-6" role="group" aria-label="Code de vérification">
                 {[0, 1, 2, 3, 4, 5].map((i) => (
                   <input
@@ -128,7 +163,14 @@ export default function VerifyEmailPage() {
               >
                 Vérifier
               </button>
-              <Link to="/auth" className="text-brand mt-4 inline-block text-sm">
+              <button
+                type="button"
+                className="w-full bg-transparent text-brand px-6 py-2.5 rounded-xl font-bold text-sm border-none cursor-pointer font-sans mt-1 hover:bg-[var(--brand-glow)] transition-colors"
+                onClick={resend}
+              >
+                Renvoyer le code
+              </button>
+              <Link to="/auth" className="text-brand mt-2 inline-block text-sm">
                 Retour à la connexion
               </Link>
             </>

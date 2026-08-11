@@ -194,7 +194,13 @@ export default function PostPage() {
             </div>
           </header>
 
-          <PostCard post={post} onLike={handleLike} onRepost={handleRepost} onVote={handleVote} onOpen={() => setShareOpen(true)} />
+          <PostCard
+            post={post}
+            onLike={handleLike}
+            onRepost={handleRepost}
+            onVote={handleVote}
+            onOpen={() => setShareOpen(true)}
+          />
         </div>
       </main>
       <RightSidebar />

@@ -185,7 +185,13 @@ export default function HomePage() {
   }, [user, updateItem]);
 
   const handlePost = useCallback(
-    async (text: string, image?: string, audio?: string, audioDuration?: number, poll?: { question?: string; options: string[] }) => {
+    async (
+      text: string,
+      image?: string,
+      audio?: string,
+      audioDuration?: number,
+      poll?: { question?: string; options: string[] },
+    ) => {
       try {
         const post = await postsAPI.create(text, image, audio, audioDuration, poll);
         setItems((prev) => {
