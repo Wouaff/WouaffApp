@@ -13,7 +13,6 @@ import {
   Plus,
   Save,
   ShieldCheck,
-  Sparkles,
   Sun,
   Trash2,
   Upload,
@@ -115,13 +114,6 @@ export default function SettingsPage() {
       });
   }, [user]);
 
-  const vipBadgeId =
-    Object.entries(badgeDefs).find(([, b]) => {
-      const n = b?.name?.toLowerCase();
-      return n === 'v.i.p' || n === 'vip';
-    })?.[0] || null;
-  const isVip = !!(vipBadgeId && ownedBadgeIds.includes(vipBadgeId));
-
   const initial = (pseudo || profile?.pseudo || '?')[0]?.toUpperCase() || '?';
   const handle = wouaffId || profile?.wouaffId || '@wouaff_id';
 
@@ -181,14 +173,7 @@ export default function SettingsPage() {
       if (pseudo !== (profile?.pseudo || '')) updateData.pseudo = pseudo;
       if (bio !== (profile?.bio || '')) updateData.bio = bio;
       if (avatar !== (profile?.avatar || '')) updateData.avatar = avatar;
-      if (banner !== (profile?.banner || '')) {
-        if (isVip) updateData.banner = banner;
-        else {
-          showToast('Bannière réservée aux VIP', 'error');
-          setSaving(false);
-          return;
-        }
-      }
+      if (banner !== (profile?.banner || '')) updateData.banner = banner;
       if (wouaffId !== (profile?.wouaffId || '')) {
         if (!wouaffId.startsWith('@')) {
           showToast("L'identifiant doit commencer par @", 'error');
@@ -197,14 +182,8 @@ export default function SettingsPage() {
         }
         updateData.wouaffId = wouaffId;
       }
-      if (messageTheme !== ((profile as Record<string, string>)?.messageTheme || 'default')) {
-        if (isVip) updateData.messageTheme = messageTheme;
-        else {
-          showToast('Thème de message réservé aux VIP', 'error');
-          setSaving(false);
-          return;
-        }
-      }
+      if (messageTheme !== ((profile as Record<string, string>)?.messageTheme || 'default'))
+        updateData.messageTheme = messageTheme;
       const currentLinks = parseSocialLinks((profile as Record<string, unknown>)?.social_links);
       const socialJson = socialLinksToJson(socialLinks);
       if (socialJson !== socialLinksToJson(currentLinks)) {
@@ -219,7 +198,7 @@ export default function SettingsPage() {
       showToast(e instanceof Error ? e.message : 'Une erreur est survenue.', 'error');
     }
     setSaving(false);
-  }, [user, profile, pseudo, bio, avatar, banner, wouaffId, messageTheme, socialLinks, isVip]);
+  }, [user, profile, pseudo, bio, avatar, banner, wouaffId, messageTheme, socialLinks]);
 
   const handleDeleteAccount = async () => {
     if (deleteConfirm !== 'SUPPRIMER' || !user) return;
@@ -322,7 +301,6 @@ export default function SettingsPage() {
                     <span className="font-extrabold text-[19px] text-[var(--text-primary)]">
                       {pseudo || 'Votre pseudo'}
                     </span>
-                    {isVip && <Sparkles size={16} className="text-brand" aria-label="VIP" />}
                   </div>
                   <div className="text-[14px] text-[var(--text-muted)]">{handle}</div>
                   {bio && (
@@ -421,16 +399,11 @@ export default function SettingsPage() {
                   <span className="flex items-center gap-2">
                     <Link2 size={14} /> Liens sociaux
                   </span>
-                  <span className="flex items-center gap-1 text-[10px] normal-case tracking-normal px-2 py-0.5 rounded-full bg-[var(--brand-glow)] text-brand font-bold">
-                    {isVip ? <Sparkles size={10} /> : null}
-                    {isVip ? 'VIP' : `${socialLinks.length}/1`}
+                  <span className="text-[10px] normal-case tracking-normal px-2 py-0.5 rounded-full bg-[var(--brand-glow)] text-brand font-bold">
+                    {socialLinks.length}/3
                   </span>
                 </h3>
-                <div className={`${hintCls} mb-3`}>
-                  {isVip
-                    ? "Jusqu'à 3 liens sociaux, affichés sur votre profil public."
-                    : "Version gratuite : 1 lien social. Passez VIP pour en ajouter jusqu'à 3."}
-                </div>
+                <div className={`${hintCls} mb-3`}>Jusqu'à 3 liens sociaux, affichés sur votre profil public.</div>
                 {socialLinks.map((link, i) => {
                   const pf = PLATFORMS.find((p) => p.id === link.platform);
                   return (
@@ -471,7 +444,7 @@ export default function SettingsPage() {
                     </div>
                   );
                 })}
-                {socialLinks.length < (isVip ? 3 : 1) && (
+                {socialLinks.length < 3 && (
                   <button
                     type="button"
                     onClick={addLink}
@@ -548,13 +521,8 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className={`mb-3 ${!isVip ? 'opacity-60' : ''}`}>
-                  <span className={labelCls}>
-                    Bannière{' '}
-                    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[var(--brand-glow)] text-brand font-bold ml-1 align-middle">
-                      <Sparkles size={9} /> VIP
-                    </span>
-                  </span>
+                <div className="mb-3">
+                  <span className={labelCls}>Bannière</span>
                   <div className="flex items-center gap-3">
                     <div className="flex-shrink-0 w-28 h-16 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] overflow-hidden flex items-center justify-center">
                       {banner ? (
@@ -574,7 +542,7 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => bannerInputRef.current?.click()}
-                        disabled={!isVip || imageLoading === 'banner'}
+                        disabled={imageLoading === 'banner'}
                         className="flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-primary)] font-bold text-[12px] px-3.5 py-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {imageLoading === 'banner' ? (
@@ -610,7 +578,6 @@ export default function SettingsPage() {
                       />
                     </div>
                   </div>
-                  {!isVip && <div className={hintCls}>Bannière réservée aux comptes VIP.</div>}
                 </div>
 
                 <div className="mb-3">
@@ -641,27 +608,19 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className={`mb-3 ${!isVip ? 'opacity-60' : ''}`}>
-                  <span className={labelCls}>
-                    Thème des messages{' '}
-                    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[var(--brand-glow)] text-brand font-bold ml-1 align-middle">
-                      <Sparkles size={9} /> VIP
-                    </span>
-                  </span>
+                <div className="mb-3">
+                  <span className={labelCls}>Thème des messages</span>
                   <div className="grid grid-cols-3 gap-2">
                     {THEMES.map((t) => (
                       <button
                         key={t}
                         type="button"
-                        disabled={!isVip}
                         onClick={() => setMessageTheme(t)}
                         title={t.charAt(0).toUpperCase() + t.slice(1)}
                         className={`rounded-xl border p-2 flex flex-col items-center gap-1.5 cursor-pointer transition-colors ${
-                          !isVip
-                            ? 'opacity-50 cursor-not-allowed'
-                            : messageTheme === t
-                              ? 'border-[var(--brand)] bg-[var(--brand-glow)]'
-                              : 'border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)]'
+                          messageTheme === t
+                            ? 'border-[var(--brand)] bg-[var(--brand-glow)]'
+                            : 'border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)]'
                         }`}
                       >
                         <span className="w-11 h-7 rounded-lg msg-bubble theme-default theme-preview-bubble">

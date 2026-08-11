@@ -67,7 +67,6 @@ export interface UserProfile {
   wouaffId?: string;
   ownedBadges?: string[] | Record<string, string>;
   role?: string;
-  vipTrial?: { active: boolean; expiresAt: number };
   lastSeen?: number;
   discordId?: string;
   social_links?: string;

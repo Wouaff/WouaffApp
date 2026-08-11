@@ -92,20 +92,14 @@ export default function ChatPage() {
     [openGroup],
   );
 
-  const handleVipInvite = useCallback(async (_vipId: string) => {
-    /* VIP invite handled by Cloud Functions */
-  }, []);
-
   /* Invite link + group direct link check */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const inviteId = params.get('invite');
     if (inviteId) handleInvite(inviteId);
-    const vipId = params.get('vipInvite');
-    if (vipId) handleVipInvite(vipId);
     const groupId = params.get('group');
     if (groupId) setTimeout(() => openGroup(groupId), 100);
-  }, [handleVipInvite, openGroup, handleInvite]);
+  }, [openGroup, handleInvite]);
 
   const confirmJoinGroup = async () => {
     if (!joinGroupData) return;

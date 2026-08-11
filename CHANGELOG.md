@@ -66,7 +66,7 @@
 - FIX : Dépassement max_allowed_packet MySQL (compression image + trimming audio)
 - NOUVEAU : Liens sociaux sur le profil public (@username)
   * Éditeur dans les paramètres : sélecteur de plateforme + champ URL
-  * Version gratuite : 1 lien social — VIP : jusqu'à 3 liens
+  * Jusqu'à 3 liens sociaux sur le profil
   * 17 plateformes supportées (Twitter/X, Instagram, GitHub, YouTube, Discord, TikTok, LinkedIn, etc.)
   * Aperçu en direct dans le panneau latéral des paramètres
   * Affichage des liens cliquables sur la page publique `/@username`
