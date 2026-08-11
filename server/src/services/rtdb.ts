@@ -17,7 +17,7 @@ export async function getConversationsForUser(uid: string): Promise<Record<strin
   const rows = await query<Array<Record<string, unknown>>>(
     `SELECT c.contactUid,
             p.pseudo, p.avatar, p.status, p.lastSeen, p.bio, p.wouaffId,
-            p.social_links, p.createdAt, p.banner, p.email,
+            p.social_links, p.createdAt, p.banner,
             m.msgKey, m.text, m.fromUid, m.time, m.deleted, m.edited,
             m.encrypted, m.imageData, m.fileData, m.fileName,
             m.audioData, m.duration, m.contactData, m.replyTo, m.messageTheme,
@@ -47,7 +47,6 @@ export async function getConversationsForUser(uid: string): Promise<Record<strin
       'social_links',
       'createdAt',
       'banner',
-      'email',
     ]) {
       if (row[k] !== undefined) profile[k] = row[k];
     }
@@ -431,7 +430,7 @@ export async function searchGroupMessages(gid: string, searchQuery: string): Pro
 /* ── Profiles ── */
 
 function sanitizeProfile(row: Record<string, unknown>): Record<string, unknown> {
-  const { publicKey, passwordHash, ...profile } = row;
+  const { publicKey, passwordHash, email, ...profile } = row;
   const result = profile as Record<string, unknown>;
   if (publicKey) {
     try {
@@ -1091,8 +1090,8 @@ export async function getRecentUsers(limit = 20): Promise<Record<string, Record<
   );
   const result: Record<string, Record<string, unknown>> = {};
   for (const row of rows) {
-    const { uid, ...profile } = row;
-    result[uid as string] = profile;
+    const { uid, ...rest } = row;
+    result[uid as string] = sanitizeProfile(rest);
   }
   return result;
 }
