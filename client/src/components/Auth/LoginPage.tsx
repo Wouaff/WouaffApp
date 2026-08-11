@@ -1,4 +1,4 @@
-import { Lock, MapPin, ShieldCheck } from 'lucide-react';
+import { Check, Lock, MapPin, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -20,6 +20,19 @@ function getPasswordReqs(password: string) {
     number: /[0-9]/.test(password),
     special: /[!@#$%^&*]/.test(password),
   };
+}
+
+function generatePassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
+  const required = ['A', 'a', '7', '!'];
+  const values = crypto.getRandomValues(new Uint32Array(12));
+  const password = [...required, ...Array.from(values, (value) => chars[value % chars.length])];
+  const order = crypto.getRandomValues(new Uint32Array(password.length));
+  return password
+    .map((char, index) => ({ char, order: order[index] }))
+    .sort((a, b) => a.order - b.order)
+    .map(({ char }) => char)
+    .join('');
 }
 
 const FEATURES = [
@@ -116,7 +129,6 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-dvh bg-[var(--bg-deep)]">
-      {/* ── Panneau branding (desktop) ── */}
       <div className="hidden lg:flex flex-col justify-between flex-1 relative overflow-hidden p-12 border-r border-[var(--border)]">
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -166,52 +178,55 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── Formulaire ── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 bg-[var(--bg-base)]">
-        <div className="w-full max-w-md animate-[fadeIn_0.4s_ease]">
-          <div className="text-center mb-6 lg:hidden">
-            <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-16 h-16 mx-auto mb-3" />
-            <h1 className="text-2xl font-black m-0 text-[var(--text-primary)]">Wouaff</h1>
-            <p className="text-[var(--text-secondary)] text-sm mt-1 m-0">Le réseau social français et souverain 🐺</p>
+      <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto bg-[#11151b] px-6 py-10 sm:px-12 lg:my-3 lg:mr-3 lg:rounded-l-[28px] lg:border-y lg:border-l lg:border-[#303742] lg:px-16">
+        <div className="w-full max-w-[440px] animate-[fadeIn_0.4s_ease]">
+          <div className="mb-10 lg:hidden">
+            <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-14 h-14 mb-5" />
+            <h1 className="text-2xl font-black m-0 text-white">Wouaff</h1>
+            <p className="text-[#8b98a5] text-sm mt-1 m-0">Le réseau social français et souverain 🐺</p>
           </div>
 
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-[0_8px_32px_rgba(0,0,0,0.25)] p-8 w-full">
-            <div className="text-center mb-6">
-              <h2 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">
+          <div key={isRegister ? 'register' : 'login'} className="w-full animate-[authModeIn_0.28s_ease-out]">
+            <div className="mb-9">
+              <div className="hidden lg:flex items-center gap-3 mb-10">
+                <span className="w-8 h-[3px] rounded-full bg-brand-dark" />
+                <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#8b98a5]">Espace membre</span>
+              </div>
+              <h2 className="text-[32px] leading-tight font-black m-0 text-white tracking-[-0.02em]">
                 {isRegister ? 'Créer un compte' : 'Rejoins la communauté'}
               </h2>
-              <p className="text-[var(--text-secondary)] text-sm mt-1.5 m-0">
+              <p className="text-[#8b98a5] text-[15px] mt-2 m-0">
                 {isRegister ? 'Inscris-toi en 30 secondes' : 'Connecte-toi pour continuer'}
               </p>
             </div>
 
-            <div className="mb-4">
-              <label htmlFor="email" className="sr-only">
-                Email
+            <div className="mb-5">
+              <label htmlFor="email" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
+                Adresse email
               </label>
               <input
                 id="email"
                 type="email"
                 inputMode="email"
-                placeholder="Email"
+                placeholder="nom@exemple.fr"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
-                className="w-full bg-[var(--bg-input)] rounded-xl px-4 py-3.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:ring-2 focus:ring-[var(--brand)] font-sans transition-all duration-200 border border-transparent focus:border-[var(--brand)]"
+                className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
               />
             </div>
 
             {isRegister && (
-              <div className="mb-4">
-                <label htmlFor="pseudo" className="sr-only">
+              <div className="mb-5">
+                <label htmlFor="pseudo" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
                   Pseudo
                 </label>
                 <input
                   id="pseudo"
                   type="text"
                   inputMode="text"
-                  placeholder="Pseudo"
+                  placeholder="Ton pseudo"
                   maxLength={20}
                   value={pseudo}
                   onChange={(e) => setPseudo(e.target.value)}
@@ -219,32 +234,49 @@ export default function LoginPage() {
                   onFocus={(e) =>
                     setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
                   }
-                  className="w-full bg-[var(--bg-input)] rounded-xl px-4 py-3.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:ring-2 focus:ring-[var(--brand)] font-sans transition-all duration-200 border border-transparent focus:border-[var(--brand)]"
+                  className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
                 />
               </div>
             )}
 
-            <div className="mb-4">
+            <div className="mb-5">
               <div className="relative">
-                <label htmlFor="password" className="sr-only">
-                  Mot de passe
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="password" className="block text-[13px] font-bold text-[#d6d9db]">
+                    Mot de passe
+                  </label>
+                  {isRegister && (
+                    <button
+                      type="button"
+                      className="border-none bg-transparent p-0 text-[12px] font-bold text-brand cursor-pointer hover:text-brand-light transition-colors"
+                      onClick={() => {
+                        const generated = generatePassword();
+                        setPassword(generated);
+                        setConfirmPassword(generated);
+                        setShowPassword(true);
+                        setShowConfirmPassword(true);
+                      }}
+                    >
+                      Générer un mot de passe
+                    </button>
+                  )}
+                </div>
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   inputMode="text"
-                  placeholder="Mot de passe"
+                  placeholder="Ton mot de passe"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete={isRegister ? 'new-password' : 'current-password'}
                   onFocus={(e) =>
                     setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
                   }
-                  className="w-full bg-[var(--bg-input)] rounded-xl px-4 py-3.5 pr-10 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:ring-2 focus:ring-[var(--brand)] font-sans transition-all duration-200 border border-transparent focus:border-[var(--brand)]"
+                  className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 pr-12 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  className="absolute right-4 bottom-[15px] bg-transparent border-none cursor-pointer p-1 text-[#71767b] hover:text-white transition-colors"
                   onClick={() => setShowPassword((p) => !p)}
                   aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 >
@@ -273,26 +305,36 @@ export default function LoginPage() {
                 </button>
               </div>
               {isRegister && (
-                <div className="text-xs mt-2">
-                  <ul className="list-none p-0 m-0">
-                    <li className={pwReqs.length ? 'text-green-500' : 'text-[var(--text-muted)]'}>
-                      Au moins 8 caractères
-                    </li>
-                    <li className={pwReqs.uppercase ? 'text-green-500' : 'text-[var(--text-muted)]'}>Une majuscule</li>
-                    <li className={pwReqs.lowercase ? 'text-green-500' : 'text-[var(--text-muted)]'}>Une minuscule</li>
-                    <li className={pwReqs.number ? 'text-green-500' : 'text-[var(--text-muted)]'}>Un chiffre</li>
-                    <li className={pwReqs.special ? 'text-green-500' : 'text-[var(--text-muted)]'}>
-                      Un caractère spécial
-                    </li>
+                <div className="mt-2">
+                  <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5 list-none p-0 m-0">
+                    {[
+                      ['Au moins 8 caractères', pwReqs.length],
+                      ['Une majuscule', pwReqs.uppercase],
+                      ['Une minuscule', pwReqs.lowercase],
+                      ['Un chiffre', pwReqs.number],
+                      ['Un caractère spécial', pwReqs.special],
+                    ].map(([label, valid]) => (
+                      <li
+                        key={String(label)}
+                        className={`flex items-center gap-1.5 text-[11px] transition-all ${valid ? 'text-[#5fd38d]' : 'text-[#8b98a5] opacity-45'}`}
+                      >
+                        <span
+                          className={`flex h-[14px] w-[14px] flex-shrink-0 items-center justify-center rounded-full border transition-colors ${valid ? 'border-[#3ca66a] bg-[#173c2a]' : 'border-[#66717d] bg-[#66717d]/20'}`}
+                        >
+                          {valid && <Check size={9} strokeWidth={3} />}
+                        </span>
+                        {label}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}
             </div>
 
             {isRegister && (
-              <div className="mb-4">
+              <div className="mb-5">
                 <div className="relative">
-                  <label htmlFor="confirmPassword" className="sr-only">
+                  <label htmlFor="confirmPassword" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
                     Confirmer le mot de passe
                   </label>
                   <input
@@ -306,11 +348,11 @@ export default function LoginPage() {
                     onFocus={(e) =>
                       setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
                     }
-                    className="w-full bg-[var(--bg-input)] rounded-xl px-4 py-3.5 pr-10 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:ring-2 focus:ring-[var(--brand)] font-sans transition-all duration-200 border border-transparent focus:border-[var(--brand)]"
+                    className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 pr-12 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                    className="absolute right-4 bottom-[15px] bg-transparent border-none cursor-pointer p-1 text-[#71767b] hover:text-white transition-colors"
                     onClick={() => setShowConfirmPassword((p) => !p)}
                     aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                   >
@@ -342,10 +384,10 @@ export default function LoginPage() {
             )}
 
             {!isRegister && (
-              <div className="text-right mb-4">
+              <div className="text-right -mt-2 mb-6">
                 <a
                   href="/forgot-password"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs no-underline transition-colors"
+                  className="text-[#8b98a5] hover:text-brand text-[13px] no-underline transition-colors"
                   onClick={(e) => {
                     e.preventDefault();
                     navigate('/forgot-password');
@@ -359,7 +401,7 @@ export default function LoginPage() {
             {error && (
               <div
                 role="alert"
-                className="bg-red-500/15 rounded-lg px-4 py-3 mb-4 text-sm text-red-400 animate-[shake_0.3s_ease-in-out]"
+                className="border border-red-500/40 bg-red-500/10 rounded-[10px] px-4 py-3 mb-5 text-sm text-red-400 animate-[shake_0.3s_ease-in-out]"
               >
                 {error}
               </div>
@@ -367,7 +409,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="w-full bg-brand text-white px-6 py-3.5 rounded-xl font-bold text-sm border-none cursor-pointer font-sans hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full h-[52px] bg-brand-dark text-white px-6 rounded-full font-black text-[15px] border-none cursor-pointer font-sans hover:bg-[#c75a24] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               onClick={handleSubmit}
               disabled={isLoading}
             >
@@ -380,8 +422,8 @@ export default function LoginPage() {
                   : 'Se connecter'}
             </button>
 
-            <div className="text-center text-sm mt-6">
-              <span className="text-[var(--text-muted)]">{isRegister ? 'Déjà un compte ?' : 'Pas de compte ?'}</span>
+            <div className="text-center text-sm mt-7">
+              <span className="text-[#71767b]">{isRegister ? 'Déjà un compte ?' : 'Pas de compte ?'}</span>
               <button
                 type="button"
                 className="bg-transparent border-none text-brand font-bold cursor-pointer text-sm ml-1 font-sans hover:underline"
@@ -392,7 +434,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="hidden lg:flex items-center justify-center gap-1.5 mt-6 text-[12px] text-[var(--text-muted)]">
+          <div className="hidden lg:flex items-center justify-center gap-1.5 mt-10 text-[12px] text-[#536471]">
             <span>🇫🇷</span>
             <span>Hébergé en France · Zéro log · RGPD &amp; lois européennes</span>
           </div>
