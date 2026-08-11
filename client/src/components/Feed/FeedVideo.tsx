@@ -106,7 +106,13 @@ const FeedVideo = memo(function FeedVideo({ video, isVisible, onLike }: Props) {
       )}
 
       <div className="feed-video-info">
-        <div className="feed-video-author" onClick={() => navigate(`/@${video.pseudo}`)}>
+        <div
+          className="feed-video-author"
+          onClick={() => {
+            const handle = video.wouaffId || (video.pseudo || '').toLowerCase().replace(/\s+/g, '');
+            if (handle) navigate(`/@${handle.replace(/^@/, '')}`);
+          }}
+        >
           {video.avatar ? (
             <img src={video.avatar} alt="" className="feed-video-avatar" loading="lazy" decoding="async" />
           ) : (

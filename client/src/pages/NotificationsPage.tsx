@@ -57,10 +57,8 @@ function notifVerb(item: NotificationItem): string {
 }
 
 function notifUrl(item: NotificationItem): string {
-  if (item.type === 'follow') {
-    return item.actorHandle && item.actorHandle !== '@inconnu'
-      ? `/@${item.actorHandle.replace(/^@/, '')}`
-      : `/@${item.actorUid}`;
+  if (item.type === 'follow' && item.actorHandle && item.actorHandle !== '@inconnu') {
+    return `/@${item.actorHandle.replace(/^@/, '')}`;
   }
   return '/';
 }
