@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   Trash2,
   TrendingUp,
+  Upload,
   User,
   UserMinus,
   UserPlus,
