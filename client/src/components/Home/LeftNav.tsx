@@ -1,4 +1,4 @@
-import { Bell, Bookmark, Compass, Film, Home, MessageSquare, Settings, User } from 'lucide-react';
+import { Bell, Bookmark, Compass, Film, Home, LogOut, MessageSquare, Settings, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -28,7 +28,7 @@ function focusCompose() {
 export default function LeftNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [avatar, setAvatar] = useState('');
   const [myHandle, setMyHandle] = useState('');
   const [unread, setUnread] = useState(0);
@@ -161,22 +161,32 @@ export default function LeftNav() {
             </div>
           </a>
 
-          <button
-            className="flex items-center gap-3 rounded-full p-2.5 w-full cursor-pointer border-none bg-transparent hover:bg-[var(--bg-hover)] transition-colors"
-            onClick={() => navigate('/settings')}
-            aria-label="Profil et paramètres"
-          >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
-              {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
-            </div>
-            <div className="flex flex-col min-w-0 text-left flex-1">
-              <span className="text-[15px] font-bold text-[var(--text-primary)] truncate">
-                {user?.pseudo || 'Utilisateur'}
-              </span>
-              <span className="text-xs text-[var(--text-muted)] truncate">Paramètres</span>
-            </div>
-            <Settings size={18} className="text-[var(--text-muted)] flex-shrink-0" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              className="flex items-center gap-3 rounded-full p-2.5 flex-1 min-w-0 cursor-pointer border-none bg-transparent hover:bg-[var(--bg-hover)] transition-colors"
+              onClick={() => navigate('/settings')}
+              aria-label="Profil et paramètres"
+            >
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
+                {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
+              </div>
+              <div className="flex flex-col min-w-0 text-left flex-1">
+                <span className="text-[15px] font-bold text-[var(--text-primary)] truncate">
+                  {user?.pseudo || 'Utilisateur'}
+                </span>
+                <span className="text-xs text-[var(--text-muted)] truncate">Paramètres</span>
+              </div>
+              <Settings size={18} className="text-[var(--text-muted)] flex-shrink-0" />
+            </button>
+            <button
+              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer border-none bg-transparent text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--bg-hover)] transition-colors"
+              onClick={logout}
+              aria-label="Se déconnecter"
+              title="Se déconnecter"
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
         </div>
       </div>
     </aside>
