@@ -7,13 +7,10 @@ import { getOne, query } from '../config/database.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, '../../.env') });
 
-const DEFAULT_WEBHOOK_URL =
-  'https://discord.com/api/webhooks/1536489602502893658/RfXkTn8AiSKHbMgjcQ_QhmH_lEAszN8VcYT1tdgUhV1ZcD3C5Re9WNHI4eh4XD4IYlTF';
-const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
-
-const REGISTER_WEBHOOK_URL =
-  process.env.DISCORD_REGISTER_WEBHOOK_URL ||
-  'https://discord.com/api/webhooks/1536874043486244894/AF-iz4Hc9qD3QQ0-MJTZNBHrL0h0mmG4LRjJ5wGhtUH-e4OnhHG-aGr4VH993SRkrvWa';
+/* Les URLs des webhooks ne doivent JAMAIS être en dur dans le code :
+   uniquement dans le .env (DISCORD_WEBHOOK_URL / DISCORD_REGISTER_WEBHOOK_URL). */
+const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
+const REGISTER_WEBHOOK_URL = process.env.DISCORD_REGISTER_WEBHOOK_URL;
 
 export interface SqlMatch {
   name: string;
