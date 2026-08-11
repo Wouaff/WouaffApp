@@ -240,7 +240,6 @@ router.post('/send-verification', verifyToken, async (req: Request, res: Respons
       res.json({ success: true, alreadyVerified: true });
       return;
     }
-    await query('UPDATE email_tokens SET used=1 WHERE uid=? AND type=? AND used=0', [authReq.uid!, 'verify']);
     const code = genCode();
     await query('INSERT INTO email_tokens (uid, token, type, expiresAt, createdAt) VALUES (?,?,?,?,?)', [
       authReq.uid!,
@@ -273,7 +272,7 @@ router.post('/verify-email', async (req: Request, res: Response) => {
       return;
     }
     const row = await getOne<{ uid: string; id: number; used: number; expiresAt: number }>(
-      'SELECT uid, id, used, expiresAt FROM email_tokens WHERE token=? AND type=?',
+      'SELECT uid, id, used, expiresAt FROM email_tokens WHERE token=? AND type=? ORDER BY id DESC LIMIT 1',
       [value, 'verify'],
     );
     if (!row) {
