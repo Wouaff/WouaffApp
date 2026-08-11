@@ -33,16 +33,21 @@ router.get('/history', async (req: Request, res: Response) => {
 
 /* GET /calls/:id — détail d'un appel spécifique (MySQL d'abord, puis GCS) */
 router.get('/:id', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   const { id } = req.params;
   try {
-    const row = await query<CallRow[]>('SELECT * FROM calls WHERE id = ?', [id]);
+    const row = await query<CallRow[]>('SELECT * FROM calls WHERE id = ? AND (callerUid = ? OR calleeUid = ?)', [
+      id,
+      authReq.uid!,
+      authReq.uid!,
+    ]);
     if (row.length > 0) {
       res.json({ call: row[0], source: 'mysql' });
       return;
     }
     if (isColdStorageEnabled()) {
       const archived = await getArchivedCall(id);
-      if (archived) {
+      if (archived && (archived.callerUid === authReq.uid || archived.calleeUid === authReq.uid)) {
         res.json({ call: archived, source: 'gcs' });
         return;
       }

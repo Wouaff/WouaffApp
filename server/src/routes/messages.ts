@@ -27,11 +27,22 @@ async function isBlocked(uid: string, byUid: string): Promise<boolean> {
   return !!row;
 }
 
+async function requireGroupMember(req: Request, res: Response): Promise<boolean> {
+  const authReq = req as AuthRequest;
+  const member = await getOne<{ uid: string }>('SELECT uid FROM group_members WHERE gid=? AND uid=?', [
+    req.params.gid,
+    authReq.uid!,
+  ]);
+  if (member) return true;
+  res.status(403).json({ error: 'Vous ne faites pas partie de ce groupe' });
+  return false;
+}
+
 /* GET /messages/:uid — messages d'une conversation DM */
 router.get('/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
-  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+  const limit = req.query.limit ? Math.min(Math.max(parseInt(req.query.limit as string, 10) || 50, 1), 100) : undefined;
   const before = req.query.before ? parseInt(req.query.before as string, 10) : undefined;
   const result = await getMessages(cid, limit, before);
   res.json(result);
@@ -39,7 +50,8 @@ router.get('/:uid', async (req: Request, res: Response) => {
 
 /* GET /messages/group/:gid — messages d'un groupe */
 router.get('/group/:gid', async (req: Request, res: Response) => {
-  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+  if (!(await requireGroupMember(req, res))) return;
+  const limit = req.query.limit ? Math.min(Math.max(parseInt(req.query.limit as string, 10) || 50, 1), 100) : undefined;
   const before = req.query.before ? parseInt(req.query.before as string, 10) : undefined;
   const result = await getGroupMessages(req.params.gid, limit, before);
   res.json(result);
@@ -78,6 +90,7 @@ router.post('/:uid', async (req: Request, res: Response) => {
 
 /* POST /messages/group/:gid — envoyer un message groupe */
 router.post('/group/:gid', async (req: Request, res: Response) => {
+  if (!(await requireGroupMember(req, res))) return;
   const authReq = req as AuthRequest;
   const msg: MessageData = {
     ...req.body,
@@ -117,6 +130,7 @@ router.delete('/:uid/:msgKey', async (req: Request, res: Response) => {
 
 /* DELETE /messages/group/:gid/:msgKey — supprimer un message groupe */
 router.delete('/group/:gid/:msgKey', async (req: Request, res: Response) => {
+  if (!(await requireGroupMember(req, res))) return;
   await updateGroupMessage(req.params.gid, req.params.msgKey, {
     text: '',
     deleted: true,
@@ -155,6 +169,7 @@ router.patch('/:uid/:msgKey', async (req: Request, res: Response) => {
 
 /* PATCH /messages/group/:gid/:msgKey */
 router.patch('/group/:gid/:msgKey', async (req: Request, res: Response) => {
+  if (!(await requireGroupMember(req, res))) return;
   await updateGroupMessage(req.params.gid, req.params.msgKey, req.body);
   const io = req.app.get('io');
   if (io)
@@ -182,6 +197,7 @@ router.post('/:uid/seen', async (req: Request, res: Response) => {
 
 /* POST /messages/group/:gid/seen — marquer des messages comme vus dans un groupe */
 router.post('/group/:gid/seen', async (req: Request, res: Response) => {
+  if (!(await requireGroupMember(req, res))) return;
   const authReq = req as AuthRequest;
   const msgKeys = (req.body as { msgKeys?: string[] }).msgKeys || [];
   if (!msgKeys.length) {
@@ -235,6 +251,7 @@ router.get('/search/:uid', async (req: Request, res: Response) => {
 
 /* GET /messages/group/search/:gid — rechercher dans un groupe */
 router.get('/group/search/:gid', async (req: Request, res: Response) => {
+  if (!(await requireGroupMember(req, res))) return;
   const q = ((req.query.q as string) || '').trim();
   if (!q) {
     res.json({ results: {} });
@@ -267,6 +284,7 @@ router.get('/:uid/pinned', async (req: Request, res: Response) => {
 
 /* GET /messages/group/:gid/pinned — messages épinglés groupe */
 router.get('/group/:gid/pinned', async (req: Request, res: Response) => {
+  if (!(await requireGroupMember(req, res))) return;
   const rows = await query<Array<MessageData & { msgKey: string }>>(
     'SELECT * FROM group_messages WHERE gid=? AND pinned=1 ORDER BY time DESC LIMIT 5',
     [req.params.gid],
@@ -293,6 +311,7 @@ router.post('/:uid/:msgKey/pin', async (req: Request, res: Response) => {
 
 /* POST /messages/group/:gid/:msgKey/pin — épingler/désépingler un message groupe */
 router.post('/group/:gid/:msgKey/pin', async (req: Request, res: Response) => {
+  if (!(await requireGroupMember(req, res))) return;
   const { pinned } = req.body as { pinned: boolean };
   await updateGroupMessage(req.params.gid, req.params.msgKey, { pinned } as unknown as Record<string, unknown>);
   const io = req.app.get('io');
@@ -337,6 +356,7 @@ router.post('/:uid/:msgKey/reaction', async (req: Request, res: Response) => {
 
 /* POST /messages/group/:gid/:msgKey/reaction — toggle réaction groupe */
 router.post('/group/:gid/:msgKey/reaction', async (req: Request, res: Response) => {
+  if (!(await requireGroupMember(req, res))) return;
   const authReq = req as AuthRequest;
   const { emoji } = req.body as { emoji?: string };
   if (!emoji) {

@@ -66,6 +66,7 @@ app.use('/api/videos', rateLimit({ windowMs: 60000, max: 60 }));
 app.use('/api/posts', rateLimit({ windowMs: 60000, max: 120 }));
 app.use('/api/trends', rateLimit({ windowMs: 60000, max: 30 }));
 app.use('/api/gifs', rateLimit({ windowMs: 60000, max: 60 }));
+app.use('/api/link-preview', rateLimit({ windowMs: 60000, max: 20 }));
 
 /* Public maintenance status (accessible even during maintenance) */
 app.get('/api/maintenance', (_req, res) => {

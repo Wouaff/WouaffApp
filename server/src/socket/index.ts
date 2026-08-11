@@ -79,7 +79,9 @@ export function setupSocket(httpServer: HTTPServer): Server {
       authed.roomsJoined.add(`dm:${cid}`);
     });
 
-    socket.on('join:group', (gid: string) => {
+    socket.on('join:group', async (gid: string) => {
+      const member = await getOne<{ uid: string }>('SELECT uid FROM group_members WHERE gid=? AND uid=?', [gid, uid]);
+      if (!member) return;
       socket.join(`group:${gid}`);
       authed.roomsJoined.add(`group:${gid}`);
     });
@@ -89,7 +91,8 @@ export function setupSocket(httpServer: HTTPServer): Server {
       socket.to(`dm:${cid}`).emit('typing', { from: uid, isTyping });
     });
 
-    socket.on('typing:group', (gid: string, isTyping: boolean) => {
+    socket.on('typing:group', async (gid: string, isTyping: boolean) => {
+      if (!authed.roomsJoined.has(`group:${gid}`)) return;
       socket.to(`group:${gid}`).emit('typing', { from: uid, isTyping });
     });
 
