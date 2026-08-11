@@ -2,6 +2,7 @@ import { Check, Lock, MapPin, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useCap } from '../../hooks/useCap';
 import { login, register } from '../../services/auth';
 
 function validateEmail(email: string) {
@@ -53,6 +54,7 @@ export default function LoginPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const cap = useCap('register');
 
   useEffect(() => {
     if (user) navigate('/');
@@ -100,16 +102,21 @@ export default function LoginPage() {
           setError('Le mot de passe ne respecte pas les exigences de sécurité.');
           return;
         }
+        if (cap.required && !cap.token) {
+          setError('Veuillez confirmer que vous êtes humain.');
+          return;
+        }
       }
 
       setIsLoading(true);
       try {
         if (isRegister) {
-          await register(email, password, pseudo);
+          await register(email, password, pseudo, cap.token);
         } else {
           await login(email, password);
         }
         await refresh();
+        cap.reset();
         requestAnimationFrame(() => navigate('/'));
       } catch (err: unknown) {
         setError((err as Error).message || "Une erreur s'est produite");
@@ -117,7 +124,7 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     },
-    [email, password, pseudo, confirmPassword, isRegister, pwValid, navigate, refresh],
+    [email, password, pseudo, confirmPassword, isRegister, pwValid, navigate, refresh, cap],
   );
 
   const toggleMode = () => {
@@ -406,6 +413,8 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
+
+            {isRegister && <div className="mb-5 flex justify-center">{cap.widget}</div>}
 
             <button
               type="submit"

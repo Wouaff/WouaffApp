@@ -1,6 +1,7 @@
 import { BarChart3, Image, Mic, Smile, Square, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useCap } from '../../hooks/useCap';
 import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
 import type { MentionUser } from '../../types';
 import { compressImage } from '../../utils/audio';
@@ -28,6 +29,7 @@ interface ComposeBoxProps {
     audio?: string,
     audioDuration?: number,
     poll?: { question?: string; options: string[] },
+    capToken?: string,
   ) => void;
 }
 
@@ -49,6 +51,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cap = useCap('post');
 
   const togglePoll = () => {
     setPoll((p) => (p ? null : { question: '', options: ['', ''] }));
@@ -244,6 +247,10 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
 
   const submit = () => {
     if (!canPost) return;
+    if (cap.required && !cap.token) {
+      showToast('Veuillez confirmer que vous êtes humain.', 'error');
+      return;
+    }
     const pollPayload =
       poll && poll.options.filter((o) => o.trim()).length >= MIN_POLL_OPTIONS
         ? {
@@ -251,7 +258,8 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             options: poll.options.map((o) => o.trim()).filter(Boolean),
           }
         : undefined;
-    onPost(text.trim(), image || undefined, audio || undefined, audioDuration || undefined, pollPayload);
+    onPost(text.trim(), image || undefined, audio || undefined, audioDuration || undefined, pollPayload, cap.token);
+    cap.reset();
     setText('');
     setImage('');
     setAudio('');
@@ -502,6 +510,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             </button>
           </div>
         </div>
+        {cap.required && <div className="mt-3">{cap.widget}</div>}
       </div>
       {showGifPicker && (
         <GifPicker

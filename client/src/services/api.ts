@@ -501,13 +501,15 @@ export const posts = {
     audio?: string,
     audioDuration?: number,
     poll?: { question?: string; options: string[] },
-  ) => request<SocialPost>('POST', '/posts', { text, image, audio, audioDuration, poll }),
+    capToken?: string,
+  ) => request<SocialPost>('POST', '/posts', { text, image, audio, audioDuration, poll, capToken }),
   vote: (id: string, option: number) => request<{ poll: PostPoll }>('POST', `/posts/${id}/vote`, { option }),
   like: (id: string) => request<{ liked: boolean; likes: number }>('POST', `/posts/${id}/like`),
   repost: (id: string) =>
     request<{ reposted: boolean; reposts: number; item?: FeedItem }>('POST', `/posts/${id}/repost`),
   comments: (id: string) => request<PostComment[]>('GET', `/posts/${id}/comments`),
-  addComment: (id: string, text: string) => request<PostComment>('POST', `/posts/${id}/comments`, { text }),
+  addComment: (id: string, text: string, capToken?: string) =>
+    request<PostComment>('POST', `/posts/${id}/comments`, { text, capToken }),
   delete: (id: string) => request<{ success: boolean }>('DELETE', `/posts/${id}`),
   deleteComment: (commentId: number) => request<{ success: boolean }>('DELETE', `/posts/comments/${commentId}`),
   report: (id: string, reason?: string) => request<{ success: boolean }>('POST', `/posts/${id}/report`, { reason }),

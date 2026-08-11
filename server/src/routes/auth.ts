@@ -4,6 +4,7 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
 import { createSession, verifyToken } from '../middleware/auth.js';
+import { verifyCaptcha } from '../middleware/captcha.js';
 import { genCode, getLastEmailError, sendPasswordResetEmail, sendVerificationEmail } from '../services/email.js';
 import { getStaffRole, isStaff, isUserBanned } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
@@ -28,7 +29,7 @@ function setSessionCookie(res: Response, sessionId: string): void {
 }
 
 /* POST /auth/register */
-router.post('/register', async (req: Request, res: Response) => {
+router.post('/register', verifyCaptcha, async (req: Request, res: Response) => {
   try {
     const { email, password, pseudo } = req.body as { email?: string; password?: string; pseudo?: string };
     if (!email || !password) {
@@ -157,7 +158,7 @@ router.post('/logout', async (req: Request, res: Response) => {
 });
 
 /* POST /auth/forgot-password */
-router.post('/forgot-password', async (req: Request, res: Response) => {
+router.post('/forgot-password', verifyCaptcha, async (req: Request, res: Response) => {
   try {
     const { email } = req.body as { email?: string };
     if (!email) {

@@ -19,6 +19,7 @@ import adminRouter from './routes/admin.js';
 import authRouter from './routes/auth.js';
 import blocksRouter from './routes/blocks.js';
 import callsRouter from './routes/calls.js';
+import captchaRouter from './routes/captcha.js';
 import contactsRouter from './routes/contacts.js';
 import conversationsRouter from './routes/conversations.js';
 import gifsRouter from './routes/gifs.js';
@@ -85,6 +86,7 @@ app.set('io', io);
 
 /* REST API (all routers auto-wrap async handlers) */
 app.use('/api/auth', patchRouter(authRouter));
+app.use('/api/captcha', patchRouter(captchaRouter));
 app.use('/api/messages', patchRouter(messagesRouter));
 app.use('/api/conversations', patchRouter(conversationsRouter));
 app.use('/api/profiles', patchRouter(profilesRouter));

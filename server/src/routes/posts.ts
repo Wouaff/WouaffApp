@@ -4,6 +4,7 @@ import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
+import { verifyCaptchaIfNewAccount } from '../middleware/captcha.js';
 import { createNotification } from '../services/notifications.js';
 import { getProfile, reportPost } from '../services/rtdb.js';
 import type { AuthRequest, PostComment, PostData, PostFeedItem, PostPoll } from '../types/index.js';
@@ -180,7 +181,7 @@ async function getRepostItem(repostedByUid: string, postId: string, viewerUid?: 
   };
 }
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', verifyCaptchaIfNewAccount, async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { text, image, audio, audioDuration, poll } = req.body as {
     text?: string;
@@ -533,7 +534,7 @@ router.post('/:id/report', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-router.post('/:id/comments', async (req: Request, res: Response) => {
+router.post('/:id/comments', verifyCaptchaIfNewAccount, async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { text } = req.body as { text?: string };
   const content = (text || '').trim();

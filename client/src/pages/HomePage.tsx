@@ -191,9 +191,10 @@ export default function HomePage() {
       audio?: string,
       audioDuration?: number,
       poll?: { question?: string; options: string[] },
+      capToken?: string,
     ) => {
       try {
-        const post = await postsAPI.create(text, image, audio, audioDuration, poll);
+        const post = await postsAPI.create(text, image, audio, audioDuration, poll, capToken);
         setItems((prev) => {
           const item = toPostItem(post);
           return prev.some((i) => i.key === item.key) ? prev : [item, ...prev];

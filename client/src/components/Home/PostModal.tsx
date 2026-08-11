@@ -1,6 +1,7 @@
 import { BadgeCheck, Flag, Heart, MessageCircle, Repeat2, Reply, Share2, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useCap } from '../../hooks/useCap';
 import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
 import { posts as postsAPI } from '../../services/api';
 import { offPostComment, offPostDeleted, onPostComment, onPostDeleted } from '../../services/socket';
@@ -46,6 +47,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
   const [shareOpen, setShareOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<PostComment | null>(null);
   const commentInputRef = useRef<HTMLInputElement>(null);
+  const cap = useCap('comment');
   const isOwn = !!user && post.uid === user.uid;
 
   const startReply = useCallback((c: PostComment) => {
@@ -125,11 +127,16 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
   const submitComment = useCallback(async () => {
     const value = text.trim();
     if (!value || sending) return;
+    if (cap.required && !cap.token) {
+      showToast('Veuillez confirmer que vous êtes humain.', 'error');
+      return;
+    }
     setSending(true);
     try {
-      const comment = await postsAPI.addComment(post.id, value);
+      const comment = await postsAPI.addComment(post.id, value, cap.token);
       setComments((prev) => [...prev, comment]);
       onCommentDelta(post.id, 1);
+      cap.reset();
       setText('');
       setReplyTo(null);
     } catch {
@@ -137,7 +144,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
     } finally {
       setSending(false);
     }
-  }, [post.id, text, sending, onCommentDelta]);
+  }, [post.id, text, sending, onCommentDelta, cap]);
 
   const removeComment = useCallback(
     async (commentId: number) => {
@@ -353,6 +360,8 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
             </div>
           </div>
         )}
+
+        {cap.required && <div className="px-4 pt-2.5 flex justify-center">{cap.widget}</div>}
 
         <div className="flex items-center gap-2 px-4 py-3 border-t border-[var(--border)] flex-shrink-0">
           <div className="relative flex-1 min-w-0">

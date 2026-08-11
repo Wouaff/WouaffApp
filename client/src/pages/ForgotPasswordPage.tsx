@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useCap } from '../hooks/useCap';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const cap = useCap('forgot');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,15 +16,20 @@ export default function ForgotPasswordPage() {
       setError('Email requis.');
       return;
     }
+    if (cap.required && !cap.token) {
+      setError('Veuillez confirmer que vous êtes humain.');
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, capToken: cap.token }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erreur');
+      cap.reset();
       setSent(true);
     } catch (err: unknown) {
       setError((err as Error).message);
@@ -79,6 +86,8 @@ export default function ForgotPasswordPage() {
               className="w-full bg-[var(--bg-page)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:ring-2 focus:ring-brand font-sans"
             />
           </div>
+
+          <div className="mb-5 flex justify-center">{cap.widget}</div>
 
           <button
             className="w-full bg-brand text-white px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans disabled:opacity-50 disabled:cursor-not-allowed"
