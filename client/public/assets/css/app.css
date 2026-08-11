@@ -5130,25 +5130,66 @@ body {
 }
 .emoji-picker {
   position: absolute;
-  bottom: 100%;
+  bottom: calc(100% - 110px);
   left: 0;
+  display: flex;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   z-index: 100;
-  width: 320px;
+  width: 360px;
   max-width: calc(100vw - 28px);
-  max-height: 300px;
+  height: 220px;
+  max-height: min(220px, calc(100dvh - 150px));
   overflow: hidden;
 }
+.emoji-picker-categories {
+  width: 48px;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--bg-base);
+  border-right: 1px solid var(--border);
+}
+.emoji-category-button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: var(--transition);
+}
+.emoji-category-button:hover,
+.emoji-category-button.active {
+  opacity: 1;
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
 .emoji-picker-content {
+  flex: 1;
+  min-width: 0;
   overflow-y: auto;
-  max-height: 300px;
-  padding: 8px;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px;
+  scroll-behavior: smooth;
 }
 .emoji-category {
-  margin-bottom: 8px;
+  scroll-margin-top: 10px;
+  margin-bottom: 10px;
 }
 .emoji-category-name {
   font-size: 11px;
@@ -5160,8 +5201,8 @@ body {
   padding: 0 4px;
 }
 .emoji-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
   gap: 2px;
 }
 .emoji-item {
@@ -5180,7 +5221,30 @@ body {
 }
 .emoji-item:hover {
   background: var(--bg-hover);
-  transform: scale(1.2);
+  transform: scale(1.1);
+}
+@media (max-width: 520px) {
+  .emoji-picker {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    max-width: none;
+    height: min(280px, 48dvh);
+  }
+  .emoji-picker-categories {
+    width: 44px;
+    padding-inline: 4px;
+  }
+  .emoji-picker-content {
+    scroll-behavior: auto;
+  }
+  .emoji-item {
+    width: 34px;
+    height: 34px;
+    font-size: 20px;
+  }
 }
 
 /* ── Forward modal ── */

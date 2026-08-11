@@ -362,8 +362,8 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
         )}
 
         {poll && (
-          <div className="mt-2 rounded-2xl bg-[var(--bg-input)] border border-[var(--border)] p-3">
-            <div className="flex items-center justify-between mb-2">
+          <div className="mt-3 border-t border-[var(--border)] pt-3">
+            <div className="flex items-center justify-between mb-3">
               <span className="flex items-center gap-1.5 text-[13px] font-bold text-brand">
                 <BarChart3 size={15} />
                 Sondage
@@ -372,7 +372,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
                 type="button"
                 onClick={togglePoll}
                 aria-label="Retirer le sondage"
-                className="w-7 h-7 rounded-full flex items-center justify-center border-none bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] hover:text-red-500 transition-colors"
+                className="w-7 h-7 rounded-full flex items-center justify-center border-0 bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] hover:text-red-500 transition-colors"
               >
                 <X size={15} />
               </button>
@@ -383,7 +383,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
               onChange={(e) => setPoll((p) => (p ? { ...p, question: e.target.value } : p))}
               placeholder="Question (optionnel)"
               maxLength={140}
-              className="w-full mb-2 bg-[var(--bg-base)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
+              className="w-full mb-3 bg-[var(--bg-input)] border-0 rounded-lg px-3 py-2.5 text-sm font-bold text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:bg-[var(--bg-hover)] font-sans transition-colors"
             />
             <div className="flex flex-col gap-2">
               {poll.options.map((opt, i) => (
@@ -395,14 +395,14 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
                     onChange={(e) => setPollOption(i, e.target.value)}
                     placeholder={`Option ${i + 1}`}
                     maxLength={80}
-                    className="flex-1 min-w-0 bg-[var(--bg-base)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
+                    className="flex-1 min-w-0 bg-[var(--bg-input)] border-0 rounded-lg px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:bg-[var(--bg-hover)] font-sans transition-colors"
                   />
                   {poll.options.length > MIN_POLL_OPTIONS && (
                     <button
                       type="button"
                       onClick={() => removePollOption(i)}
                       aria-label={`Retirer l'option ${i + 1}`}
-                      className="w-8 h-8 rounded-full flex items-center justify-center border-none bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] hover:text-red-500 transition-colors flex-shrink-0"
+                      className="w-8 h-8 rounded-full flex items-center justify-center border-0 bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] hover:text-red-500 transition-colors flex-shrink-0"
                     >
                       <X size={15} />
                     </button>
@@ -414,7 +414,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
               <button
                 type="button"
                 onClick={addPollOption}
-                className="mt-2 text-[13px] font-bold text-brand rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:bg-[var(--brand-glow)] transition-colors"
+                className="mt-3 text-[13px] font-bold text-brand rounded-full border-0 bg-transparent cursor-pointer px-2 py-1 hover:text-brand-light transition-colors"
               >
                 + Ajouter une option
               </button>

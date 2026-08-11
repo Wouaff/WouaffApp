@@ -451,6 +451,40 @@
   outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
+@keyframes authModeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pollFill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes pollChoice {
+  50% {
+    transform: scale(1.01);
+  }
+}
+@keyframes pollBackdropIn {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pollConfirmIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
 /* sr-only utility — ensures screen reader only content is hidden visually but accessible */
 .sr-only {
   position: absolute;
