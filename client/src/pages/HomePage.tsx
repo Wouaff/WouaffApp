@@ -215,8 +215,12 @@ export default function HomePage() {
               poll: {
                 ...p.poll,
                 votedIndex: option,
-                votes: p.poll.votes.map((v, i) => v + (i === option ? 1 : 0)),
-                total: p.poll.total + 1,
+                votes: p.poll.votes.map((v, i) => {
+                  if (i === p.poll?.votedIndex) return Math.max(0, v - 1);
+                  if (i === option) return v + 1;
+                  return v;
+                }),
+                total: p.poll.votedIndex === null ? p.poll.total + 1 : p.poll.total,
               },
             }
           : p,
