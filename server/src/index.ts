@@ -36,6 +36,8 @@ import storiesRouter from './routes/stories.js';
 import trendsRouter from './routes/trends.js';
 import videosRouter from './routes/videos.js';
 import { archiveOldCalls, initColdStorage, isColdStorageEnabled } from './services/coldStorage.js';
+import { startQueueWorker } from './services/queue.js';
+import { registerQueueHandlers, setQueueIo } from './services/queueHandlers.js';
 import { cleanExpiredEphemeralMessages, getMaintenanceMode } from './services/rtdb.js';
 import { setupSocket } from './socket/index.js';
 
@@ -150,6 +152,11 @@ const PORT = parseInt(process.env.PORT || '7285', 10);
 
 runMigrations()
   .then(async () => {
+    /* File asynchrone : emails, webhooks, notifications */
+    setQueueIo(io);
+    registerQueueHandlers();
+    startQueueWorker();
+
     /* Init cold storage (GCS) */
     await initColdStorage();
     if (isColdStorageEnabled()) {

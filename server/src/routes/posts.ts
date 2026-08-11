@@ -5,7 +5,7 @@ import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
 import { verifyCaptchaIfNewAccount } from '../middleware/captcha.js';
-import { createNotification } from '../services/notifications.js';
+import { enqueueJob } from '../services/queue.js';
 import { getProfile, reportPost } from '../services/rtdb.js';
 import type { AuthRequest, PostComment, PostData, PostFeedItem, PostPoll } from '../types/index.js';
 import { extractHashtags } from '../utils/hashtags.js';
@@ -459,7 +459,12 @@ router.post('/:id/like', async (req: Request, res: Response) => {
     if (io) io.emit('post:liked', { postId: req.params.id, uid: authReq.uid!, liked: true, likes: row.likesCount });
     const [author] = await query<Array<{ uid: string }>>('SELECT uid FROM posts WHERE id = ?', [req.params.id]);
     if (io && author && author.uid !== authReq.uid) {
-      await createNotification(io, { uid: author.uid, actorUid: authReq.uid!, type: 'like', postId: req.params.id });
+      enqueueJob('notification', {
+        uid: author.uid,
+        actorUid: authReq.uid!,
+        type: 'like',
+        postId: req.params.id,
+      }).catch(() => {});
     }
     res.json({ liked: true, likes: row.likesCount });
   }
@@ -512,7 +517,12 @@ router.post('/:id/repost', async (req: Request, res: Response) => {
     if (io && item) io.emit('post:repost', item);
     const [author] = await query<Array<{ uid: string }>>('SELECT uid FROM posts WHERE id = ?', [req.params.id]);
     if (io && author && author.uid !== authReq.uid) {
-      await createNotification(io, { uid: author.uid, actorUid: authReq.uid!, type: 'repost', postId: req.params.id });
+      enqueueJob('notification', {
+        uid: author.uid,
+        actorUid: authReq.uid!,
+        type: 'repost',
+        postId: req.params.id,
+      }).catch(() => {});
     }
     res.json({ reposted: true, reposts: row.repostsCount, item });
   }
@@ -573,13 +583,13 @@ router.post('/:id/comments', verifyCaptchaIfNewAccount, async (req: Request, res
   const io: Server = req.app.get('io');
   if (io) io.emit('post:comment', { postId: req.params.id, comment });
   if (io && post.uid !== authReq.uid) {
-    await createNotification(io, {
+    enqueueJob('notification', {
       uid: post.uid,
       actorUid: authReq.uid!,
       type: 'comment',
       postId: req.params.id,
       commentId,
-    });
+    }).catch(() => {});
   }
   res.json(comment);
 });

@@ -5,8 +5,9 @@ import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
 import { createSession, verifyToken } from '../middleware/auth.js';
 import { verifyCaptcha } from '../middleware/captcha.js';
-import { sendNewUserAlert } from '../services/discordWebhook.js';
-import { genCode, getLastEmailError, sendPasswordResetEmail, sendVerificationEmail } from '../services/email.js';
+import { enqueueNewUserAlert } from '../services/discordWebhook.js';
+import { genCode, getLastEmailError, sendVerificationEmail } from '../services/email.js';
+import { enqueueJob } from '../services/queue.js';
 import { getStaffRole, isStaff, isUserBanned } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
 
@@ -63,8 +64,8 @@ router.post('/register', verifyCaptcha, async (req: Request, res: Response) => {
       uid,
     ]);
 
-    /* Notifier l'inscription sur Discord (sans bloquer l'inscription) */
-    sendNewUserAlert({ pseudo: finalPseudo, wouaffId, uid, email }).catch(() => {});
+    /* Notifier l'inscription sur Discord (via la file, sans bloquer l'inscription) */
+    enqueueNewUserAlert({ pseudo: finalPseudo, wouaffId, uid }).catch(() => {});
 
     const { sessionId } = await createSession(uid, {
       ip: req.ip,
@@ -72,7 +73,7 @@ router.post('/register', verifyCaptcha, async (req: Request, res: Response) => {
     });
     setSessionCookie(res, sessionId);
 
-    /* Send verification email */
+    /* Send verification email (via la file asynchrone) */
     const code = genCode();
     await query('INSERT INTO email_tokens (uid, token, type, expiresAt, createdAt) VALUES (?,?,?,?,?)', [
       uid,
@@ -81,7 +82,7 @@ router.post('/register', verifyCaptcha, async (req: Request, res: Response) => {
       Date.now() + 900000,
       Date.now(),
     ]);
-    sendVerificationEmail(email, code).catch(() => {});
+    enqueueJob('email', { kind: 'verify', to: email, code }).catch(() => {});
 
     res.status(201).json({ uid, pseudo: finalPseudo, wouaffId, emailVerified: false });
   } catch (err) {
@@ -184,7 +185,8 @@ router.post('/forgot-password', verifyCaptcha, async (req: Request, res: Respons
       Date.now() + 3600000,
       Date.now(),
     ]);
-    await sendPasswordResetEmail(email, token);
+    /* Envoi de l'email de réinitialisation via la file asynchrone */
+    enqueueJob('email', { kind: 'reset', to: email, token }).catch(() => {});
     res.json({ success: true });
   } catch (err) {
     console.error('Forgot-password error:', err);

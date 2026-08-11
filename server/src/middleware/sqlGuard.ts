@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { type SqlMatch, sendSqlInjectionAlert } from '../services/discordWebhook.js';
+import { enqueueSqlInjectionAlert, type SqlMatch } from '../services/discordWebhook.js';
 
 /*
  * Détection de tentatives d'injection SQL dans tous les champs textuels
@@ -68,7 +68,7 @@ export function sqlGuard(req: Request, res: Response, next: NextFunction): void 
   console.warn(
     `[SQL-GUARD] Tentative d'injection SQL (${match.name}) depuis ${req.ip || 'inconnu'} sur ${req.method} ${req.originalUrl}`,
   );
-  sendSqlInjectionAlert(req, match).catch(() => {});
+  enqueueSqlInjectionAlert(req, match).catch(() => {});
 
   res.status(400).json({ error: 'Requête rejetée' });
 }

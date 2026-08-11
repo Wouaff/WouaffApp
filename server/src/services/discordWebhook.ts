@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import type { Request } from 'express';
 import { getOne, query } from '../config/database.js';
+import { enqueueJob } from './queue.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, '../../.env') });
@@ -23,7 +24,7 @@ export function getClientIp(req: Request): string {
   return req.ip || req.socket.remoteAddress || 'inconnue';
 }
 
-async function resolveAccount(req: Request): Promise<string> {
+export async function resolveAccount(req: Request): Promise<string> {
   const sessionId = req.cookies?.session_id;
   if (!sessionId) return 'Non connecté';
   try {
@@ -41,95 +42,91 @@ function truncate(s: string, max = 900): string {
   return value.replace(/`/g, '');
 }
 
-/* Envoie une alerte de sécurité à Discord (@everyone + embed) */
-export async function sendSqlInjectionAlert(req: Request, match: SqlMatch): Promise<void> {
-  if (!WEBHOOK_URL) return;
-  try {
-    const ip = getClientIp(req);
-    const account = await resolveAccount(req);
-    const ua =
-      typeof req.headers['user-agent'] === 'string' && req.headers['user-agent'].length > 0
-        ? req.headers['user-agent'].slice(0, 200)
-        : 'Inconnu';
-
-    const payload = {
-      content: '@everyone',
-      username: 'Wouaff Sécurité',
-      embeds: [
-        {
-          title: '🚨 Tentative d’injection SQL bloquée',
-          color: 0xed4245,
-          description:
-            'Une requête suspecte contenant une tentative d’injection SQL a été détectée et bloquée automatiquement.',
-          fields: [
-            { name: '🌐 Adresse IP', value: `\`${ip}\``, inline: true },
-            { name: '👤 Compte', value: account, inline: true },
-            { name: '🔗 Endpoint', value: `\`${req.method} ${req.originalUrl}\``, inline: false },
-            { name: '🧠 Type', value: match.name, inline: true },
-            { name: '📝 Contenu', value: `\`\`\`${truncate(match.input)}\`\`\``, inline: false },
-            { name: '🖥️ User-Agent', value: `\`${ua}\``, inline: false },
-          ],
-          timestamp: new Date().toISOString(),
-          footer: { text: 'Wouaff · Protection anti-injection SQL' },
-        },
-      ],
-    };
-
-    const res = await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok && res.status === 429) {
-      const retryAfter = parseInt(res.headers.get('Retry-After') || '2', 10);
-      await new Promise((r) => setTimeout(r, retryAfter * 1000));
-    }
-  } catch {
-    /* Silencieux — ne pas casser la requête */
+async function postWebhook(url: string, payload: unknown): Promise<void> {
+  if (!url) return;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok && res.status === 429) {
+    const retryAfter = parseInt(res.headers.get('Retry-After') || '2', 10);
+    await new Promise((r) => setTimeout(r, retryAfter * 1000));
   }
 }
 
-/* Envoie un embed Discord à chaque nouvelle inscription */
-export async function sendNewUserAlert(data: {
-  pseudo: string;
-  wouaffId: string;
-  uid: string;
-  email?: string | null;
-}): Promise<void> {
+/* ── Envois HTTP réels (exécutés par le worker de la file) ── */
+
+/* Alerte de sécurité (@everyone + embed) */
+export async function sendSqlInjectionAlertData(data: Record<string, unknown>): Promise<void> {
+  if (!WEBHOOK_URL) return;
+  const payload = {
+    content: '@everyone',
+    username: 'Wouaff Sécurité',
+    embeds: [
+      {
+        title: '🚨 Tentative d’injection SQL bloquée',
+        color: 0xed4245,
+        description:
+          'Une requête suspecte contenant une tentative d’injection SQL a été détectée et bloquée automatiquement.',
+        fields: [
+          { name: '🌐 Adresse IP', value: `\`${data.ip}\``, inline: true },
+          { name: '👤 Compte', value: data.account, inline: true },
+          { name: '🔗 Endpoint', value: `\`${data.method} ${data.url}\``, inline: false },
+          { name: '🧠 Type', value: data.name, inline: true },
+          { name: '📝 Contenu', value: `\`\`\`${truncate(String(data.input))}\`\`\``, inline: false },
+          { name: '🖥️ User-Agent', value: `\`${data.ua}\``, inline: false },
+        ],
+        timestamp: new Date().toISOString(),
+        footer: { text: 'Wouaff · Protection anti-injection SQL' },
+      },
+    ],
+  };
+  await postWebhook(WEBHOOK_URL, payload);
+}
+
+/* Embed de nouvelle inscription */
+export async function sendNewUserAlert(data: { pseudo: string; wouaffId: string; uid: string }): Promise<void> {
   if (!REGISTER_WEBHOOK_URL) return;
-  try {
-    const rows = await query<Array<{ total: number }>>('SELECT COUNT(*) AS total FROM users');
-    const total = rows[0]?.total || 0;
+  const rows = await query<Array<{ total: number }>>('SELECT COUNT(*) AS total FROM users');
+  const total = rows[0]?.total || 0;
 
-    const payload = {
-      username: 'Wouaff · Nouveautés',
-      embeds: [
-        {
-          title: '🎉 Nouvelle inscription !',
-          color: 0xf97b3b,
-          description: `Un nouveau membre a rejoint la communauté Wouaff : **${data.pseudo}** !`,
-          fields: [
-            { name: '👤 Pseudo', value: data.pseudo || 'Inconnu', inline: true },
-            { name: '🔗 Identifiant', value: data.wouaffId || '@inconnu', inline: true },
-            { name: '📊 Total d’inscrits', value: `\`${total}\``, inline: true },
-            { name: '🪪 UID', value: `\`${data.uid}\``, inline: false },
-          ],
-          timestamp: new Date().toISOString(),
-          footer: { text: 'Wouaff · Inscriptions' },
-        },
-      ],
-    };
+  const payload = {
+    username: 'Wouaff · Nouveautés',
+    embeds: [
+      {
+        title: '🎉 Nouvelle inscription !',
+        color: 0xf97b3b,
+        description: `Un nouveau membre a rejoint la communauté Wouaff : **${data.pseudo}** !`,
+        fields: [
+          { name: '👤 Pseudo', value: data.pseudo || 'Inconnu', inline: true },
+          { name: '🔗 Identifiant', value: data.wouaffId || '@inconnu', inline: true },
+          { name: '📊 Total d’inscrits', value: `\`${total}\``, inline: true },
+          { name: '🪪 UID', value: `\`${data.uid}\``, inline: false },
+        ],
+        timestamp: new Date().toISOString(),
+        footer: { text: 'Wouaff · Inscriptions' },
+      },
+    ],
+  };
+  await postWebhook(REGISTER_WEBHOOK_URL, payload);
+}
 
-    const res = await fetch(REGISTER_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok && res.status === 429) {
-      const retryAfter = parseInt(res.headers.get('Retry-After') || '2', 10);
-      await new Promise((r) => setTimeout(r, retryAfter * 1000));
-    }
-  } catch {
-    /* Silencieux — ne pas casser l'inscription */
-  }
+/* ── Soumission via la file asynchrone ── */
+
+export async function enqueueNewUserAlert(data: { pseudo: string; wouaffId: string; uid: string }): Promise<void> {
+  await enqueueJob('webhook', { kind: 'newUser', data });
+}
+
+export async function enqueueSqlInjectionAlert(req: Request, match: SqlMatch): Promise<void> {
+  const ip = getClientIp(req);
+  const account = await resolveAccount(req);
+  const ua =
+    typeof req.headers['user-agent'] === 'string' && req.headers['user-agent'].length > 0
+      ? req.headers['user-agent'].slice(0, 200)
+      : 'Inconnu';
+  await enqueueJob('webhook', {
+    kind: 'sqlAlert',
+    data: { ip, account, ua, method: req.method, url: req.originalUrl, name: match.name, input: match.input },
+  });
 }

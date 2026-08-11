@@ -26,12 +26,23 @@ export default defineConfig({
     },
   },
   build: {
+    chunkSizeWarningLimit: 1300,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          socket: ['socket.io-client'],
-          webrtc: ['simple-peer'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@ionic') || id.includes('ionicons')) return 'ionic';
+            if (id.includes('socket.io-client') || id.includes('engine.io-client')) return 'socket';
+            if (id.includes('simple-peer')) return 'webrtc';
+            if (
+              id.includes('/react/') ||
+              id.includes('/react-dom/') ||
+              id.includes('react-router') ||
+              id.includes('/scheduler/')
+            ) {
+              return 'vendor';
+            }
+          }
         },
       },
     },

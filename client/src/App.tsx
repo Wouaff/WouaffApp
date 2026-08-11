@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import LoginPage from './components/Auth/LoginPage';
 import ActiveCallBar from './components/Call/ActiveCallBar';
 import IncomingCallOverlay from './components/Call/IncomingCallOverlay';
 import BannedScreen from './components/Common/BannedScreen';
@@ -14,8 +13,9 @@ import { CallProvider } from './hooks/useCall';
 import { useIsMobile } from './hooks/useIsMobile';
 import { ThemeProvider } from './hooks/useTheme';
 import MobileShell from './mobile/MobileShell';
-import AdminPage from './pages/AdminPage';
 
+const LoginPage = lazy(() => import('./components/Auth/LoginPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const DownloadPage = lazy(() => import('./pages/DownloadPage'));

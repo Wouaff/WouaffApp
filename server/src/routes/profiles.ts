@@ -3,7 +3,7 @@ import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
-import { createNotification } from '../services/notifications.js';
+import { enqueueJob } from '../services/queue.js';
 import {
   deleteUserProfile,
   getMutualContacts,
@@ -73,7 +73,7 @@ router.post('/:uid/follow', async (req: Request, res: Response) => {
   if (result.affectedRows === 1) {
     const io: Server = req.app.get('io');
     if (io) {
-      await createNotification(io, { uid: req.params.uid, actorUid: authReq.uid!, type: 'follow' });
+      enqueueJob('notification', { uid: req.params.uid, actorUid: authReq.uid!, type: 'follow' }).catch(() => {});
     }
   }
   res.json({ following: true });
