@@ -25,6 +25,7 @@ const PostPage = lazy(() => import('./pages/PostPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const PublicGroupsPage = lazy(() => import('./pages/PublicGroupsPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const SearchPage = lazy(() => import('./pages/SearchPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const TagPage = lazy(() => import('./pages/TagPage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
@@ -204,6 +205,14 @@ export default function App() {
                             <PublicGroupsPage />
                           </MaintenanceGuard>
                         </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/search"
+                      element={
+                        <AppShell>
+                          <SearchPage />
+                        </AppShell>
                       }
                     />
                     <Route

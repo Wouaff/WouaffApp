@@ -143,6 +143,7 @@ export interface VideoData {
   liked?: boolean;
   pseudo?: string;
   avatar?: string;
+  wouaffId?: string;
 }
 
 export interface VideoComment {

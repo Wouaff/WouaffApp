@@ -1,6 +1,6 @@
 import { Check, Lock, Search, Server, ShieldCheck, TrendingUp, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { profiles, trends as trendsAPI } from '../../services/api';
 import type { TrendItem } from '../../types';
 
@@ -19,6 +19,7 @@ function toHandle(s: Suggestion): string {
 }
 
 export default function RightSidebar() {
+  const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [following, setFollowing] = useState<Record<string, boolean>>({});
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -78,6 +79,11 @@ export default function RightSidebar() {
               type="text"
               value={q}
               onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && q.trim()) {
+                  navigate(`/search?q=${encodeURIComponent(q.trim())}`);
+                }
+              }}
               placeholder="Rechercher sur Wouaff"
               aria-label="Rechercher sur Wouaff"
               className="w-full bg-[var(--bg-input)] border border-transparent focus:border-[var(--brand)] outline-none rounded-full py-2.5 pl-11 pr-4 text-[15px] text-[var(--text-primary)] placeholder-[var(--text-muted)] font-sans transition-colors"

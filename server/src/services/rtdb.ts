@@ -738,15 +738,25 @@ export async function removeContact(uid: string, contactUid: string): Promise<vo
 }
 
 export async function searchByWouaffId(wouaffId: string): Promise<string | null> {
-  const row = await getOne<{ uid: string }>('SELECT uid FROM wouaff_id_index WHERE wouaffId=?', [wouaffId]);
+  const raw = (wouaffId || '').trim().toLowerCase();
+  const withAt = raw.startsWith('@') ? raw : `@${raw}`;
+  const withoutAt = withAt.slice(1);
+  if (withoutAt.length === 0) return null;
+
+  const row = await getOne<{ uid: string }>(
+    'SELECT uid FROM wouaff_id_index WHERE wouaffId = ? OR wouaffId = ? LIMIT 1',
+    [withAt, withoutAt],
+  );
   if (row) return row.uid;
-  const profile = await getOne<{ uid: string; wouaffId: string | null }>(
-    'SELECT uid, wouaffId FROM users WHERE wouaffId=?',
-    [wouaffId],
+
+  /* Fallback : users (wouaffId avec/sans @, ou pseudo exact) */
+  const profile = await getOne<{ uid: string }>(
+    'SELECT uid FROM users WHERE LOWER(wouaffId) = ? OR LOWER(wouaffId) = ? OR LOWER(pseudo) = ? LIMIT 1',
+    [withAt, withoutAt, withoutAt],
   );
   if (profile?.uid) {
     await query('INSERT INTO wouaff_id_index (wouaffId, uid) VALUES (?,?) ON DUPLICATE KEY UPDATE uid=VALUES(uid)', [
-      wouaffId,
+      withAt,
       profile.uid,
     ]);
     return profile.uid;

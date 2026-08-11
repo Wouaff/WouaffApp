@@ -49,7 +49,7 @@ router.get('/', async (req: Request, res: Response) => {
   const limit = Math.min(20, Math.max(1, parseInt(req.query.limit as string, 10) || 10));
   const offset = (page - 1) * limit;
   const rows = await query<Array<VideoData & { uid: string }>>(
-    'SELECT v.*, p.pseudo, p.avatar FROM videos v LEFT JOIN users p ON p.uid = v.uid ORDER BY v.createdAt DESC LIMIT ? OFFSET ?',
+    'SELECT v.*, p.pseudo, p.avatar, p.wouaffId FROM videos v LEFT JOIN users p ON p.uid = v.uid ORDER BY v.createdAt DESC LIMIT ? OFFSET ?',
     [limit, offset],
   );
   const videoIds = rows.map((r) => r.id);
@@ -61,7 +61,7 @@ router.get('/', async (req: Request, res: Response) => {
     );
     for (const lr of likeRows) likesMap[lr.videoId] = true;
   }
-  const enriched: Array<VideoData & { pseudo?: string; avatar?: string; liked?: boolean }> = [];
+  const enriched: Array<VideoData & { pseudo?: string; avatar?: string; wouaffId?: string; liked?: boolean }> = [];
   for (const row of rows) {
     let location = row.location;
     if (typeof location === 'string') {
@@ -76,6 +76,7 @@ router.get('/', async (req: Request, res: Response) => {
       location: location as unknown as VideoData['location'],
       pseudo: ((row as unknown as Record<string, unknown>).pseudo as string) || 'Inconnu',
       avatar: (row as unknown as Record<string, unknown>).avatar as string,
+      wouaffId: ((row as unknown as Record<string, unknown>).wouaffId as string) || undefined,
       liked: !!likesMap[row.id],
     });
   }
