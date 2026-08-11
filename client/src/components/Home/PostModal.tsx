@@ -1,4 +1,4 @@
-import { BadgeCheck, Flag, Heart, MessageCircle, Repeat2, Share2, Trash2, X } from 'lucide-react';
+import { BadgeCheck, Flag, Heart, MessageCircle, Reply, Repeat2, Share2, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
@@ -131,6 +131,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
       setComments((prev) => [...prev, comment]);
       onCommentDelta(post.id, 1);
       setText('');
+      setReplyTo(null);
     } catch {
       showToast("Erreur lors de l'envoi du commentaire", 'error');
     } finally {
@@ -300,16 +301,28 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
                       <span className="font-bold text-[var(--text-primary)] text-[14px]">{c.pseudo || 'Inconnu'}</span>
                       <span className="text-[var(--text-muted)] text-[13px]">·</span>
                       <span className="text-[var(--text-muted)] text-[13px]">{formatTime(c.createdAt)}</span>
-                      {c.uid === user?.uid && (
+                      <div className="ml-auto flex items-center gap-0.5">
                         <button
                           type="button"
-                          onClick={() => removeComment(c.id)}
-                          aria-label="Supprimer le commentaire"
-                          className="ml-auto flex items-center gap-1 text-[12px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                          onClick={() => startReply(c)}
+                          aria-label={`Répondre à ${c.pseudo || 'ce commentaire'}`}
+                          title="Répondre"
+                          className="flex items-center gap-1 text-[12px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 hover:text-brand hover:bg-[var(--brand-glow)] transition-colors"
                         >
-                          <Trash2 size={13} />
+                          <Reply size={13} />
+                          <span className="hidden sm:inline">Répondre</span>
                         </button>
-                      )}
+                        {c.uid === user?.uid && (
+                          <button
+                            type="button"
+                            onClick={() => removeComment(c.id)}
+                            aria-label="Supprimer le commentaire"
+                            className="flex items-center gap-1 text-[12px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <p className="m-0 mt-0.5 text-[14px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
                       <PostText text={c.text} />
@@ -320,6 +333,25 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
             </ul>
           )}
         </div>
+
+        {replyTo && (
+          <div className="flex items-center gap-2 px-4 pt-2.5">
+            <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-3 py-1.5">
+              <Reply size={12} className="text-brand" />
+              <span>
+                Réponse à <span className="font-bold text-brand">{replyTo.handle || replyTo.pseudo || 'commentaire'}</span>
+              </span>
+              <button
+                type="button"
+                onClick={clearReply}
+                aria-label="Annuler la réponse"
+                className="ml-1 flex items-center justify-center w-4 h-4 rounded-full border-none bg-transparent cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-2 px-4 py-3 border-t border-[var(--border)] flex-shrink-0">
           <div className="relative flex-1 min-w-0">

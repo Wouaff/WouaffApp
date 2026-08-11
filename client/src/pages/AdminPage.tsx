@@ -38,7 +38,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type {
@@ -53,6 +53,7 @@ import type {
 } from '../services/api';
 import { admin as adminAPI, profiles } from '../services/api';
 import type { UserProfile } from '../types';
+import { compressImage } from '../utils/audio';
 
 type Tab = 'dashboard' | 'moderation' | 'groups' | 'reports' | 'users' | 'staff' | 'logs';
 type ModSubTab = 'posts' | 'comments' | 'videos';
@@ -284,6 +285,9 @@ export default function AdminPage() {
   const [searchResult, setSearchResult] = useState<{ uid: string; profile: UserProfile } | null>(null);
   const [editData, setEditData] = useState({ pseudo: '', bio: '', avatar: '', banner: '', wouaffId: '' });
   const [editMsg, setEditMsg] = useState('');
+  const [adminImgLoading, setAdminImgLoading] = useState<'avatar' | 'banner' | null>(null);
+  const adminAvatarFileRef = useRef<HTMLInputElement>(null);
+  const adminBannerFileRef = useRef<HTMLInputElement>(null);
   const [badgeDefs, setBadgeDefs] = useState<Record<string, { name?: string; icon?: string }>>({});
   const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
   const [badgeMsg, setBadgeMsg] = useState('');
@@ -748,6 +752,39 @@ export default function AdminPage() {
       setLoginHistory([]);
     }
     setLoginHistoryLoading(false);
+  };
+
+  const pickAdminImage = async (file: File, kind: 'avatar' | 'banner') => {
+    if (!file.type.startsWith('image/')) {
+      toast('Le fichier sélectionné doit être une image.', 'error');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast('Image trop volumineuse (10 Mo maximum).', 'error');
+      return;
+    }
+    setAdminImgLoading(kind);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      if (!e.target?.result) {
+        setAdminImgLoading(null);
+        return;
+      }
+      try {
+        const compressed = await compressImage(e.target.result as string, kind === 'avatar' ? 600 : 1200, 0.78);
+        setEditData((p) => ({ ...p, [kind]: compressed }));
+        toast(kind === 'avatar' ? 'Photo de profil chargée' : 'Bannière chargée', 'success');
+      } catch {
+        toast("Impossible de traiter l'image.", 'error');
+      } finally {
+        setAdminImgLoading(null);
+      }
+    };
+    reader.onerror = () => {
+      setAdminImgLoading(null);
+      toast("Impossible de lire l'image.", 'error');
+    };
+    reader.readAsDataURL(file);
   };
 
   const saveProfile = async () => {
@@ -2090,22 +2127,68 @@ export default function AdminPage() {
                       />
                     </div>
                     <div className="admin-field">
-                      <label htmlFor="adminAvatar">Avatar URL</label>
-                      <input
-                        id="adminAvatar"
-                        className="admin-input"
-                        value={editData.avatar}
-                        onChange={(e) => setEditData((p) => ({ ...p, avatar: e.target.value }))}
-                      />
+                      <label htmlFor="adminAvatar">Avatar</label>
+                      <div className="admin-search-row">
+                        <input
+                          id="adminAvatar"
+                          className="admin-input"
+                          value={editData.avatar}
+                          placeholder="https://... ou importez un fichier"
+                          onChange={(e) => setEditData((p) => ({ ...p, avatar: e.target.value }))}
+                        />
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn-secondary"
+                          onClick={() => adminAvatarFileRef.current?.click()}
+                          disabled={adminImgLoading === 'avatar'}
+                        >
+                          {adminImgLoading === 'avatar' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                          {adminImgLoading === 'avatar' ? '...' : 'Fichier'}
+                        </button>
+                        <input
+                          ref={adminAvatarFileRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) pickAdminImage(file, 'avatar');
+                            e.target.value = '';
+                          }}
+                        />
+                      </div>
                     </div>
                     <div className="admin-field">
-                      <label htmlFor="adminBanner">Bannière URL</label>
-                      <input
-                        id="adminBanner"
-                        className="admin-input"
-                        value={editData.banner}
-                        onChange={(e) => setEditData((p) => ({ ...p, banner: e.target.value }))}
-                      />
+                      <label htmlFor="adminBanner">Bannière</label>
+                      <div className="admin-search-row">
+                        <input
+                          id="adminBanner"
+                          className="admin-input"
+                          value={editData.banner}
+                          placeholder="https://... ou importez un fichier"
+                          onChange={(e) => setEditData((p) => ({ ...p, banner: e.target.value }))}
+                        />
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn-secondary"
+                          onClick={() => adminBannerFileRef.current?.click()}
+                          disabled={adminImgLoading === 'banner'}
+                        >
+                          {adminImgLoading === 'banner' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                          {adminImgLoading === 'banner' ? '...' : 'Fichier'}
+                        </button>
+                        <input
+                          ref={adminBannerFileRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) pickAdminImage(file, 'banner');
+                            e.target.value = '';
+                          }}
+                        />
+                      </div>
                     </div>
                     <div className="admin-field">
                       <label htmlFor="adminWouaffId">Identifiant Wouaff</label>
