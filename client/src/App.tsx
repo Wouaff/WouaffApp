@@ -11,7 +11,9 @@ import TitleBar from './components/Common/TitleBar';
 import MobileLayout from './components/Layout/MobileLayout';
 import { useAuth } from './hooks/useAuth';
 import { CallProvider } from './hooks/useCall';
+import { useIsMobile } from './hooks/useIsMobile';
 import { ThemeProvider } from './hooks/useTheme';
+import MobileShell from './mobile/MobileShell';
 import AdminPage from './pages/AdminPage';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -29,6 +31,11 @@ const SearchPage = lazy(() => import('./pages/SearchPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const TagPage = lazy(() => import('./pages/TagPage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
+
+const HomeMobile = lazy(() => import('./mobile/pages/HomeMobile'));
+const ExploreMobile = lazy(() => import('./mobile/pages/ExploreMobile'));
+const FeedMobile = lazy(() => import('./mobile/pages/FeedMobile'));
+const NotificationsMobile = lazy(() => import('./mobile/pages/NotificationsMobile'));
 
 import { offAccountBanned, onAccountBanned } from './services/socket';
 
@@ -68,6 +75,28 @@ function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function MobileAppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <MaintenanceGuard>
+        <MobileShell>
+          <ChatGuard>{children}</ChatGuard>
+        </MobileShell>
+      </MaintenanceGuard>
+    </ProtectedRoute>
+  );
+}
+
+function MobileProtected({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <MaintenanceGuard>
+        <MobileShell>{children}</MobileShell>
+      </MaintenanceGuard>
+    </ProtectedRoute>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div id="loadingOverlay" className="loading-overlay hidden" />;
@@ -96,11 +125,163 @@ function MaintenanceGuard({ children, skip }: { children: React.ReactNode; skip?
   return <>{children}</>;
 }
 
-function CatchAll() {
+function CatchAll({ isMobile }: { isMobile: boolean }) {
   const loc = useLocation();
-  if (loc.pathname.match(/^\/@(.+)/)) return <ProfilePage />;
-  if (loc.pathname.match(/^\/post\/(.+)/)) return <PostPage />;
+  if (loc.pathname.match(/^\/@(.+)/)) {
+    const page = <ProfilePage />;
+    return isMobile ? <MobileShell>{page}</MobileShell> : page;
+  }
+  if (loc.pathname.match(/^\/post\/(.+)/)) {
+    const page = <PostPage />;
+    return isMobile ? <MobileShell>{page}</MobileShell> : page;
+  }
   return <Navigate to="/" replace />;
+}
+
+function AppRoutes() {
+  const isMobile = useIsMobile();
+  return (
+    <Routes>
+      <Route path="/auth" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route
+        path="/"
+        element={
+          isMobile ? (
+            <MobileAppShell>
+              <HomeMobile />
+            </MobileAppShell>
+          ) : (
+            <AppShell>
+              <HomePage />
+            </AppShell>
+          )
+        }
+      />
+      <Route
+        path="/chat"
+        element={
+          isMobile ? (
+            <MobileAppShell>
+              <ChatPage />
+            </MobileAppShell>
+          ) : (
+            <AppShell>
+              <ChatPage />
+            </AppShell>
+          )
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          isMobile ? (
+            <MobileAppShell>
+              <NotificationsMobile />
+            </MobileAppShell>
+          ) : (
+            <AppShell>
+              <NotificationsPage />
+            </AppShell>
+          )
+        }
+      />
+      <Route
+        path="/hashtag/:tag"
+        element={
+          isMobile ? (
+            <MobileAppShell>
+              <TagPage />
+            </MobileAppShell>
+          ) : (
+            <AppShell>
+              <TagPage />
+            </AppShell>
+          )
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          isMobile ? (
+            <MobileProtected>
+              <SettingsPage />
+            </MobileProtected>
+          ) : (
+            <ProtectedRoute>
+              <MaintenanceGuard>
+                <MobileLayout>
+                  <SettingsPage />
+                </MobileLayout>
+              </MaintenanceGuard>
+            </ProtectedRoute>
+          )
+        }
+      />
+      <Route
+        path="/feed"
+        element={
+          isMobile ? (
+            <MobileProtected>
+              <FeedMobile />
+            </MobileProtected>
+          ) : (
+            <ProtectedRoute>
+              <MaintenanceGuard>
+                <MobileLayout>
+                  <FeedPage />
+                </MobileLayout>
+              </MaintenanceGuard>
+            </ProtectedRoute>
+          )
+        }
+      />
+      <Route path="/download" element={<DownloadPage />} />
+      <Route
+        path="/explore"
+        element={
+          isMobile ? (
+            <MobileProtected>
+              <ExploreMobile />
+            </MobileProtected>
+          ) : (
+            <ProtectedRoute>
+              <MaintenanceGuard>
+                <PublicGroupsPage />
+              </MaintenanceGuard>
+            </ProtectedRoute>
+          )
+        }
+      />
+      <Route
+        path="/search"
+        element={
+          isMobile ? (
+            <MobileAppShell>
+              <SearchPage />
+            </MobileAppShell>
+          ) : (
+            <AppShell>
+              <SearchPage />
+            </AppShell>
+          )
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <MaintenanceGuard skip>
+              <AdminPage />
+            </MaintenanceGuard>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/*" element={<CatchAll isMobile={isMobile} />} />
+    </Routes>
+  );
 }
 
 function BannedGuard({ children }: { children: React.ReactNode }) {
@@ -135,98 +316,7 @@ export default function App() {
                     </div>
                   }
                 >
-                  <Routes>
-                    <Route path="/auth" element={<LoginPage />} />
-                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                    <Route path="/reset-password" element={<ResetPasswordPage />} />
-                    <Route path="/verify-email" element={<VerifyEmailPage />} />
-                    <Route
-                      path="/"
-                      element={
-                        <AppShell>
-                          <HomePage />
-                        </AppShell>
-                      }
-                    />
-                    <Route
-                      path="/chat"
-                      element={
-                        <AppShell>
-                          <ChatPage />
-                        </AppShell>
-                      }
-                    />
-                    <Route
-                      path="/notifications"
-                      element={
-                        <AppShell>
-                          <NotificationsPage />
-                        </AppShell>
-                      }
-                    />
-                    <Route
-                      path="/hashtag/:tag"
-                      element={
-                        <AppShell>
-                          <TagPage />
-                        </AppShell>
-                      }
-                    />
-                    <Route
-                      path="/settings"
-                      element={
-                        <ProtectedRoute>
-                          <MaintenanceGuard>
-                            <MobileLayout>
-                              <SettingsPage />
-                            </MobileLayout>
-                          </MaintenanceGuard>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/feed"
-                      element={
-                        <ProtectedRoute>
-                          <MaintenanceGuard>
-                            <MobileLayout>
-                              <FeedPage />
-                            </MobileLayout>
-                          </MaintenanceGuard>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route path="/download" element={<DownloadPage />} />
-                    <Route
-                      path="/explore"
-                      element={
-                        <ProtectedRoute>
-                          <MaintenanceGuard>
-                            <PublicGroupsPage />
-                          </MaintenanceGuard>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/search"
-                      element={
-                        <AppShell>
-                          <SearchPage />
-                        </AppShell>
-                      }
-                    />
-                    <Route
-                      path="/admin"
-                      element={
-                        <ProtectedRoute>
-                          <MaintenanceGuard skip>
-                            <AdminPage />
-                          </MaintenanceGuard>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route path="/*" element={<CatchAll />} />
-                  </Routes>
+                  <AppRoutes />
                 </Suspense>
               </div>
             </div>

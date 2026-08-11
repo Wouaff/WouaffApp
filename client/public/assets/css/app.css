@@ -11544,3 +11544,118 @@ body {
   flex-shrink: 0;
   color: var(--brand);
 }
+
+/* ══════════════════════════════════════════════════════════
+   VERSION MOBILE WEB (Ionic) — appliquée uniquement sous 768px
+══════════════════════════════════════════════════════════════ */
+:root {
+  --mobile-tab-h: calc(50px + var(--safe-bottom));
+}
+.mobile-shell {
+  height: 100%;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  --ion-background-color: var(--bg-base);
+  --ion-text-color: var(--text-primary);
+  --ion-border-color: var(--border);
+}
+.mobile-shell > div {
+  height: 100%;
+}
+.mobile-shell ion-content {
+  --background: var(--bg-base);
+  --color: var(--text-primary);
+}
+.mobile-shell ion-content::part(scroll) {
+  overscroll-behavior-y: contain;
+}
+.mobile-shell ion-toolbar {
+  --background: var(--bg-card);
+  --color: var(--text-primary);
+  --border-color: transparent;
+  border-bottom: 1px solid var(--border);
+}
+.mobile-shell ion-tab-bar {
+  --background: var(--bg-card);
+  --color: var(--text-muted);
+  --color-selected: var(--brand);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.mobile-shell ion-item {
+  --background: var(--bg-card);
+  --color: var(--text-primary);
+  --border-color: var(--border);
+}
+.mobile-shell ion-list {
+  background: transparent;
+}
+.mobile-shell ion-segment {
+  --background: var(--bg-input);
+  --color: var(--text-muted);
+  --color-checked: var(--text-primary);
+  --indicator-color: var(--brand);
+  border-radius: 10px;
+}
+.mobile-shell ion-segment-button {
+  font-weight: 600;
+  min-height: 38px;
+}
+.mobile-shell ion-card {
+  --background: var(--bg-card);
+  --color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: none;
+  margin-inline: 0;
+  width: 100%;
+}
+.mobile-shell ion-avatar {
+  width: 44px;
+  height: 44px;
+  --border-radius: 50%;
+}
+.mobile-shell ion-spinner {
+  --spinner-color: var(--brand);
+}
+.mobile-shell ion-refresher-content {
+  --color: var(--text-muted);
+}
+.mobile-shell ion-refresher {
+  z-index: 20;
+}
+.mobile-shell ion-badge {
+  --background: var(--brand);
+}
+.mobile-shell ion-button {
+  --border-radius: 999px;
+  font-weight: 700;
+  text-transform: none;
+  min-height: 40px;
+}
+.mobile-shell ion-button::part(native) {
+  text-transform: none;
+}
+.mobile-shell ion-title {
+  font-weight: 800;
+}
+.mobile-shell ion-searchbar {
+  --background: var(--bg-input);
+  --color: var(--text-primary);
+  --placeholder-color: var(--text-muted);
+  --border-radius: 12px;
+}
+
+/* Cibles tactiles confortables */
+.mobile-shell ion-item {
+  min-height: 52px;
+}
+.mobile-shell ion-tab-button {
+  min-height: 50px;
+}
+
+/* Sur mobile, la page Paramètres reprend tout l'écran sous la barre d'onglets */
+.mobile-shell .overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}

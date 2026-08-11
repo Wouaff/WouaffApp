@@ -55,7 +55,9 @@ export default function Poll({ poll, onVote }: PollProps) {
                   {isVoted && <span className="h-2.5 w-2.5 rounded-full bg-brand" />}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[14px] text-[var(--text-primary)]">{option}</span>
-                {voted && <span className="text-[13px] font-bold text-[var(--text-secondary)] tabular-nums">{percentage}%</span>}
+                {voted && (
+                  <span className="text-[13px] font-bold text-[var(--text-secondary)] tabular-nums">{percentage}%</span>
+                )}
               </span>
             </button>
           );

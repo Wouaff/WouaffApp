@@ -74,6 +74,54 @@
 }
 
 /* ══════════════════════════════════════════════════════════
+   IONIC (version mobile web) — aligné sur la marque Wouaff
+══════════════════════════════════════════════════════════════ */
+:root {
+  --ion-color-primary: #f97b3b;
+  --ion-color-primary-rgb: 249, 123, 59;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #dc6c33;
+  --ion-color-primary-tint: #fa8850;
+  --ion-background-color: var(--bg-base);
+  --ion-background-color-rgb: 20, 25, 33;
+  --ion-text-color: var(--text-primary);
+  --ion-text-color-rgb: 232, 236, 240;
+  --ion-border-color: var(--border);
+  --ion-toolbar-background: var(--bg-card);
+  --ion-toolbar-border-color: var(--border);
+  --ion-item-background: transparent;
+  --ion-card-background: var(--bg-card);
+  --ion-tab-bar-background: var(--bg-card);
+  --ion-tab-bar-border-color: var(--border);
+  --ion-color-step-50: #0f1419;
+  --ion-color-step-100: #141921;
+  --ion-color-step-200: #1c2333;
+  --ion-color-step-300: #2a3448;
+  --ion-color-step-400: #3b475e;
+  --ion-color-step-500: #53617a;
+  --ion-color-step-600: #6d7d96;
+  --ion-color-step-700: #8a9bb0;
+  --ion-color-step-800: #b0bccb;
+  --ion-color-step-900: #e8ecf0;
+}
+
+[data-theme="light"] {
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color-rgb: 28, 30, 36;
+  --ion-color-step-50: #f7f8fa;
+  --ion-color-step-100: #f0f1f5;
+  --ion-color-step-200: #e6e9f0;
+  --ion-color-step-300: #d6dae3;
+  --ion-color-step-400: #b9c0cc;
+  --ion-color-step-500: #8d99aa;
+  --ion-color-step-600: #6a7a90;
+  --ion-color-step-700: #5a6577;
+  --ion-color-step-800: #3b4350;
+  --ion-color-step-900: #1c1e24;
+}
+
+/* ══════════════════════════════════════════════════════════
    BASE STYLES
 ══════════════════════════════════════════════════════════ */
 @layer base {

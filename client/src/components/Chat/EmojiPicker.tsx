@@ -5,7 +5,7 @@ import { EMOJI_CATEGORIES } from '../../utils/chatHelpers';
 const CATEGORY_ICONS = {
   Sourires: Smile,
   Gestes: Hand,
-  'Cœurs': Heart,
+  Cœurs: Heart,
   Objets: Lightbulb,
   Nourriture: Pizza,
   Animaux: PawPrint,
