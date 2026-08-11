@@ -43,10 +43,6 @@ export default {
         online: 'var(--online)',
         offline: 'var(--offline)',
         danger: 'var(--danger)',
-        vip: {
-          gold: 'var(--vip-gold)',
-          glow: 'var(--vip-glow)',
-        },
         star: 'var(--star)',
       },
       borderRadius: {

@@ -27,8 +27,6 @@
   --online: #43b581;
   --offline: #74777e;
   --danger: #ed4245;
-  --vip-gold: #ffd166;
-  --vip-glow: rgba(255, 209, 102, 0.15);
   --star: #f5c518;
   --sidebar-w: 340px;
   --header-h: 58px;
@@ -68,7 +66,6 @@
   --msg-recv: #f0f2f6;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
   --brand-glow: rgba(249, 123, 59, 0.12);
-  --vip-glow: rgba(255, 209, 102, 0.15);
   --auth-bg-image: url("/assets/logo/background.png");
   color-scheme: light;
 }

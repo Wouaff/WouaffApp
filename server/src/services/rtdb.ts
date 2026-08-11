@@ -893,6 +893,7 @@ export async function getBadges(): Promise<Record<string, unknown>> {
 }
 
 export async function addBadgeToUser(uid: string, badgeId: string): Promise<void> {
+  if (badgeId.toLowerCase() === 'v.i.p' || badgeId.toLowerCase() === 'vip') return;
   await query('INSERT INTO user_badges (uid, badgeId) VALUES (?,?) ON DUPLICATE KEY UPDATE sortOrder=sortOrder', [
     uid,
     badgeId,
@@ -908,7 +909,6 @@ export async function seedBadges(): Promise<{ created: string[]; existed: string
     { id: 'discord', name: 'Discord', icon: '/assets/badges/discord_badge.png' },
     { id: 'staff', name: 'Staff', icon: '/assets/badges/staff_badge.png' },
     { id: 'partner', name: 'Partner', icon: '/assets/badges/partner_badge.png' },
-    { id: 'v.i.p', name: 'Compte Certifié', icon: '/assets/badges/vip_badge.png' },
   ];
   const created: string[] = [];
   const existed: string[] = [];
@@ -1147,8 +1147,9 @@ export async function updateProfileByAdmin(uid: string, data: Record<string, unk
 
 export async function setUserBadges(uid: string, badgeIds: string[]): Promise<void> {
   await query('DELETE FROM user_badges WHERE uid=?', [uid]);
-  for (let i = 0; i < badgeIds.length; i++) {
-    await query('INSERT INTO user_badges (uid, badgeId, sortOrder) VALUES (?,?,?)', [uid, badgeIds[i], i]);
+  const allowedBadgeIds = badgeIds.filter((id) => !['v.i.p', 'vip'].includes(id.toLowerCase()));
+  for (let i = 0; i < allowedBadgeIds.length; i++) {
+    await query('INSERT INTO user_badges (uid, badgeId, sortOrder) VALUES (?,?,?)', [uid, allowedBadgeIds[i], i]);
   }
 }
 
