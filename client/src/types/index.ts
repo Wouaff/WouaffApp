@@ -211,6 +211,7 @@ export interface PostComment {
   text: string;
   createdAt: number;
   pseudo?: string;
+  handle?: string;
   avatar?: string;
 }
 

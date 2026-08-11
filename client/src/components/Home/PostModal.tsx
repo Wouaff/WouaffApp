@@ -44,8 +44,27 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
   const [sending, setSending] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState<PostComment | null>(null);
   const commentInputRef = useRef<HTMLInputElement>(null);
   const isOwn = !!user && post.uid === user.uid;
+
+  const startReply = useCallback((c: PostComment) => {
+    const handle = c.handle || (c.pseudo ? `@${c.pseudo.toLowerCase().replace(/\s+/g, '')}` : '');
+    setReplyTo(c);
+    setText(handle ? `${handle} ` : '');
+    requestAnimationFrame(() => {
+      const el = commentInputRef.current;
+      if (el) {
+        el.focus();
+        const pos = el.value.length;
+        el.setSelectionRange(pos, pos);
+      }
+    });
+  }, []);
+
+  const clearReply = useCallback(() => {
+    setReplyTo(null);
+  }, []);
 
   const applyMention = useCallback((mentionUser: MentionUser, token: MentionToken) => {
     setText((prev) => replaceMentionAt(prev, token, `${mentionUser.handle} `));

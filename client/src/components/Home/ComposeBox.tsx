@@ -12,6 +12,7 @@ import MentionSuggestions from './MentionSuggestions';
 
 const MAX_LENGTH = 280;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_GIF_SIZE = 6 * 1024 * 1024;
 const MAX_POLL_OPTIONS = 4;
 const MIN_POLL_OPTIONS = 2;
 
@@ -43,6 +44,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   const [poll, setPoll] = useState<PollDraft | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const gifInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
@@ -210,6 +212,15 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
       showToast('Image trop volumineuse (max 10 Mo).', 'error');
       return;
     }
+    /* Les GIF ne sont pas compressés pour conserver l'animation */
+    if (file.type === 'image/gif') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target) setImage(e.target.result as string);
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
     setImageLoading(true);
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -226,9 +237,31 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
     reader.readAsDataURL(file);
   };
 
+  const pickGif = (file: File) => {
+    if (file.type !== 'image/gif') {
+      showToast('Veuillez sélectionner un GIF.', 'error');
+      return;
+    }
+    if (file.size > MAX_GIF_SIZE) {
+      showToast('GIF trop volumineux (max 6 Mo).', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target) setImage(e.target.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) pickImage(file);
+    e.target.value = '';
+  };
+
+  const onGifChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) pickGif(file);
     e.target.value = '';
   };
 
@@ -292,6 +325,11 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
               alt="Aperçu"
               className="max-h-[320px] w-full object-cover rounded-2xl border border-[var(--border)]"
             />
+            {image.startsWith('data:image/gif') && (
+              <span className="absolute top-2 left-2 bg-black/60 text-white text-[11px] font-extrabold rounded px-1.5 py-0.5">
+                GIF
+              </span>
+            )}
             <button
               type="button"
               onClick={() => setImage('')}
@@ -434,6 +472,22 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             >
               <BarChart3 size={19} />
             </button>
+            <button
+              type="button"
+              onClick={() => gifInputRef.current?.click()}
+              title="Ajouter un GIF"
+              className="h-9 px-2 rounded-full border-none bg-transparent cursor-pointer text-brand font-extrabold text-[12px] hover:bg-[var(--brand-glow)] transition-colors"
+            >
+              GIF
+            </button>
+            <input
+              ref={gifInputRef}
+              type="file"
+              accept="image/gif"
+              onChange={onGifChange}
+              className="hidden"
+              tabIndex={-1}
+            />
             <input
               ref={fileInputRef}
               type="file"

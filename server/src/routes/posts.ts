@@ -12,6 +12,13 @@ import { insertCommentMentions, insertPostMentions } from '../utils/mentions.js'
 
 const MAX_LENGTH = 280;
 
+function toCommentHandle(wouaffId?: string, pseudo?: string): string | undefined {
+  if (wouaffId) return `@${wouaffId}`;
+  const p = (pseudo || '').trim();
+  if (!p) return undefined;
+  return `@${p.toLowerCase().replace(/\s+/g, '')}`;
+}
+
 interface PollVotes {
   votes: number[];
   total: number;
@@ -563,6 +570,7 @@ router.post('/:id/comments', async (req: Request, res: Response) => {
     text: content,
     createdAt: now,
     pseudo: (profile?.pseudo as string) || 'Inconnu',
+    handle: toCommentHandle(profile?.wouaffId as string, profile?.pseudo as string),
     avatar: profile?.avatar as string,
   };
   const io: Server = req.app.get('io');
@@ -626,15 +634,17 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
   const offset = Math.max(0, parseInt(req.query.offset as string, 10) || 0);
   const rows = await query<Array<PostComment & { uid: string }>>(
-    'SELECT c.*, p.pseudo, p.avatar FROM post_comments c LEFT JOIN users p ON p.uid = c.uid WHERE c.postId = ? ORDER BY c.createdAt ASC LIMIT ? OFFSET ?',
+    'SELECT c.*, p.pseudo, p.avatar, p.wouaffId FROM post_comments c LEFT JOIN users p ON p.uid = c.uid WHERE c.postId = ? ORDER BY c.createdAt ASC LIMIT ? OFFSET ?',
     [req.params.id, limit, offset],
   );
   const enriched: PostComment[] = [];
   for (const row of rows) {
+    const rowRecord = row as unknown as Record<string, unknown>;
     enriched.push({
       ...row,
-      pseudo: ((row as unknown as Record<string, unknown>).pseudo as string) || 'Inconnu',
-      avatar: (row as unknown as Record<string, unknown>).avatar as string,
+      pseudo: (rowRecord.pseudo as string) || 'Inconnu',
+      avatar: rowRecord.avatar as string,
+      handle: toCommentHandle(rowRecord.wouaffId as string, rowRecord.pseudo as string),
     });
   }
   res.json(enriched);

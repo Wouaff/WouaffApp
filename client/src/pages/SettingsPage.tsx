@@ -1,5 +1,6 @@
 import {
   Award,
+  Camera,
   Check,
   ChevronLeft,
   Copy,
@@ -15,10 +16,11 @@ import {
   Sparkles,
   Sun,
   Trash2,
+  Upload,
   User,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Toast, { showToast } from '../components/Common/Toast';
 import LeftNav from '../components/Home/LeftNav';
@@ -27,6 +29,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { badges as badgesAPI, profiles as profilesAPI } from '../services/api';
 import type { UserProfile } from '../types';
+import { compressImage } from '../utils/audio';
 import type { SocialLink } from '../utils/socialLinks';
 import { PLATFORMS, parseSocialLinks, socialLinksToJson } from '../utils/socialLinks';
 
@@ -47,6 +50,7 @@ const inputCls =
 const cardCls = 'rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 mb-4';
 const labelCls = 'block text-[13px] font-bold text-[var(--text-primary)] mb-1.5';
 const hintCls = 'flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] mt-1.5';
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
@@ -63,6 +67,10 @@ export default function SettingsPage() {
   const [banner, setBanner] = useState('');
   const [messageTheme, setMessageTheme] = useState('default');
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
+  const [imageLoading, setImageLoading] = useState<'avatar' | 'banner' | null>(null);
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const [saving, setSaving] = useState(false);
   const [badgeDefs, setBadgeDefs] = useState<Record<string, BadgeDef>>({});
@@ -129,6 +137,40 @@ export default function SettingsPage() {
     } catch {
       showToast('Impossible de copier', 'error');
     }
+  };
+
+  const pickImage = async (file: File, kind: 'avatar' | 'banner') => {
+    if (!file.type.startsWith('image/')) {
+      showToast('Le fichier sélectionné doit être une image.', 'error');
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      showToast('Image trop volumineuse (10 Mo maximum).', 'error');
+      return;
+    }
+    setImageLoading(kind);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      if (!e.target?.result) {
+        setImageLoading(null);
+        return;
+      }
+      try {
+        const compressed = await compressImage(e.target.result as string, kind === 'avatar' ? 600 : 1200, 0.78);
+        if (kind === 'avatar') setAvatar(compressed);
+        else setBanner(compressed);
+        showToast(kind === 'avatar' ? 'Photo de profil mise à jour' : 'Bannière mise à jour', 'success');
+      } catch {
+        showToast("Impossible de traiter l'image.", 'error');
+      } finally {
+        setImageLoading(null);
+      }
+    };
+    reader.onerror = () => {
+      setImageLoading(null);
+      showToast("Impossible de lire l'image.", 'error');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSave = useCallback(async () => {
@@ -447,49 +489,111 @@ export default function SettingsPage() {
                 </h3>
 
                 <div className="mb-3">
-                  <label htmlFor="settingsAvatar" className={labelCls}>
-                    URL de l'avatar
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="settingsAvatar"
-                      placeholder="https://... ou /assets/..."
-                      value={avatar}
-                      onChange={(e) => setAvatar(e.target.value)}
-                      className={inputCls}
-                    />
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[var(--bg-input)] border border-[var(--border)] overflow-hidden flex items-center justify-center">
+                  <span className={labelCls}>Photo de profil</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0 w-20 h-20 rounded-full bg-[var(--bg-input)] border border-[var(--border)] overflow-hidden flex items-center justify-center">
                       {avatar ? (
                         <img
                           src={avatar}
-                          alt="Aperçu avatar"
+                          alt="Aperçu de la photo de profil"
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             (e.target as HTMLElement).style.display = 'none';
                           }}
                         />
                       ) : (
-                        <Image size={15} className="text-[var(--text-muted)]" />
+                        <Image size={24} className="text-[var(--text-muted)]" />
                       )}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={imageLoading === 'avatar'}
+                        className="flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-primary)] font-bold text-[13px] px-4 py-2.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {imageLoading === 'avatar' ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
+                        {imageLoading === 'avatar' ? 'Traitement...' : avatar ? 'Changer la photo' : 'Importer une photo'}
+                      </button>
+                      {avatar && (
+                        <button
+                          type="button"
+                          onClick={() => setAvatar('')}
+                          className="flex items-center justify-center gap-2 rounded-full border-none bg-transparent text-[var(--text-muted)] hover:text-red-500 transition-colors font-bold text-[12px] py-1 cursor-pointer"
+                        >
+                          <Trash2 size={13} /> Retirer
+                        </button>
+                      )}
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) pickImage(file, 'avatar');
+                          e.target.value = '';
+                        }}
+                      />
+                      <span className={hintCls}>L'image est compressée et stockée en base de données.</span>
                     </div>
                   </div>
                 </div>
 
                 <div className={`mb-3 ${!isVip ? 'opacity-60' : ''}`}>
-                  <label htmlFor="settingsBanner" className={labelCls}>
-                    URL de la bannière{' '}
+                  <span className={labelCls}>
+                    Bannière{' '}
                     <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[var(--brand-glow)] text-brand font-bold ml-1 align-middle">
                       <Sparkles size={9} /> VIP
                     </span>
-                  </label>
-                  <input
-                    id="settingsBanner"
-                    placeholder="https://... ou /assets/..."
-                    value={banner}
-                    onChange={(e) => setBanner(e.target.value)}
-                    disabled={!isVip}
-                    className={inputCls}
-                  />
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 w-28 h-16 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] overflow-hidden flex items-center justify-center">
+                      {banner ? (
+                        <img
+                          src={banner}
+                          alt="Aperçu de la bannière"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Image size={20} className="text-[var(--text-muted)]" />
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => bannerInputRef.current?.click()}
+                        disabled={!isVip || imageLoading === 'banner'}
+                        className="flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-primary)] font-bold text-[12px] px-3.5 py-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {imageLoading === 'banner' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                        {imageLoading === 'banner' ? 'Traitement...' : banner ? 'Changer la bannière' : 'Importer une bannière'}
+                      </button>
+                      {banner && (
+                        <button
+                          type="button"
+                          onClick={() => setBanner('')}
+                          className="flex items-center justify-center gap-2 rounded-full border-none bg-transparent text-[var(--text-muted)] hover:text-red-500 transition-colors font-bold text-[12px] py-1 cursor-pointer"
+                        >
+                          <Trash2 size={13} /> Retirer
+                        </button>
+                      )}
+                      <input
+                        ref={bannerInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) pickImage(file, 'banner');
+                          e.target.value = '';
+                        }}
+                      />
+                    </div>
+                  </div>
                   {!isVip && <div className={hintCls}>Bannière réservée aux comptes VIP.</div>}
                 </div>
 
