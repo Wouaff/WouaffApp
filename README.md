@@ -71,7 +71,6 @@ Le projet suit une approche **« privacy by design »** : la souveraineté numé
 | **Backend**  | Express 4, Socket.IO, MySQL (mysql2)                                        |
 | **Desktop**  | Electron 33, electron-builder                                               |
 | **Security** | ECDH + AES-256-GCM (E2EE), bcrypt, sessions httpOnly                        |
-| **Storage**  | MySQL, Google Cloud Storage (cold archive)                                  |
 | **Real-time**| Socket.IO (messagerie, appels, typing, présence)                            |
 
 ---
