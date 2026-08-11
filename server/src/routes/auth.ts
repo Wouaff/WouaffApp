@@ -5,6 +5,7 @@ import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
 import { createSession, verifyToken } from '../middleware/auth.js';
 import { verifyCaptcha } from '../middleware/captcha.js';
+import { sendNewUserAlert } from '../services/discordWebhook.js';
 import { genCode, getLastEmailError, sendPasswordResetEmail, sendVerificationEmail } from '../services/email.js';
 import { getStaffRole, isStaff, isUserBanned } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
@@ -61,6 +62,10 @@ router.post('/register', verifyCaptcha, async (req: Request, res: Response) => {
       wouaffId,
       uid,
     ]);
+
+    /* Notifier l'inscription sur Discord (sans bloquer l'inscription) */
+    sendNewUserAlert({ pseudo: finalPseudo, wouaffId, uid, email }).catch(() => {});
+
     const { sessionId } = await createSession(uid, {
       ip: req.ip,
       userAgent: req.headers['user-agent'] as string | undefined,

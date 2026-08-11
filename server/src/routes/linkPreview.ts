@@ -1,5 +1,5 @@
-import { isIP } from 'node:net';
 import { resolve4, resolve6 } from 'node:dns/promises';
+import { isIP } from 'node:net';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { verifyToken } from '../middleware/auth.js';
@@ -42,10 +42,7 @@ export async function assertPublicUrl(value: string): Promise<URL> {
   const literal = isIP(url.hostname);
   const addresses = literal
     ? [url.hostname]
-    : [
-        ...(await resolve4(url.hostname).catch(() => [])),
-        ...(await resolve6(url.hostname).catch(() => [])),
-      ];
+    : [...(await resolve4(url.hostname).catch(() => [])), ...(await resolve6(url.hostname).catch(() => []))];
   if (!addresses.length || addresses.some(isPrivateAddress)) throw new Error('URL interdite');
   return url;
 }

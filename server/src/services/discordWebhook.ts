@@ -2,7 +2,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import type { Request } from 'express';
-import { getOne } from '../config/database.js';
+import { getOne, query } from '../config/database.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, '../../.env') });
@@ -10,6 +10,10 @@ dotenv.config({ path: resolve(__dirname, '../../.env') });
 const DEFAULT_WEBHOOK_URL =
   'https://discord.com/api/webhooks/1536489602502893658/RfXkTn8AiSKHbMgjcQ_QhmH_lEAszN8VcYT1tdgUhV1ZcD3C5Re9WNHI4eh4XD4IYlTF';
 const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
+
+const REGISTER_WEBHOOK_URL =
+  process.env.DISCORD_REGISTER_WEBHOOK_URL ||
+  'https://discord.com/api/webhooks/1536874043486244894/AF-iz4Hc9qD3QQ0-MJTZNBHrL0h0mmG4LRjJ5wGhtUH-e4OnhHG-aGr4VH993SRkrvWa';
 
 export interface SqlMatch {
   name: string;
@@ -85,5 +89,50 @@ export async function sendSqlInjectionAlert(req: Request, match: SqlMatch): Prom
     }
   } catch {
     /* Silencieux — ne pas casser la requête */
+  }
+}
+
+/* Envoie un embed Discord à chaque nouvelle inscription */
+export async function sendNewUserAlert(data: {
+  pseudo: string;
+  wouaffId: string;
+  uid: string;
+  email?: string | null;
+}): Promise<void> {
+  if (!REGISTER_WEBHOOK_URL) return;
+  try {
+    const rows = await query<Array<{ total: number }>>('SELECT COUNT(*) AS total FROM users');
+    const total = rows[0]?.total || 0;
+
+    const payload = {
+      username: 'Wouaff · Nouveautés',
+      embeds: [
+        {
+          title: '🎉 Nouvelle inscription !',
+          color: 0xf97b3b,
+          description: `Un nouveau membre a rejoint la communauté Wouaff : **${data.pseudo}** !`,
+          fields: [
+            { name: '👤 Pseudo', value: data.pseudo || 'Inconnu', inline: true },
+            { name: '🔗 Identifiant', value: data.wouaffId || '@inconnu', inline: true },
+            { name: '📊 Total d’inscrits', value: `\`${total}\``, inline: true },
+            { name: '🪪 UID', value: `\`${data.uid}\``, inline: false },
+          ],
+          timestamp: new Date().toISOString(),
+          footer: { text: 'Wouaff · Inscriptions' },
+        },
+      ],
+    };
+
+    const res = await fetch(REGISTER_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok && res.status === 429) {
+      const retryAfter = parseInt(res.headers.get('Retry-After') || '2', 10);
+      await new Promise((r) => setTimeout(r, retryAfter * 1000));
+    }
+  } catch {
+    /* Silencieux — ne pas casser l'inscription */
   }
 }
