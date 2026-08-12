@@ -1,6 +1,7 @@
 import {
   Award,
   Camera,
+  Check,
   ChevronLeft,
   Copy,
   Image,
@@ -41,10 +42,14 @@ function normalizeBadgeIds(raw: unknown): string[] {
 }
 
 const inputCls =
-  'w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-glow)] font-sans transition-colors';
-const cardCls = 'rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 mb-4';
+  'w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-glow)] font-sans transition-all duration-200';
+const cardCls =
+  'rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-5 mb-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)]';
 const labelCls = 'block text-[13px] font-bold text-[var(--text-primary)] mb-1.5';
 const hintCls = 'flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] mt-1.5';
+const sectionTitleCls = 'flex items-center gap-2.5 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-4';
+const iconBadgeCls =
+  'w-7 h-7 rounded-lg bg-[var(--brand-glow)] text-brand flex items-center justify-center flex-shrink-0';
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
 export default function SettingsPage() {
@@ -67,8 +72,12 @@ export default function SettingsPage() {
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [badgeDefs, setBadgeDefs] = useState<Record<string, BadgeDef>>({});
   const [ownedBadgeIds, setOwnedBadgeIds] = useState<string[]>([]);
+  const [profileCounts, setProfileCounts] = useState<{ posts: number; followers: number; following: number } | null>(
+    null,
+  );
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
@@ -88,6 +97,20 @@ export default function SettingsPage() {
         setBanner(p.banner || '');
         setOwnedBadgeIds(normalizeBadgeIds((p as Record<string, unknown>).ownedBadges));
         setSocialLinks(parseSocialLinks((p as Record<string, unknown>).social_links));
+        const wId = (p.wouaffId as string) || '';
+        if (wId) {
+          fetch(`/api/public/profile/${encodeURIComponent(wId.startsWith('@') ? wId : `@${wId}`)}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d) => {
+              if (d)
+                setProfileCounts({
+                  posts: d.postsCount ?? 0,
+                  followers: d.followersCount ?? 0,
+                  following: d.followingCount ?? 0,
+                });
+            })
+            .catch(() => {});
+        }
       } catch (e) {
         console.error(e);
       }
@@ -178,6 +201,8 @@ export default function SettingsPage() {
       }
       showToast('Profil sauvegardé !', 'success');
       setProfile((prev) => ({ ...(prev as UserProfile), ...updateData }));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
     } catch (e: unknown) {
       showToast(e instanceof Error ? e.message : 'Une erreur est survenue.', 'error');
     }
@@ -229,7 +254,7 @@ export default function SettingsPage() {
       <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
         <div className="mx-auto max-w-[600px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
           <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
-            <div className="flex items-center gap-5 px-2 h-14">
+            <div className="flex items-center gap-3 px-3 h-14">
               <button
                 type="button"
                 onClick={goBack}
@@ -238,55 +263,87 @@ export default function SettingsPage() {
               >
                 <ChevronLeft size={20} />
               </button>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="font-extrabold text-[17px] text-[var(--text-primary)] leading-tight">Paramètres</div>
+                <div className="text-[12px] text-[var(--text-muted)] leading-tight">
+                  Gérez votre profil, votre compte et vos badges
+                </div>
               </div>
             </div>
-            <div className="flex">
-              {TABS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setTab(t.id)}
-                  aria-current={tab === t.id ? 'page' : undefined}
-                  className={`relative flex-1 flex items-center justify-center gap-1.5 py-3 border-none bg-transparent cursor-pointer transition-colors font-sans ${
-                    tab === t.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)]'
-                  }`}
-                >
-                  {t.icon}
-                  <span className={tab === t.id ? 'text-[15px] font-extrabold' : 'text-[15px] font-medium'}>
-                    {t.label}
-                  </span>
-                  {tab === t.id && (
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-brand rounded-full" />
-                  )}
-                </button>
-              ))}
+            <div className="px-3 pb-3 pt-1">
+              <div className="flex bg-[var(--bg-input)] border border-[var(--border)] rounded-full p-1">
+                {TABS.map((t) => {
+                  const active = tab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTab(t.id)}
+                      aria-current={active ? 'page' : undefined}
+                      className={`relative flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full border-none cursor-pointer font-sans transition-all duration-200 ${
+                        active
+                          ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-[0_1px_4px_rgba(0,0,0,0.25)] font-extrabold'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium'
+                      }`}
+                    >
+                      {t.icon}
+                      <span className="text-[14px]">{t.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </header>
 
           {tab === 'profile' && (
             <div className="p-4">
               {/* Aperçu du profil */}
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden mb-4">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden mb-4 shadow-[0_2px_12px_rgba(0,0,0,0.15)]">
                 <div
-                  className="h-28 bg-gradient-to-br from-brand to-brand-dark bg-cover bg-center"
+                  className="h-24 sm:h-28 bg-gradient-to-br from-brand via-brand-dark to-[#8a3a1a] bg-cover bg-center"
                   style={banner ? { backgroundImage: `url(${banner})` } : undefined}
                 />
-                <div className="px-4 pb-4">
-                  <div className="w-20 h-20 -mt-10 rounded-full border-4 border-[var(--bg-card)] bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-white font-extrabold text-2xl flex-shrink-0">
-                    {avatar ? (
-                      <img src={avatar} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <span>{initial}</span>
-                    )}
+                <div className="px-4 sm:px-5 pb-4">
+                  <div className="flex items-end justify-between">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 -mt-10 sm:-mt-12 rounded-full border-4 border-[var(--bg-card)] bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-white font-extrabold text-2xl flex-shrink-0 shadow-[0_4px_16px_rgba(0,0,0,0.35)] ring-2 ring-[var(--border)]">
+                      {avatar ? (
+                        <img src={avatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{initial}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 pb-1">
+                      {[
+                        { label: 'Posts', value: profileCounts?.posts },
+                        { label: 'Abonnés', value: profileCounts?.followers },
+                        { label: 'Abonnements', value: profileCounts?.following },
+                      ].map((s) => (
+                        <div key={s.label} className="text-center">
+                          <div className="text-[15px] font-extrabold text-[var(--text-primary)] tabular-nums">
+                            {s.value ?? '—'}
+                          </div>
+                          <div className="text-[11px] text-[var(--text-muted)]">{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="mt-2 flex items-center gap-1.5">
+                  <div className="mt-3 flex items-center gap-1.5">
                     <span className="font-extrabold text-[19px] text-[var(--text-primary)]">
                       {pseudo || 'Votre pseudo'}
                     </span>
                   </div>
-                  <div className="text-[14px] text-[var(--text-muted)]">{handle}</div>
+                  <div className="text-[14px] text-[var(--text-muted)] flex items-center gap-1.5">
+                    {handle}
+                    <button
+                      type="button"
+                      onClick={() => copy(handle, 'Identifiant')}
+                      title="Copier l'identifiant"
+                      className="bg-transparent border-none cursor-pointer p-0.5 text-[var(--text-muted)] hover:text-brand transition-colors"
+                      aria-label="Copier l'identifiant"
+                    >
+                      <Copy size={13} />
+                    </button>
+                  </div>
                   {bio && (
                     <p className="m-0 mt-2 text-[14px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap">
                       {bio}
@@ -315,13 +372,38 @@ export default function SettingsPage() {
                       })}
                     </div>
                   )}
+                  {ownedBadgeIds.length > 0 && (
+                    <div className="flex items-center gap-2 mt-3 flex-wrap">
+                      {ownedBadgeIds
+                        .map((id) => badgeDefs[id])
+                        .filter((b): b is BadgeDef => !!b && !!b.icon)
+                        .slice(0, 5)
+                        .map((b) => (
+                          <img
+                            key={b.icon}
+                            src={b.icon}
+                            alt={b.name || 'Badge'}
+                            title={b.name || 'Badge'}
+                            className="w-6 h-6 rounded-full object-cover ring-1 ring-[var(--border)]"
+                          />
+                        ))}
+                      {ownedBadgeIds.filter((id) => badgeDefs[id]?.icon).length > 5 && (
+                        <span className="text-[12px] font-bold text-[var(--text-muted)]">
+                          +{ownedBadgeIds.filter((id) => badgeDefs[id]?.icon).length - 5}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Identité */}
               <div className={cardCls}>
-                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-3">
-                  <User size={14} /> Identité
+                <h3 className={sectionTitleCls}>
+                  <span className={iconBadgeCls}>
+                    <User size={14} />
+                  </span>
+                  Identité
                 </h3>
                 <div className="mb-3">
                   <label htmlFor="settingsPseudo" className={labelCls}>
@@ -379,9 +461,12 @@ export default function SettingsPage() {
 
               {/* Liens sociaux */}
               <div className={cardCls}>
-                <h3 className="flex items-center justify-between gap-2 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-3">
-                  <span className="flex items-center gap-2">
-                    <Link2 size={14} /> Liens sociaux
+                <h3 className={`${sectionTitleCls} justify-between`}>
+                  <span className="flex items-center gap-2.5">
+                    <span className={iconBadgeCls}>
+                      <Link2 size={14} />
+                    </span>
+                    Liens sociaux
                   </span>
                   <span className="text-[10px] normal-case tracking-normal px-2 py-0.5 rounded-full bg-[var(--brand-glow)] text-brand font-bold">
                     {socialLinks.length}/3
@@ -441,8 +526,11 @@ export default function SettingsPage() {
 
               {/* Apparence */}
               <div className={cardCls}>
-                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-3">
-                  <Palette size={14} /> Apparence
+                <h3 className={sectionTitleCls}>
+                  <span className={iconBadgeCls}>
+                    <Palette size={14} />
+                  </span>
+                  Apparence
                 </h3>
 
                 <div className="mb-3">
@@ -570,24 +658,30 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setTheme('dark')}
-                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors cursor-pointer ${
+                      className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-3 text-sm font-bold transition-all duration-200 cursor-pointer ${
                         theme === 'dark'
-                          ? 'border-[var(--brand)] bg-[var(--brand-glow)] text-[var(--text-primary)]'
-                          : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                          ? 'border-[var(--brand)] bg-[var(--brand-glow)] text-[var(--text-primary)] ring-1 ring-[var(--brand)]'
+                          : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]'
                       }`}
                     >
-                      <Moon size={16} /> Sombre
+                      <span className="w-10 h-6 rounded-md bg-[#141921] border border-[#2a3448] flex items-center justify-center">
+                        <Moon size={13} className="text-[#e8ecf0]" />
+                      </span>
+                      Sombre
                     </button>
                     <button
                       type="button"
                       onClick={() => setTheme('light')}
-                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors cursor-pointer ${
+                      className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-3 text-sm font-bold transition-all duration-200 cursor-pointer ${
                         theme === 'light'
-                          ? 'border-[var(--brand)] bg-[var(--brand-glow)] text-[var(--text-primary)]'
-                          : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                          ? 'border-[var(--brand)] bg-[var(--brand-glow)] text-[var(--text-primary)] ring-1 ring-[var(--brand)]'
+                          : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]'
                       }`}
                     >
-                      <Sun size={16} /> Clair
+                      <span className="w-10 h-6 rounded-md bg-[#f2f3f7] border border-[#d6dae3] flex items-center justify-center">
+                        <Sun size={13} className="text-[#1c1e24]" />
+                      </span>
+                      Clair
                     </button>
                   </div>
                 </div>
@@ -597,10 +691,20 @@ export default function SettingsPage() {
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full flex items-center justify-center gap-2 bg-brand hover:opacity-90 disabled:opacity-50 transition-opacity text-white font-bold text-[15px] rounded-full py-3 border-none cursor-pointer mb-6"
+                className={`w-full flex items-center justify-center gap-2 rounded-full py-3 border-none cursor-pointer font-bold text-[15px] transition-all duration-200 mb-6 ${
+                  saved
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-brand hover:opacity-90 hover:shadow-[0_4px_16px_rgba(249,123,59,0.35)] active:scale-[0.98]'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {saving ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
-                Enregistrer les modifications
+                {saving ? (
+                  <Loader2 size={17} className="animate-spin" />
+                ) : saved ? (
+                  <Check size={17} />
+                ) : (
+                  <Save size={17} />
+                )}
+                {saving ? 'Enregistrement...' : saved ? 'Sauvegardé !' : 'Enregistrer les modifications'}
               </button>
             </div>
           )}
@@ -608,8 +712,11 @@ export default function SettingsPage() {
           {tab === 'account' && (
             <div className="p-4">
               <div className={cardCls}>
-                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-3">
-                  <Lock size={14} /> Authentification
+                <h3 className={sectionTitleCls}>
+                  <span className={iconBadgeCls}>
+                    <Lock size={14} />
+                  </span>
+                  Authentification
                 </h3>
                 <div className="mb-3">
                   <label htmlFor="settingsEmail" className={labelCls}>
@@ -649,8 +756,11 @@ export default function SettingsPage() {
               </div>
 
               <div className={cardCls}>
-                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-3">
-                  <Award size={14} /> Collection de badges
+                <h3 className={sectionTitleCls}>
+                  <span className={iconBadgeCls}>
+                    <Award size={14} />
+                  </span>
+                  Collection de badges
                 </h3>
                 <div className="flex items-center gap-3">
                   <span className="text-3xl font-black text-[var(--text-primary)]">{ownedBadgeIds.length}</span>
@@ -668,8 +778,11 @@ export default function SettingsPage() {
               </div>
 
               <div className={`${cardCls} border-red-500/30`}>
-                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-[var(--danger)] mb-3">
-                  <Trash2 size={14} /> Zone dangereuse
+                <h3 className="flex items-center gap-2.5 text-[12px] font-extrabold uppercase tracking-wider text-[var(--danger)] mb-3">
+                  <span className="w-7 h-7 rounded-lg bg-red-500/10 text-[var(--danger)] flex items-center justify-center flex-shrink-0">
+                    <Trash2 size={14} />
+                  </span>
+                  Zone dangereuse
                 </h3>
                 <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
                   La suppression de votre compte est <strong className="text-[var(--danger)]">irréversible</strong>.
@@ -689,8 +802,11 @@ export default function SettingsPage() {
           {tab === 'badges' && (
             <div className="p-4">
               <div className={cardCls}>
-                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-brand mb-3">
-                  <Award size={14} /> Mes badges
+                <h3 className={sectionTitleCls}>
+                  <span className={iconBadgeCls}>
+                    <Award size={14} />
+                  </span>
+                  Mes badges
                 </h3>
                 {ownedBadgeIds.length === 0 ? (
                   <div className="py-12 text-center">
@@ -745,11 +861,15 @@ export default function SettingsPage() {
           }}
         >
           <div className="w-full max-w-[420px] rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
-            <div className="px-5 pt-5 pb-4">
-              <h3 className="text-[18px] font-extrabold text-[var(--text-primary)] m-0 mb-1">Supprimer le compte</h3>
+            <div className="px-5 pt-6 pb-4 text-center">
+              <div className="w-14 h-14 mx-auto rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+                <Trash2 size={26} className="text-[var(--danger)]" />
+              </div>
+              <h3 className="text-[19px] font-extrabold text-[var(--text-primary)] m-0 mb-1">Supprimer le compte</h3>
               <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-4">
-                Cette action est <strong className="text-[var(--danger)]">irréversible</strong>. Tapez{' '}
-                <strong className="text-[var(--danger)]">SUPPRIMER</strong> pour confirmer.
+                Cette action est <strong className="text-[var(--danger)]">irréversible</strong>. Toutes vos données
+                seront définitivement effacées. Tapez <strong className="text-[var(--danger)]">SUPPRIMER</strong> pour
+                confirmer.
               </p>
               <input
                 type="text"
@@ -758,7 +878,7 @@ export default function SettingsPage() {
                 onChange={(e) => setDeleteConfirm(e.target.value)}
                 onFocus={(e) => e.target.select()}
                 aria-label="Confirmer la suppression"
-                className={inputCls}
+                className={`${inputCls} text-center`}
               />
               {deleteError && <div className="text-[12px] text-[var(--danger)] mt-2">{deleteError}</div>}
             </div>
