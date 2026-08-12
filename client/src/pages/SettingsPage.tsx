@@ -450,7 +450,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => copy(wouaffId || handle, 'Identifiant')}
                       title="Copier"
-                      className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] cursor-pointer hover:text-brand hover:border-[var(--brand)] transition-colors"
+                      className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] text-[var(--text-muted)] cursor-pointer hover:text-brand hover:bg-[var(--bg-hover)] transition-colors"
                     >
                       <Copy size={16} />
                     </button>
@@ -506,7 +506,7 @@ export default function SettingsPage() {
                         onClick={() => setSocialLinks((prev) => prev.filter((_, j) => j !== i))}
                         aria-label="Supprimer ce lien"
                         title="Supprimer"
-                        className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] cursor-pointer hover:text-red-500 hover:border-red-500/40 transition-colors"
+                        className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] text-[var(--text-muted)] cursor-pointer hover:text-red-500 hover:bg-red-500/10 transition-colors"
                       >
                         <Trash2 size={15} />
                       </button>
@@ -555,7 +555,7 @@ export default function SettingsPage() {
                         type="button"
                         onClick={() => avatarInputRef.current?.click()}
                         disabled={imageLoading === 'avatar'}
-                        className="flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-primary)] font-bold text-[13px] px-4 py-2.5 cursor-pointer disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 rounded-full bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] hover:text-brand transition-colors text-[var(--text-primary)] font-bold text-[13px] px-4 py-2.5 cursor-pointer disabled:opacity-50"
                       >
                         {imageLoading === 'avatar' ? (
                           <Loader2 size={15} className="animate-spin" />
@@ -615,7 +615,7 @@ export default function SettingsPage() {
                         type="button"
                         onClick={() => bannerInputRef.current?.click()}
                         disabled={imageLoading === 'banner'}
-                        className="flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-primary)] font-bold text-[12px] px-3.5 py-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center justify-center gap-2 rounded-full bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] hover:text-brand transition-colors text-[var(--text-primary)] font-bold text-[12px] px-3.5 py-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {imageLoading === 'banner' ? (
                           <Loader2 size={14} className="animate-spin" />
@@ -658,13 +658,13 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setTheme('dark')}
-                      className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-3 text-sm font-bold transition-all duration-200 cursor-pointer ${
+                      className={`flex flex-col items-center gap-2 rounded-xl px-3 py-3 text-sm font-bold transition-all duration-200 cursor-pointer ${
                         theme === 'dark'
-                          ? 'border-[var(--brand)] bg-[var(--brand-glow)] text-[var(--text-primary)] ring-1 ring-[var(--brand)]'
-                          : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]'
+                          ? 'bg-[var(--brand-glow)] text-[var(--text-primary)] ring-1 ring-inset ring-[var(--brand)]'
+                          : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                       }`}
                     >
-                      <span className="w-10 h-6 rounded-md bg-[#141921] border border-[#2a3448] flex items-center justify-center">
+                      <span className="w-10 h-6 rounded-md bg-[#141921] flex items-center justify-center">
                         <Moon size={13} className="text-[#e8ecf0]" />
                       </span>
                       Sombre
@@ -672,13 +672,13 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setTheme('light')}
-                      className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-3 text-sm font-bold transition-all duration-200 cursor-pointer ${
+                      className={`flex flex-col items-center gap-2 rounded-xl px-3 py-3 text-sm font-bold transition-all duration-200 cursor-pointer ${
                         theme === 'light'
-                          ? 'border-[var(--brand)] bg-[var(--brand-glow)] text-[var(--text-primary)] ring-1 ring-[var(--brand)]'
-                          : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]'
+                          ? 'bg-[var(--brand-glow)] text-[var(--text-primary)] ring-1 ring-inset ring-[var(--brand)]'
+                          : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                       }`}
                     >
-                      <span className="w-10 h-6 rounded-md bg-[#f2f3f7] border border-[#d6dae3] flex items-center justify-center">
+                      <span className="w-10 h-6 rounded-md bg-[#f2f3f7] flex items-center justify-center">
                         <Sun size={13} className="text-[#1c1e24]" />
                       </span>
                       Clair
@@ -728,7 +728,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => copy(user?.email || '', 'Email')}
                       title="Copier"
-                      className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] cursor-pointer hover:text-brand hover:border-[var(--brand)] transition-colors"
+                      className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] text-[var(--text-muted)] cursor-pointer hover:text-brand hover:bg-[var(--bg-hover)] transition-colors"
                     >
                       <Copy size={16} />
                     </button>
@@ -744,7 +744,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => copy(user?.uid || '', 'UID')}
                       title="Copier"
-                      className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] cursor-pointer hover:text-brand hover:border-[var(--brand)] transition-colors"
+                      className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] text-[var(--text-muted)] cursor-pointer hover:text-brand hover:bg-[var(--bg-hover)] transition-colors"
                     >
                       <Copy size={16} />
                     </button>
@@ -890,7 +890,7 @@ export default function SettingsPage() {
                   setDeleteConfirm('');
                   setDeleteError('');
                 }}
-                className="px-4 py-2 rounded-full text-sm font-bold text-[var(--text-secondary)] border border-[var(--border)] bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+                className="px-4 py-2 rounded-full text-sm font-bold text-[var(--text-secondary)] bg-[var(--bg-input)] cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
               >
                 Annuler
               </button>
