@@ -1,11 +1,11 @@
-import { Bell, CheckCheck, Heart, MessageCircle, Repeat2, UserPlus } from 'lucide-react';
+import { AtSign, Bell, CheckCheck, Heart, MessageCircle, Repeat2, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../components/Common/Toast';
 import LeftNav from '../components/Home/LeftNav';
 import RightSidebar from '../components/Home/RightSidebar';
 import { useAuth } from '../hooks/useAuth';
-import { notifications as notificationsAPI } from '../services/api';
+import { communities as communitiesAPI, notifications as notificationsAPI } from '../services/api';
 import { offNotificationNew, onNotificationNew } from '../services/socket';
 import type { NotificationItem } from '../types';
 import {
@@ -36,6 +36,10 @@ function notifTitle(item: NotificationItem): string {
       return `${item.actorPseudo} a repartagé votre post`;
     case 'comment':
       return `${item.actorPseudo} a commenté votre post`;
+    case 'community_reply':
+      return `${item.actorPseudo} a répondu à votre post de communauté`;
+    case 'community_mention':
+      return `${item.actorPseudo} vous a mentionné`;
     default:
       return 'Nouvelle notification';
   }
@@ -51,6 +55,10 @@ function notifVerb(item: NotificationItem): string {
       return 'a repartagé votre post';
     case 'comment':
       return 'a commenté votre post';
+    case 'community_reply':
+      return 'a répondu à votre post';
+    case 'community_mention':
+      return 'vous a mentionné';
     default:
       return '';
   }
@@ -72,6 +80,8 @@ const TYPE_ICONS: Record<NotificationItem['type'], { Icon: typeof Bell; cls: str
   repost: { Icon: Repeat2, cls: 'text-online bg-online/10' },
   comment: { Icon: MessageCircle, cls: 'text-brand bg-[var(--brand-glow)]' },
   follow: { Icon: UserPlus, cls: 'text-brand bg-[var(--brand-glow)]' },
+  community_reply: { Icon: MessageCircle, cls: 'text-brand bg-[var(--brand-glow)]' },
+  community_mention: { Icon: AtSign, cls: 'text-brand bg-[var(--brand-glow)]' },
 };
 
 export default function NotificationsPage() {
@@ -144,6 +154,16 @@ export default function NotificationsPage() {
     }
     if (item.type === 'follow') {
       navigate(notifUrl(item));
+      return;
+    }
+    if (item.type === 'community_reply' || item.type === 'community_mention') {
+      if (!item.postId) return;
+      try {
+        const post = await communitiesAPI.getPost(item.postId);
+        navigate(`/r/${encodeURIComponent(post.communityName)}/p/${encodeURIComponent(post.id)}`);
+      } catch {
+        navigate('/communities');
+      }
       return;
     }
     if (item.postId) {

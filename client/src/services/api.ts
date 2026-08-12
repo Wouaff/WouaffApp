@@ -1,4 +1,10 @@
 import type {
+  Community,
+  CommunityComment,
+  CommunityDiscoverResponse,
+  CommunityPost,
+  CommunitySort,
+  CommunityTopWindow,
   FeedItem,
   GifResult,
   GroupData,
@@ -123,6 +129,80 @@ export const groups = {
     request<{ success?: boolean; alreadyMember?: boolean; gid: string }>('POST', `/groups/join/${inviteId}`),
   public: () => request<Record<string, unknown>[]>('GET', '/groups/public'),
   report: (gid: string) => request<{ success: boolean }>('POST', `/groups/${gid}/report`),
+};
+
+/* ── Communautés (type Subreddit) ── */
+export interface CreateCommunityInput {
+  name: string;
+  displayName?: string;
+  description?: string;
+  category?: string;
+  rules?: string[];
+  avatar?: string;
+  banner?: string;
+  isPrivate?: boolean;
+}
+
+export const communities = {
+  discover: () => request<CommunityDiscoverResponse>('GET', '/communities'),
+  discoverCategory: (category?: string, limit = 30) =>
+    request<Community[]>(
+      'GET',
+      `/communities/discover?limit=${limit}${category ? `&category=${encodeURIComponent(category)}` : ''}`,
+    ),
+  mine: () => request<Community[]>('GET', '/communities/mine'),
+  search: (q: string, limit = 20) =>
+    request<Community[]>('GET', `/communities/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+  get: (name: string) => request<Community>('GET', `/communities/${encodeURIComponent(name)}`),
+  create: (data: CreateCommunityInput) => request<Community>('POST', '/communities', data),
+  update: (name: string, data: Partial<CreateCommunityInput>) =>
+    request<Community>('PUT', `/communities/${encodeURIComponent(name)}`, data),
+  subscribe: (name: string) => request<{ subscribed: boolean }>('POST', `/communities/${name}/subscribe`),
+  unsubscribe: (name: string) => request<{ subscribed: boolean }>('POST', `/communities/${name}/unsubscribe`),
+  setRole: (name: string, uid: string, role: 'member' | 'moderator') =>
+    request<{ success: boolean; role: string }>('POST', `/communities/${name}/members/${uid}/role`, { role }),
+  kick: (name: string, uid: string) => request<{ success: boolean }>('DELETE', `/communities/${name}/members/${uid}`),
+  leave: (name: string) => request<{ success: boolean; left: boolean }>('DELETE', `/communities/${name}/members/me`),
+  ban: (name: string, uid: string, reason?: string, durationHours?: number) =>
+    request<{ success: boolean; durationHours: number | null }>('POST', `/communities/${name}/bans`, {
+      uid,
+      reason,
+      durationHours,
+    }),
+  unban: (name: string, uid: string) => request<{ success: boolean }>('DELETE', `/communities/${name}/bans/${uid}`),
+  feed: (name: string, sort: CommunitySort, window: CommunityTopWindow, offset = 0, limit = 20) => {
+    const params = new URLSearchParams({ sort, window, limit: String(limit), offset: String(offset) });
+    return request<{ items: CommunityPost[]; hasMore: boolean }>(
+      'GET',
+      `/communities/${encodeURIComponent(name)}/feed?${params.toString()}`,
+    );
+  },
+  homeFeed: (sort: CommunitySort = 'new', window: CommunityTopWindow = 'week', offset = 0, limit = 20) => {
+    const params = new URLSearchParams({ sort, window, limit: String(limit), offset: String(offset) });
+    return request<{ items: CommunityPost[]; hasMore: boolean }>('GET', `/communities/feed?${params.toString()}`);
+  },
+  onboard: (names: string[]) => request<{ subscribed: number }>('POST', '/communities/onboard', { names }),
+  getPost: (id: string) => request<CommunityPost>('GET', `/communities/post/${id}`),
+  createPost: (name: string, data: { title: string; content?: string; type?: string }) =>
+    request<CommunityPost>('POST', `/communities/${name}/posts`, data),
+  getPostDetail: (name: string, postId: string) =>
+    request<CommunityPost>('GET', `/communities/${name}/posts/${postId}`),
+  vote: (name: string, postId: string, value: -1 | 0 | 1) =>
+    request<{ vote: -1 | 0 | 1; upvotes: number; downvotes: number }>(
+      'POST',
+      `/communities/${name}/posts/${postId}/vote`,
+      { value },
+    ),
+  pin: (name: string, postId: string, pinned: boolean) =>
+    request<{ success: boolean; pinned: boolean }>('POST', `/communities/${name}/posts/${postId}/pin`, { pinned }),
+  deletePost: (name: string, postId: string) =>
+    request<{ success: boolean }>('DELETE', `/communities/${name}/posts/${postId}`),
+  comments: (name: string, postId: string) =>
+    request<{ items: CommunityComment[]; hasMore: boolean }>('GET', `/communities/${name}/posts/${postId}/comments`),
+  addComment: (name: string, postId: string, content: string) =>
+    request<CommunityComment>('POST', `/communities/${name}/posts/${postId}/comments`, { content }),
+  deleteComment: (name: string, postId: string, commentId: number) =>
+    request<{ success: boolean }>('DELETE', `/communities/${name}/posts/${postId}/comments/${commentId}`),
 };
 
 /* ── Contacts ── */

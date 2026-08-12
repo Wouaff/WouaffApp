@@ -1,4 +1,4 @@
-import { Bell, Bookmark, Compass, Film, Home, LogOut, Settings, User } from 'lucide-react';
+import { Bell, Bookmark, Compass, Film, Home, LogOut, Settings, User, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -13,6 +13,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { path: '/', label: 'Accueil', icon: Home },
+  { path: '/communities', label: 'Communautés', icon: Users },
   { path: '/explore', label: 'Explorer', icon: Compass },
   { path: '/notifications', label: 'Notifications', icon: Bell },
   { path: '/feed', label: 'Feed', icon: Film },

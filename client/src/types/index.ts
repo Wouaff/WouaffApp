@@ -241,7 +241,7 @@ export interface FeedItem {
   repost?: RepostInfo;
 }
 
-export type NotificationType = 'follow' | 'like' | 'repost' | 'comment';
+export type NotificationType = 'follow' | 'like' | 'repost' | 'comment' | 'community_reply' | 'community_mention';
 
 export interface NotificationItem {
   id: number;
@@ -256,4 +256,68 @@ export interface NotificationItem {
   commentId?: number | null;
   read: boolean;
   createdAt: number;
+}
+
+/* ── Communautés (type Subreddit) ── */
+
+export type CommunityRole = 'member' | 'moderator' | 'admin';
+
+export interface Community {
+  id: string;
+  name: string;
+  displayName: string | null;
+  description: string | null;
+  category: string;
+  rules: string[];
+  avatar: string | null;
+  banner: string | null;
+  creatorId: string;
+  isPrivate: boolean;
+  createdAt: number;
+  memberCount: number;
+  postCount: number;
+  isSubscribed: boolean;
+  myRole: CommunityRole | null;
+}
+
+export type CommunitySort = 'new' | 'top' | 'hot';
+export type CommunityTopWindow = 'day' | 'week' | 'month';
+export type CommunityPostType = 'text' | 'link' | 'image';
+
+export interface CommunityPost {
+  id: string;
+  communityId: string;
+  communityName: string;
+  communityDisplayName: string | null;
+  communityAvatar: string | null;
+  authorId: string;
+  authorPseudo: string;
+  authorAvatar: string | null;
+  title: string;
+  content: string | null;
+  type: CommunityPostType;
+  upvotes: number;
+  downvotes: number;
+  score: number;
+  commentCount: number;
+  isPinned: boolean;
+  createdAt: number;
+  vote: -1 | 0 | 1;
+}
+
+export interface CommunityComment {
+  id: number;
+  postId: string;
+  authorId: string;
+  authorPseudo: string;
+  authorAvatar: string | null;
+  content: string;
+  upvotes: number;
+  createdAt: number;
+  deleted: boolean;
+}
+
+export interface CommunityDiscoverResponse {
+  categories: string[];
+  groups: Array<{ category: string; items: Community[] }>;
 }

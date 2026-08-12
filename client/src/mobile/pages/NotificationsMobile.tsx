@@ -3,7 +3,7 @@ import { chatbubble, checkmarkDone, heart, personAdd, repeat } from 'ionicons/ic
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../../components/Common/Toast';
-import { notifications as notificationsAPI } from '../../services/api';
+import { communities as communitiesAPI, notifications as notificationsAPI } from '../../services/api';
 import { offNotificationNew, onNotificationNew } from '../../services/socket';
 import type { NotificationItem } from '../../types';
 import MobilePage from '../MobilePage';
@@ -13,6 +13,8 @@ const TYPE_META: Record<NotificationItem['type'], { icon: string; color: string 
   repost: { icon: repeat, color: 'var(--online)' },
   comment: { icon: chatbubble, color: 'var(--brand)' },
   follow: { icon: personAdd, color: 'var(--brand)' },
+  community_reply: { icon: chatbubble, color: 'var(--brand)' },
+  community_mention: { icon: personAdd, color: 'var(--brand)' },
 };
 
 function timeAgo(ts: number): string {
@@ -76,6 +78,16 @@ export default function NotificationsMobile() {
     }
     if (item.type === 'follow' && item.actorHandle && item.actorHandle !== '@inconnu') {
       navigate(`/@${item.actorHandle.replace(/^@/, '')}`);
+      return;
+    }
+    if (item.type === 'community_reply' || item.type === 'community_mention') {
+      if (!item.postId) return;
+      try {
+        const post = await communitiesAPI.getPost(item.postId);
+        navigate(`/r/${encodeURIComponent(post.communityName)}/p/${encodeURIComponent(post.id)}`);
+      } catch {
+        navigate('/communities');
+      }
       return;
     }
     if (item.postId) navigate(`/?post=${encodeURIComponent(item.postId)}`);

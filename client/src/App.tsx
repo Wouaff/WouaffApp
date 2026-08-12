@@ -13,6 +13,9 @@ import MobileShell from './mobile/MobileShell';
 
 const LoginPage = lazy(() => import('./components/Auth/LoginPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage'));
+const CommunityPage = lazy(() => import('./pages/CommunityPage'));
+const DiscoverCommunitiesPage = lazy(() => import('./pages/DiscoverCommunitiesPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const DownloadPage = lazy(() => import('./pages/DownloadPage'));
 const FeedPage = lazy(() => import('./pages/FeedPage'));
@@ -233,6 +236,78 @@ function AppRoutes() {
                 <MaintenanceGuard>
                   <MobileLayout>
                     <FeedPage />
+                  </MobileLayout>
+                </MaintenanceGuard>
+              </ProtectedRoute>
+            )
+          }
+        />
+        <Route
+          path="/communities"
+          element={
+            isMobile ? (
+              <MobileProtected>
+                <CommunitiesPage />
+              </MobileProtected>
+            ) : (
+              <ProtectedRoute>
+                <MaintenanceGuard>
+                  <MobileLayout>
+                    <CommunitiesPage />
+                  </MobileLayout>
+                </MaintenanceGuard>
+              </ProtectedRoute>
+            )
+          }
+        />
+        <Route
+          path="/discover"
+          element={
+            isMobile ? (
+              <MobileProtected>
+                <DiscoverCommunitiesPage />
+              </MobileProtected>
+            ) : (
+              <ProtectedRoute>
+                <MaintenanceGuard>
+                  <MobileLayout>
+                    <DiscoverCommunitiesPage />
+                  </MobileLayout>
+                </MaintenanceGuard>
+              </ProtectedRoute>
+            )
+          }
+        />
+        <Route
+          path="/r/:name"
+          element={
+            isMobile ? (
+              <MobileProtected>
+                <CommunityPage />
+              </MobileProtected>
+            ) : (
+              <ProtectedRoute>
+                <MaintenanceGuard>
+                  <MobileLayout>
+                    <CommunityPage />
+                  </MobileLayout>
+                </MaintenanceGuard>
+              </ProtectedRoute>
+            )
+          }
+        />
+        <Route
+          path="/r/:name/p/:postId"
+          element={
+            isMobile ? (
+              <MobileProtected>
+                <CommunityPage />
+              </MobileProtected>
+            ) : (
+              <ProtectedRoute>
+                <MaintenanceGuard>
+                  <MobileLayout>
+                    <CommunityPage />
                   </MobileLayout>
                 </MaintenanceGuard>
               </ProtectedRoute>
