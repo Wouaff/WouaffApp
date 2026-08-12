@@ -186,6 +186,12 @@ router.post('/:id/comments', async (req: Request, res: Response) => {
   );
   await query('UPDATE videos SET commentsCount = commentsCount + 1 WHERE id=?', [req.params.id]);
   const profile = await getProfile(authReq.uid!);
+  const [badgeRows, staff] = await Promise.all([
+    query<Array<{ badgeId: string }>>('SELECT badgeId FROM user_badges WHERE uid = ? ORDER BY sortOrder ASC', [
+      authReq.uid!,
+    ]),
+    getOne<{ uid: string }>('SELECT uid FROM staff WHERE uid = ?', [authReq.uid!]),
+  ]);
   const comment: VideoComment = {
     id: (result as unknown as { insertId?: number }).insertId || 0,
     videoId: req.params.id,
@@ -194,6 +200,8 @@ router.post('/:id/comments', async (req: Request, res: Response) => {
     createdAt: now,
     pseudo: (profile?.pseudo as string) || 'Inconnu',
     avatar: profile?.avatar as string,
+    ownedBadges: badgeRows.map((b) => b.badgeId),
+    verified: !!staff,
   };
   const io: Server = req.app.get('io');
   if (io) io.emit('video:comment', { videoId: req.params.id, comment });
@@ -209,10 +217,20 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
   );
   const enriched: VideoComment[] = [];
   for (const row of rows) {
+    const rowRecord = row as unknown as Record<string, unknown>;
+    const authorUid = rowRecord.uid as string;
+    const [badgeRows, staff] = await Promise.all([
+      query<Array<{ badgeId: string }>>('SELECT badgeId FROM user_badges WHERE uid = ? ORDER BY sortOrder ASC', [
+        authorUid,
+      ]),
+      getOne<{ uid: string }>('SELECT uid FROM staff WHERE uid = ?', [authorUid]),
+    ]);
     enriched.push({
       ...row,
-      pseudo: ((row as unknown as Record<string, unknown>).pseudo as string) || 'Inconnu',
-      avatar: (row as unknown as Record<string, unknown>).avatar as string,
+      pseudo: (rowRecord.pseudo as string) || 'Inconnu',
+      avatar: rowRecord.avatar as string,
+      ownedBadges: badgeRows.map((b) => b.badgeId),
+      verified: !!staff,
     });
   }
   res.json(enriched);

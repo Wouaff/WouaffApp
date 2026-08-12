@@ -1,6 +1,7 @@
 import { Heart, MapPin, MessageCircle, Play, Send, X } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { badges as badgesAPI } from '../../services/api';
 import type { VideoComment, VideoData } from '../../types';
 import { resolveMediaUrl } from '../../utils/media';
 
@@ -19,6 +20,20 @@ const FeedVideo = memo(function FeedVideo({ video, isVisible, onLike }: Props) {
   const [commentText, setCommentText] = useState('');
   const [liked, setLiked] = useState(video.liked || false);
   const [likeCount, setLikeCount] = useState(video.likesCount);
+  const [badgeDefs, setBadgeDefs] = useState<Record<string, { name?: string; icon?: string }>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    badgesAPI
+      .list()
+      .then((data) => {
+        if (!cancelled) setBadgeDefs(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -168,7 +183,21 @@ const FeedVideo = memo(function FeedVideo({ video, isVisible, onLike }: Props) {
                       )}
                     </div>
                     <div className="feed-comment-body">
-                      <div className="feed-comment-pseudo">{c.pseudo || 'Inconnu'}</div>
+                      <div className="feed-comment-pseudo">
+                        {c.pseudo || 'Inconnu'}
+                        {(c.ownedBadges || [])
+                          .map((id) => badgeDefs[id])
+                          .filter((b): b is { name?: string; icon?: string } => !!b && !!b.icon)
+                          .map((b) => (
+                            <img
+                              key={b.icon}
+                              src={b.icon}
+                              alt={b.name || 'Badge'}
+                              title={b.name || 'Badge'}
+                              className="w-[13px] h-[13px] rounded-full object-cover inline-block ml-1 align-middle"
+                            />
+                          ))}
+                      </div>
                       <div className="feed-comment-text">{c.text}</div>
                     </div>
                   </div>

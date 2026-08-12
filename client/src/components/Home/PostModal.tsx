@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useCap } from '../../hooks/useCap';
 import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
-import { posts as postsAPI } from '../../services/api';
+import { badges as badgesAPI, posts as postsAPI } from '../../services/api';
 import { offPostComment, offPostDeleted, onPostComment, onPostDeleted } from '../../services/socket';
 import type { MentionUser, PostComment, SocialPost } from '../../types';
 import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
@@ -40,6 +40,7 @@ function formatTime(ts: number): string {
 export default function PostModal({ post, onClose, onLike, onRepost, onVote, onCommentDelta }: PostModalProps) {
   const { user } = useAuth();
   const [comments, setComments] = useState<PostComment[]>([]);
+  const [badgeDefs, setBadgeDefs] = useState<Record<string, { name?: string; icon?: string }>>({});
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -99,6 +100,19 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
       cancelled = true;
     };
   }, [post.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    badgesAPI
+      .list()
+      .then((data) => {
+        if (!cancelled) setBadgeDefs(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -306,6 +320,21 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1 flex-wrap">
                       <span className="font-bold text-[var(--text-primary)] text-[14px]">{c.pseudo || 'Inconnu'}</span>
+                      {c.verified && (
+                        <BadgeCheck size={15} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />
+                      )}
+                      {(c.ownedBadges || [])
+                        .map((id) => badgeDefs[id])
+                        .filter((b): b is { name?: string; icon?: string } => !!b && !!b.icon)
+                        .map((b) => (
+                          <img
+                            key={b.icon}
+                            src={b.icon}
+                            alt={b.name || 'Badge'}
+                            title={b.name || 'Badge'}
+                            className="w-[15px] h-[15px] rounded-full flex-shrink-0 object-cover"
+                          />
+                        ))}
                       <span className="text-[var(--text-muted)] text-[13px]">·</span>
                       <span className="text-[var(--text-muted)] text-[13px]">{formatTime(c.createdAt)}</span>
                       <div className="ml-auto flex items-center gap-0.5">

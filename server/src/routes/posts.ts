@@ -570,6 +570,12 @@ router.post('/:id/comments', verifyCaptchaIfNewAccount, async (req: Request, res
   await query('UPDATE posts SET commentsCount = commentsCount + 1 WHERE id = ?', [req.params.id]);
   if (commentId) await insertCommentMentions(commentId, content);
   const profile = await getProfile(authReq.uid!);
+  const [badgeRows, staff] = await Promise.all([
+    query<Array<{ badgeId: string }>>('SELECT badgeId FROM user_badges WHERE uid = ? ORDER BY sortOrder ASC', [
+      authReq.uid!,
+    ]),
+    getOne<{ uid: string }>('SELECT uid FROM staff WHERE uid = ?', [authReq.uid!]),
+  ]);
   const comment: PostComment = {
     id: commentId,
     postId: req.params.id,
@@ -579,6 +585,8 @@ router.post('/:id/comments', verifyCaptchaIfNewAccount, async (req: Request, res
     pseudo: (profile?.pseudo as string) || 'Inconnu',
     handle: toCommentHandle(profile?.wouaffId as string, profile?.pseudo as string),
     avatar: profile?.avatar as string,
+    ownedBadges: badgeRows.map((b) => b.badgeId),
+    verified: !!staff,
   };
   const io: Server = req.app.get('io');
   if (io) io.emit('post:comment', { postId: req.params.id, comment });
@@ -647,11 +655,20 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
   const enriched: PostComment[] = [];
   for (const row of rows) {
     const rowRecord = row as unknown as Record<string, unknown>;
+    const authorUid = rowRecord.uid as string;
+    const [badgeRows, staff] = await Promise.all([
+      query<Array<{ badgeId: string }>>('SELECT badgeId FROM user_badges WHERE uid = ? ORDER BY sortOrder ASC', [
+        authorUid,
+      ]),
+      getOne<{ uid: string }>('SELECT uid FROM staff WHERE uid = ?', [authorUid]),
+    ]);
     enriched.push({
       ...row,
       pseudo: (rowRecord.pseudo as string) || 'Inconnu',
       avatar: rowRecord.avatar as string,
       handle: toCommentHandle(rowRecord.wouaffId as string, rowRecord.pseudo as string),
+      ownedBadges: badgeRows.map((b) => b.badgeId),
+      verified: !!staff,
     });
   }
   res.json(enriched);

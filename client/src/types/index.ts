@@ -153,6 +153,8 @@ export interface VideoComment {
   createdAt: number;
   pseudo?: string;
   avatar?: string;
+  ownedBadges?: string[];
+  verified?: boolean;
 }
 
 export interface PostPoll {
@@ -219,6 +221,8 @@ export interface PostComment {
   pseudo?: string;
   handle?: string;
   avatar?: string;
+  ownedBadges?: string[];
+  verified?: boolean;
 }
 
 export interface RepostInfo {

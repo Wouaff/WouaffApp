@@ -1,5 +1,6 @@
 import { Heart, MapPin, MessageCircle, Send, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { badges as badgesAPI } from '../../services/api';
 import type { VideoComment, VideoData } from '../../types';
 import { resolveMediaUrl } from '../../utils/media';
 
@@ -16,6 +17,20 @@ export default function VideoModal({ video, onClose, onLike }: Props) {
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<VideoComment[]>([]);
   const [commentText, setCommentText] = useState('');
+  const [badgeDefs, setBadgeDefs] = useState<Record<string, { name?: string; icon?: string }>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    badgesAPI
+      .list()
+      .then((data) => {
+        if (!cancelled) setBadgeDefs(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     videoRef.current?.play().catch(() => {});
@@ -133,7 +148,21 @@ export default function VideoModal({ video, onClose, onLike }: Props) {
                       )}
                     </div>
                     <div className="video-modal-comment-body">
-                      <div className="video-modal-comment-pseudo">{c.pseudo || 'Inconnu'}</div>
+                      <div className="video-modal-comment-pseudo">
+                        {c.pseudo || 'Inconnu'}
+                        {(c.ownedBadges || [])
+                          .map((id) => badgeDefs[id])
+                          .filter((b): b is { name?: string; icon?: string } => !!b && !!b.icon)
+                          .map((b) => (
+                            <img
+                              key={b.icon}
+                              src={b.icon}
+                              alt={b.name || 'Badge'}
+                              title={b.name || 'Badge'}
+                              className="w-[13px] h-[13px] rounded-full object-cover inline-block ml-1 align-middle"
+                            />
+                          ))}
+                      </div>
                       <div className="video-modal-comment-text">{c.text}</div>
                     </div>
                   </div>
