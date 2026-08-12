@@ -4502,26 +4502,6 @@ body {
   }
 }
 
-/* swipe hint */
-.swipe-hint {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
-  font-size: 12px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-  z-index: 9999;
-}
-.swipe-hint.show {
-  opacity: 1;
-}
-
 /* ── Swipeable Conversation Items (mobile) ── */
 .swipeable-wrap {
   position: relative;
