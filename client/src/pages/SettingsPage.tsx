@@ -305,7 +305,7 @@ export default function SettingsPage() {
                 />
                 <div className="px-4 sm:px-5 pb-4">
                   <div className="flex items-end justify-between">
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 -mt-10 sm:-mt-12 rounded-full border-4 border-[var(--bg-card)] bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-white font-extrabold text-2xl flex-shrink-0 shadow-[0_4px_16px_rgba(0,0,0,0.35)] ring-2 ring-[var(--border)]">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 -mt-10 sm:-mt-12 rounded-full bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-white font-extrabold text-2xl flex-shrink-0 shadow-[0_4px_16px_rgba(0,0,0,0.35)]">
                       {avatar ? (
                         <img src={avatar} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -384,7 +384,7 @@ export default function SettingsPage() {
                             src={b.icon}
                             alt={b.name || 'Badge'}
                             title={b.name || 'Badge'}
-                            className="w-6 h-6 rounded-full object-cover ring-1 ring-[var(--border)]"
+                            className="w-6 h-6 rounded-full object-cover"
                           />
                         ))}
                       {ownedBadgeIds.filter((id) => badgeDefs[id]?.icon).length > 5 && (
@@ -660,7 +660,7 @@ export default function SettingsPage() {
                       onClick={() => setTheme('dark')}
                       className={`flex flex-col items-center gap-2 rounded-xl px-3 py-3 text-sm font-bold transition-all duration-200 cursor-pointer ${
                         theme === 'dark'
-                          ? 'bg-[var(--brand-glow)] text-[var(--text-primary)] ring-1 ring-inset ring-[var(--brand)]'
+                          ? 'bg-[var(--brand-glow)] text-[var(--text-primary)]'
                           : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                       }`}
                     >
@@ -674,7 +674,7 @@ export default function SettingsPage() {
                       onClick={() => setTheme('light')}
                       className={`flex flex-col items-center gap-2 rounded-xl px-3 py-3 text-sm font-bold transition-all duration-200 cursor-pointer ${
                         theme === 'light'
-                          ? 'bg-[var(--brand-glow)] text-[var(--text-primary)] ring-1 ring-inset ring-[var(--brand)]'
+                          ? 'bg-[var(--brand-glow)] text-[var(--text-primary)]'
                           : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                       }`}
                     >
@@ -791,7 +791,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setDeleteModalOpen(true)}
-                  className="flex items-center justify-center gap-2 w-full rounded-full border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 transition-colors text-[var(--danger)] font-bold text-sm py-3 cursor-pointer"
+                  className="flex items-center justify-center gap-2 w-full rounded-full bg-red-500/10 hover:bg-red-500/20 transition-colors text-[var(--danger)] font-bold text-sm py-3 cursor-pointer"
                 >
                   <Trash2 size={16} /> Supprimer mon compte
                 </button>
