@@ -518,7 +518,15 @@ export async function updateProfile(uid: string, data: Record<string, unknown>):
     }
   }
   if (data.wouaffId !== undefined) {
-    const newId = data.wouaffId as string;
+    const rawId = typeof data.wouaffId === 'string' ? data.wouaffId.trim() : '';
+    const cleanId = rawId.startsWith('@') ? rawId : `@${rawId}`;
+    if (!/^@[a-z0-9_]{1,49}$/.test(cleanId)) {
+      const error = new Error('Identifiant invalide (50 caractères maximum : lettres minuscules, chiffres, _)');
+      (error as Error & { status: number }).status = 400;
+      throw error;
+    }
+    data.wouaffId = cleanId;
+    const newId = cleanId;
     const oldRow = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM users WHERE uid = ?', [uid]);
     const oldId = oldRow?.wouaffId || '';
     if (newId !== oldId) {

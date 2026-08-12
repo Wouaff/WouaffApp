@@ -81,25 +81,40 @@ export default function CommunitiesPage() {
     });
   }, []);
 
+  const applyVote = useCallback(
+    (p: CommunityPost, value: -1 | 0 | 1): CommunityPost => ({
+      ...p,
+      vote: value,
+      score: p.score + (value === p.vote ? 0 : value - p.vote),
+      upvotes: p.upvotes + (value === 1 ? (p.vote === 1 ? -1 : 1) : p.vote === 1 ? -1 : 0),
+      downvotes: p.downvotes + (value === -1 ? (p.vote === -1 ? -1 : 1) : p.vote === -1 ? -1 : 0),
+    }),
+    [],
+  );
+
   const handleVote = useCallback(
     async (post: CommunityPost, value: -1 | 0 | 1) => {
       const previous = post.vote;
-      updatePost(post.id, (p) => ({
-        ...p,
-        vote: value,
-        score: p.score + (value === p.vote ? 0 : value - p.vote),
-        upvotes: p.upvotes + (value === 1 ? (p.vote === 1 ? -1 : 1) : p.vote === 1 ? -1 : 0),
-        downvotes: p.downvotes + (value === -1 ? (p.vote === -1 ? -1 : 1) : p.vote === -1 ? -1 : 0),
-      }));
+      setPosts((prev) => prev.map((p) => (p.id === post.id ? applyVote(p, value) : p)));
+      setSelectedPost((cur) => (cur?.id === post.id ? applyVote(cur, value) : cur));
       try {
         const res = await communitiesAPI.vote(post.communityName, post.id, value);
-        updatePost(post.id, (p) => ({ ...p, vote: res.vote, upvotes: res.upvotes, downvotes: res.downvotes }));
+        const sync = (p: CommunityPost): CommunityPost => ({
+          ...p,
+          vote: res.vote,
+          upvotes: res.upvotes,
+          downvotes: res.downvotes,
+        });
+        setPosts((prev) => prev.map((p) => (p.id === post.id ? sync(p) : p)));
+        setSelectedPost((cur) => (cur?.id === post.id ? sync(cur) : cur));
       } catch (err) {
-        updatePost(post.id, (p) => ({ ...p, vote: previous }));
+        const revert = (p: CommunityPost): CommunityPost => ({ ...p, vote: previous });
+        setPosts((prev) => prev.map((p) => (p.id === post.id ? revert(p) : p)));
+        setSelectedPost((cur) => (cur?.id === post.id ? revert(cur) : cur));
         showToast((err as Error).message || 'Erreur lors du vote', 'error');
       }
     },
-    [updatePost],
+    [applyVote],
   );
 
   const handleDeleted = useCallback((post: CommunityPost) => {

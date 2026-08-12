@@ -51,8 +51,13 @@ router.post('/register', verifyCaptcha, async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Le pseudo ne peut pas contenir de majuscules' });
       return;
     }
+    const basePseudo = (pseudo || email.split('@')[0]).toLowerCase();
+    if (basePseudo.length > 49) {
+      res.status(400).json({ error: 'Pseudo trop long (49 caractères maximum)' });
+      return;
+    }
     const uid = genUid();
-    const finalPseudo = (pseudo || email.split('@')[0]).toLowerCase();
+    const finalPseudo = basePseudo;
     const passwordHash = await bcrypt.hash(password, 10);
     const wouaffId = `@${finalPseudo}`;
     await query(
