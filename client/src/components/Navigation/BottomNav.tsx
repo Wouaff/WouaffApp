@@ -1,4 +1,4 @@
-import { Compass, Film, Home, MessageSquare, User } from 'lucide-react';
+import { Compass, Film, Home, User } from 'lucide-react';
 import { memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -10,14 +10,12 @@ const BottomNav = memo(function BottomNav({ storyBadge }: BottomNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const isHome = location.pathname === '/' || location.pathname === '';
-  const isChat = location.pathname === '/chat';
   const isExplore = location.pathname === '/explore';
   const isFeed = location.pathname === '/feed';
   const isSettings = location.pathname === '/settings';
 
   const items = [
     { path: '/', label: 'Accueil', active: isHome, icon: Home },
-    { path: '/chat', label: 'Messages', active: isChat, icon: MessageSquare },
     { path: '/explore', label: 'Explorer', active: isExplore, icon: Compass },
     { path: '/feed', label: 'Feed', active: isFeed, icon: Film, badge: storyBadge },
     { path: '/settings', label: 'Profil', active: isSettings, icon: User },

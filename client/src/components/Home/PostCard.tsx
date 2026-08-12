@@ -3,7 +3,7 @@ import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { RepostInfo, SocialPost } from '../../types';
-import VoiceMessage from '../Chat/VoiceMessage';
+import VoiceMessage from '../Common/VoiceMessage';
 import Poll from './Poll';
 import PostEmbeds from './PostEmbeds';
 import PostText from './PostText';

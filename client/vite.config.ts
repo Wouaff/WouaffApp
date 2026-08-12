@@ -33,7 +33,6 @@ export default defineConfig({
           if (id.includes('node_modules')) {
             if (id.includes('@ionic') || id.includes('ionicons')) return 'ionic';
             if (id.includes('socket.io-client') || id.includes('engine.io-client')) return 'socket';
-            if (id.includes('simple-peer')) return 'webrtc';
             if (
               id.includes('/react/') ||
               id.includes('/react-dom/') ||

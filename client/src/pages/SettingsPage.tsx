@@ -1,7 +1,6 @@
 import {
   Award,
   Camera,
-  Check,
   ChevronLeft,
   Copy,
   Image,
@@ -17,7 +16,6 @@ import {
   Trash2,
   Upload,
   User,
-  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -74,19 +72,11 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [badgeDefs, setBadgeDefs] = useState<Record<string, BadgeDef>>({});
   const [ownedBadgeIds, setOwnedBadgeIds] = useState<string[]>([]);
-  const [animationsEnabled, setAnimationsEnabled] = useState(
-    localStorage.getItem('wouaff_animations_enabled') !== 'false',
-  );
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-
-  const enableAnimations = (on: boolean) => {
-    localStorage.setItem('wouaff_animations_enabled', on ? 'true' : 'false');
-    setAnimationsEnabled(on);
-  };
 
   useEffect(() => {
     if (!user) return;
@@ -629,37 +619,6 @@ export default function SettingsPage() {
                         <span className="text-[10px] font-bold text-[var(--text-muted)] capitalize">{t}</span>
                       </button>
                     ))}
-                  </div>
-                </div>
-
-                <div>
-                  <span className={labelCls}>Animations des messages</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => enableAnimations(true)}
-                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors cursor-pointer ${
-                        animationsEnabled
-                          ? 'border-[var(--brand)] bg-[var(--brand-glow)] text-[var(--text-primary)]'
-                          : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
-                      }`}
-                    >
-                      <Check size={16} /> Activées
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => enableAnimations(false)}
-                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors cursor-pointer ${
-                        !animationsEnabled
-                          ? 'border-[var(--brand)] bg-[var(--brand-glow)] text-[var(--text-primary)]'
-                          : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
-                      }`}
-                    >
-                      <X size={16} /> Désactivées
-                    </button>
-                  </div>
-                  <div className={hintCls}>
-                    Affiche des animations quand certains mots-clés sont détectés dans les messages.
                   </div>
                 </div>
               </div>

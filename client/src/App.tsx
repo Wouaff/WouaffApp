@@ -1,7 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import ActiveCallBar from './components/Call/ActiveCallBar';
-import IncomingCallOverlay from './components/Call/IncomingCallOverlay';
 import BannedScreen from './components/Common/BannedScreen';
 import ConnectionLostOverlay from './components/Common/ConnectionLostOverlay';
 import EmailVerificationBanner from './components/Common/EmailVerificationBanner';
@@ -9,7 +7,6 @@ import OpenSourceBanner from './components/Common/OpenSourceBanner';
 import TitleBar from './components/Common/TitleBar';
 import MobileLayout from './components/Layout/MobileLayout';
 import { useAuth } from './hooks/useAuth';
-import { CallProvider } from './hooks/useCall';
 import { useIsMobile } from './hooks/useIsMobile';
 import { ThemeProvider } from './hooks/useTheme';
 import MobileShell from './mobile/MobileShell';
@@ -17,7 +14,6 @@ import MobileShell from './mobile/MobileShell';
 const LoginPage = lazy(() => import('./components/Auth/LoginPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
-const ChatPage = lazy(() => import('./pages/ChatPage'));
 const DownloadPage = lazy(() => import('./pages/DownloadPage'));
 const FeedPage = lazy(() => import('./pages/FeedPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
@@ -138,149 +134,155 @@ function CatchAll({ isMobile }: { isMobile: boolean }) {
   return <Navigate to="/" replace />;
 }
 
+function SeoTitle() {
+  const loc = useLocation();
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      '/': "Wouaff — t'as capté 🐺",
+      '/chat': 'Messages — Wouaff',
+      '/explore': 'Explorer — Wouaff',
+      '/feed': 'Feed — Wouaff',
+      '/settings': 'Paramètres — Wouaff',
+      '/admin': 'Administration — Wouaff',
+    };
+    const t = titles[loc.pathname];
+    if (t) document.title = t;
+  }, [loc.pathname]);
+  return null;
+}
+
 function AppRoutes() {
   const isMobile = useIsMobile();
   return (
-    <Routes>
-      <Route path="/auth" element={<LoginPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route
-        path="/"
-        element={
-          isMobile ? (
-            <MobileAppShell>
-              <HomeMobile />
-            </MobileAppShell>
-          ) : (
-            <AppShell>
-              <HomePage />
-            </AppShell>
-          )
-        }
-      />
-      <Route
-        path="/chat"
-        element={
-          isMobile ? (
-            <MobileAppShell>
-              <ChatPage />
-            </MobileAppShell>
-          ) : (
-            <AppShell>
-              <ChatPage />
-            </AppShell>
-          )
-        }
-      />
-      <Route
-        path="/notifications"
-        element={
-          isMobile ? (
-            <MobileAppShell>
-              <NotificationsMobile />
-            </MobileAppShell>
-          ) : (
-            <AppShell>
-              <NotificationsPage />
-            </AppShell>
-          )
-        }
-      />
-      <Route
-        path="/hashtag/:tag"
-        element={
-          isMobile ? (
-            <MobileAppShell>
-              <TagPage />
-            </MobileAppShell>
-          ) : (
-            <AppShell>
-              <TagPage />
-            </AppShell>
-          )
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          isMobile ? (
-            <MobileProtected>
-              <SettingsPage />
-            </MobileProtected>
-          ) : (
+    <>
+      <SeoTitle />
+      <Routes>
+        <Route path="/auth" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route
+          path="/"
+          element={
+            isMobile ? (
+              <MobileAppShell>
+                <HomeMobile />
+              </MobileAppShell>
+            ) : (
+              <AppShell>
+                <HomePage />
+              </AppShell>
+            )
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            isMobile ? (
+              <MobileAppShell>
+                <NotificationsMobile />
+              </MobileAppShell>
+            ) : (
+              <AppShell>
+                <NotificationsPage />
+              </AppShell>
+            )
+          }
+        />
+        <Route
+          path="/hashtag/:tag"
+          element={
+            isMobile ? (
+              <MobileAppShell>
+                <TagPage />
+              </MobileAppShell>
+            ) : (
+              <AppShell>
+                <TagPage />
+              </AppShell>
+            )
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            isMobile ? (
+              <MobileProtected>
+                <SettingsPage />
+              </MobileProtected>
+            ) : (
+              <ProtectedRoute>
+                <MaintenanceGuard>
+                  <MobileLayout>
+                    <SettingsPage />
+                  </MobileLayout>
+                </MaintenanceGuard>
+              </ProtectedRoute>
+            )
+          }
+        />
+        <Route
+          path="/feed"
+          element={
+            isMobile ? (
+              <MobileProtected>
+                <FeedMobile />
+              </MobileProtected>
+            ) : (
+              <ProtectedRoute>
+                <MaintenanceGuard>
+                  <MobileLayout>
+                    <FeedPage />
+                  </MobileLayout>
+                </MaintenanceGuard>
+              </ProtectedRoute>
+            )
+          }
+        />
+        <Route path="/download" element={<DownloadPage />} />
+        <Route
+          path="/explore"
+          element={
+            isMobile ? (
+              <MobileProtected>
+                <ExploreMobile />
+              </MobileProtected>
+            ) : (
+              <ProtectedRoute>
+                <MaintenanceGuard>
+                  <PublicGroupsPage />
+                </MaintenanceGuard>
+              </ProtectedRoute>
+            )
+          }
+        />
+        <Route
+          path="/search"
+          element={
+            isMobile ? (
+              <MobileAppShell>
+                <SearchPage />
+              </MobileAppShell>
+            ) : (
+              <AppShell>
+                <SearchPage />
+              </AppShell>
+            )
+          }
+        />
+        <Route
+          path="/admin"
+          element={
             <ProtectedRoute>
-              <MaintenanceGuard>
-                <MobileLayout>
-                  <SettingsPage />
-                </MobileLayout>
+              <MaintenanceGuard skip>
+                <AdminPage />
               </MaintenanceGuard>
             </ProtectedRoute>
-          )
-        }
-      />
-      <Route
-        path="/feed"
-        element={
-          isMobile ? (
-            <MobileProtected>
-              <FeedMobile />
-            </MobileProtected>
-          ) : (
-            <ProtectedRoute>
-              <MaintenanceGuard>
-                <MobileLayout>
-                  <FeedPage />
-                </MobileLayout>
-              </MaintenanceGuard>
-            </ProtectedRoute>
-          )
-        }
-      />
-      <Route path="/download" element={<DownloadPage />} />
-      <Route
-        path="/explore"
-        element={
-          isMobile ? (
-            <MobileProtected>
-              <ExploreMobile />
-            </MobileProtected>
-          ) : (
-            <ProtectedRoute>
-              <MaintenanceGuard>
-                <PublicGroupsPage />
-              </MaintenanceGuard>
-            </ProtectedRoute>
-          )
-        }
-      />
-      <Route
-        path="/search"
-        element={
-          isMobile ? (
-            <MobileAppShell>
-              <SearchPage />
-            </MobileAppShell>
-          ) : (
-            <AppShell>
-              <SearchPage />
-            </AppShell>
-          )
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute>
-            <MaintenanceGuard skip>
-              <AdminPage />
-            </MaintenanceGuard>
-          </ProtectedRoute>
-        }
-      />
-      <Route path="/*" element={<CatchAll isMobile={isMobile} />} />
-    </Routes>
+          }
+        />
+        <Route path="/*" element={<CatchAll isMobile={isMobile} />} />
+      </Routes>
+    </>
   );
 }
 
@@ -299,29 +301,25 @@ export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <ThemeProvider>
-        <CallProvider>
-          <IncomingCallOverlay />
-          <ActiveCallBar />
-          <ConnectionLostOverlay />
-          <OpenSourceBanner />
-          <DiscordPresenceTracker />
-          <BannedGuard>
-            <div className="flex flex-col h-dvh">
-              <TitleBar />
-              <div className="flex-1 overflow-hidden">
-                <Suspense
-                  fallback={
-                    <div className="flex items-center justify-center h-dvh">
-                      <div className="spinner" />
-                    </div>
-                  }
-                >
-                  <AppRoutes />
-                </Suspense>
-              </div>
+        <ConnectionLostOverlay />
+        <OpenSourceBanner />
+        <DiscordPresenceTracker />
+        <BannedGuard>
+          <div className="flex flex-col h-dvh">
+            <TitleBar />
+            <div className="flex-1 overflow-hidden">
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center h-dvh">
+                    <div className="spinner" />
+                  </div>
+                }
+              >
+                <AppRoutes />
+              </Suspense>
             </div>
-          </BannedGuard>
-        </CallProvider>
+          </div>
+        </BannedGuard>
       </ThemeProvider>
     </BrowserRouter>
   );

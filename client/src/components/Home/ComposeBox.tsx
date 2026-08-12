@@ -6,9 +6,9 @@ import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
 import type { MentionUser } from '../../types';
 import { compressImage } from '../../utils/audio';
 import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
-import EmojiPicker from '../Chat/EmojiPicker';
-import VoiceMessage from '../Chat/VoiceMessage';
+import EmojiPicker from '../Common/EmojiPicker';
 import { showToast } from '../Common/Toast';
+import VoiceMessage from '../Common/VoiceMessage';
 import GifPicker from './GifPicker';
 import MentionSuggestions from './MentionSuggestions';
 

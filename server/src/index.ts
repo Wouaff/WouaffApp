@@ -39,8 +39,8 @@ import videosRouter from './routes/videos.js';
 import { archiveOldCalls, initColdStorage, isColdStorageEnabled } from './services/coldStorage.js';
 import { startQueueWorker } from './services/queue.js';
 import { registerQueueHandlers, setQueueIo } from './services/queueHandlers.js';
-import { buildSeo, defaultSeo, seoMetaTags } from './services/seo.js';
 import { cleanExpiredEphemeralMessages, getMaintenanceMode } from './services/rtdb.js';
+import { buildSeo, defaultSeo, seoMetaTags } from './services/seo.js';
 import { setupSocket } from './socket/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
