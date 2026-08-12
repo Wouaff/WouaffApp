@@ -29,10 +29,10 @@ export default function CommunityCard({ community, onChanged, compact }: Communi
     try {
       if (subscribed) {
         await communitiesAPI.unsubscribe(community.name);
-        showToast(`Désabonné de r/${community.name}`);
+        showToast(`Désabonné de c/${community.name}`);
       } else {
         await communitiesAPI.subscribe(community.name);
-        showToast(`Abonné à r/${community.name} 🎉`);
+        showToast(`Abonné à c/${community.name} 🎉`);
       }
       onChanged?.({
         ...community,
@@ -51,7 +51,7 @@ export default function CommunityCard({ community, onChanged, compact }: Communi
   return (
     <article
       className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
-      onClick={() => navigate(`/r/${community.name}`)}
+      onClick={() => navigate(`/c/${community.name}`)}
     >
       <div className="flex items-start gap-3">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-lg overflow-hidden flex-shrink-0">
@@ -63,7 +63,7 @@ export default function CommunityCard({ community, onChanged, compact }: Communi
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-bold text-[var(--text-primary)] text-[15px] truncate">r/{community.name}</span>
+            <span className="font-bold text-[var(--text-primary)] text-[15px] truncate">c/{community.name}</span>
             {community.isPrivate && (
               <span className="text-[10px] font-bold text-[var(--text-muted)] border border-[var(--border)] rounded-full px-2 py-0.5">
                 Privé

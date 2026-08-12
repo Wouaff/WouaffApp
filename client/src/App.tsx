@@ -279,7 +279,7 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/r/:name"
+          path="/c/:name"
           element={
             isMobile ? (
               <MobileProtected>
@@ -297,7 +297,7 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/r/:name/p/:postId"
+          path="/c/:name/p/:postId"
           element={
             isMobile ? (
               <MobileProtected>

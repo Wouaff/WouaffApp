@@ -160,7 +160,7 @@ export default function NotificationsPage() {
       if (!item.postId) return;
       try {
         const post = await communitiesAPI.getPost(item.postId);
-        navigate(`/r/${encodeURIComponent(post.communityName)}/p/${encodeURIComponent(post.id)}`);
+        navigate(`/c/${encodeURIComponent(post.communityName)}/p/${encodeURIComponent(post.id)}`);
       } catch {
         navigate('/communities');
       }

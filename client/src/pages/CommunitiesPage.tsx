@@ -231,7 +231,7 @@ export default function CommunitiesPage() {
             <button
               key={c.id}
               type="button"
-              onClick={() => navigate(`/r/${c.name}`)}
+              onClick={() => navigate(`/c/${c.name}`)}
               className="flex items-center gap-2.5 mx-2 mb-1 px-2.5 py-2 rounded-xl text-left cursor-pointer border-none bg-transparent hover:bg-[var(--bg-hover)] transition-colors"
             >
               <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
@@ -242,7 +242,7 @@ export default function CommunitiesPage() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-bold text-[var(--text-primary)] truncate">r/{c.name}</div>
+                <div className="text-[14px] font-bold text-[var(--text-primary)] truncate">c/{c.name}</div>
                 <div className="text-[12px] text-[var(--text-muted)] truncate">{c.memberCount} membres</div>
               </div>
             </button>

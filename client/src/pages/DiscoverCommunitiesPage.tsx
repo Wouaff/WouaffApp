@@ -63,7 +63,7 @@ export default function DiscoverCommunitiesPage() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Rechercher r/..."
+                placeholder="Rechercher c/..."
                 aria-label="Rechercher une communauté"
                 className="flex-1 bg-transparent border-none outline-none py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] font-sans"
               />

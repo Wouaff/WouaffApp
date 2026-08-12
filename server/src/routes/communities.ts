@@ -437,7 +437,7 @@ router.post('/', async (req: Request, res: Response) => {
   } catch (err) {
     const e = err as { code?: string };
     if (e.code === 'ER_DUP_ENTRY') {
-      res.status(409).json({ error: `La communauté r/${slug} existe déjà` });
+      res.status(409).json({ error: `La communauté c/${slug} existe déjà` });
       return;
     }
     throw err;
@@ -715,7 +715,7 @@ router.delete('/:name/bans/:uid', async (req: Request, res: Response) => {
 
 /* ═══════════ Feed d'une communauté ═══════════ */
 
-/* GET /communities/:name/feed — vue /r/nom avec tri Nouveau / Top (jour, semaine, mois) / Chaud */
+/* GET /communities/:name/feed — vue /c/nom avec tri Nouveau / Top (jour, semaine, mois) / Chaud */
 router.get('/:name/feed', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());

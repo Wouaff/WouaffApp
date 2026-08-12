@@ -196,7 +196,7 @@ export default function CommunityPage() {
           >
             🐺
           </span>
-          <h2 className="m-0 text-[18px] font-extrabold text-[var(--text-primary)]">r/{name} introuvable</h2>
+          <h2 className="m-0 text-[18px] font-extrabold text-[var(--text-primary)]">c/{name} introuvable</h2>
           <p className="m-0 text-[13px] text-[var(--text-secondary)]">
             Cette communauté n'existe pas ou a été supprimée.
           </p>
@@ -241,7 +241,7 @@ export default function CommunityPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="m-0 text-[18px] font-extrabold text-[var(--text-primary)] truncate">r/{name}</h1>
+                <h1 className="m-0 text-[18px] font-extrabold text-[var(--text-primary)] truncate">c/{name}</h1>
                 {community?.isPrivate && (
                   <span className="flex items-center gap-1 text-[10px] font-bold text-[var(--text-muted)] border border-[var(--border)] rounded-full px-2 py-0.5">
                     <Lock size={10} /> Privé
@@ -461,7 +461,7 @@ function Composer({
           >
             <ArrowLeft size={18} />
           </button>
-          <span className="font-bold text-[var(--text-primary)] text-[16px]">Publier dans r/{community.name}</span>
+          <span className="font-bold text-[var(--text-primary)] text-[16px]">Publier dans c/{community.name}</span>
         </div>
         <div className="px-4 py-4 flex flex-col gap-3">
           <div className="flex gap-2">

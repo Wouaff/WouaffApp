@@ -76,10 +76,10 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
         rules: cleanRules,
         isPrivate,
       });
-      showToast(`Communauté r/${slug} créée 🎉`, 'success');
+      showToast(`Communauté c/${slug} créée 🎉`, 'success');
       onCreated?.(community);
       onClose();
-      navigate(`/r/${community.name}`);
+      navigate(`/c/${community.name}`);
     } catch (err) {
       showToast((err as Error).message || 'Erreur lors de la création', 'error');
     } finally {
@@ -113,7 +113,7 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
               Nom de la communauté
             </label>
             <div className="flex items-center gap-1.5 bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3 focus-within:border-[var(--brand)] transition-colors">
-              <span className="text-[var(--text-muted)] font-semibold">r/</span>
+              <span className="text-[var(--text-muted)] font-semibold">c/</span>
               <input
                 id="cc-name"
                 type="text"
@@ -126,7 +126,7 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
               />
             </div>
             <p className="m-0 mt-1 text-[12px] text-[var(--text-muted)]">
-              URL : /r/{slug || '...'} — lettres minuscules, chiffres et _ uniquement.
+              URL : /c/{slug || '...'} — lettres minuscules, chiffres et _ uniquement.
             </p>
           </div>
 

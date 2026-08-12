@@ -93,11 +93,11 @@ export default function CommunityPostCard({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/r/${post.communityName}`);
+                  navigate(`/c/${post.communityName}`);
                 }}
                 className="font-bold text-[var(--text-primary)] rounded-full border-none bg-transparent cursor-pointer px-0 hover:underline"
               >
-                r/{post.communityName}
+                c/{post.communityName}
               </button>
               <span className="text-[var(--text-muted)]">·</span>
             </>

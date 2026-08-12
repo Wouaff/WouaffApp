@@ -162,7 +162,7 @@ export default function CommunityPostModal({
             <X size={18} />
           </button>
           <span className="font-bold text-[var(--text-primary)] text-[17px] m-0 truncate">
-            r/{post.communityName}
+            c/{post.communityName}
             {post.isPinned && (
               <span className="ml-2 align-middle text-[12px] font-bold text-online">
                 <Pin size={12} className="inline align-text-bottom" /> Épinglé
