@@ -33,8 +33,6 @@ import { PLATFORMS, parseSocialLinks, socialLinksToJson } from '../utils/socialL
 type BadgeDef = { name?: string; icon?: string; description?: string };
 type Tab = 'profile' | 'account' | 'badges';
 
-const THEMES = ['default', 'rose', 'confetti', 'neon', 'fire', 'aurora', 'rgb', 'glitch', 'swing'];
-
 function normalizeBadgeIds(raw: unknown): string[] {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw.filter(Boolean) as string[];
@@ -62,7 +60,6 @@ export default function SettingsPage() {
   const [wouaffId, setWouaffId] = useState('');
   const [avatar, setAvatar] = useState('');
   const [banner, setBanner] = useState('');
-  const [messageTheme, setMessageTheme] = useState('default');
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [imageLoading, setImageLoading] = useState<'avatar' | 'banner' | null>(null);
 
@@ -89,7 +86,6 @@ export default function SettingsPage() {
         setWouaffId(p.wouaffId || '');
         setAvatar(p.avatar || '');
         setBanner(p.banner || '');
-        setMessageTheme((p as Record<string, string>).messageTheme || 'default');
         setOwnedBadgeIds(normalizeBadgeIds((p as Record<string, unknown>).ownedBadges));
         setSocialLinks(parseSocialLinks((p as Record<string, unknown>).social_links));
       } catch (e) {
@@ -172,8 +168,6 @@ export default function SettingsPage() {
         }
         updateData.wouaffId = wouaffId;
       }
-      if (messageTheme !== ((profile as Record<string, string>)?.messageTheme || 'default'))
-        updateData.messageTheme = messageTheme;
       const currentLinks = parseSocialLinks((profile as Record<string, unknown>)?.social_links);
       const socialJson = socialLinksToJson(socialLinks);
       if (socialJson !== socialLinksToJson(currentLinks)) {
@@ -188,7 +182,7 @@ export default function SettingsPage() {
       showToast(e instanceof Error ? e.message : 'Une erreur est survenue.', 'error');
     }
     setSaving(false);
-  }, [user, profile, pseudo, bio, avatar, banner, wouaffId, messageTheme, socialLinks]);
+  }, [user, profile, pseudo, bio, avatar, banner, wouaffId, socialLinks]);
 
   const handleDeleteAccount = async () => {
     if (deleteConfirm !== 'SUPPRIMER' || !user) return;
@@ -595,30 +589,6 @@ export default function SettingsPage() {
                     >
                       <Sun size={16} /> Clair
                     </button>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <span className={labelCls}>Thème des messages</span>
-                  <div className="grid grid-cols-3 gap-2">
-                    {THEMES.map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setMessageTheme(t)}
-                        title={t.charAt(0).toUpperCase() + t.slice(1)}
-                        className={`rounded-xl border p-2 flex flex-col items-center gap-1.5 cursor-pointer transition-colors ${
-                          messageTheme === t
-                            ? 'border-[var(--brand)] bg-[var(--brand-glow)]'
-                            : 'border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)]'
-                        }`}
-                      >
-                        <span className="w-11 h-7 rounded-lg msg-bubble theme-default theme-preview-bubble">
-                          <span className="msg-text">A</span>
-                        </span>
-                        <span className="text-[10px] font-bold text-[var(--text-muted)] capitalize">{t}</span>
-                      </button>
-                    ))}
                   </div>
                 </div>
               </div>
