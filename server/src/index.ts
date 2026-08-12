@@ -1,5 +1,6 @@
 import './services/logger.js';
 
+import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,6 +39,7 @@ import videosRouter from './routes/videos.js';
 import { archiveOldCalls, initColdStorage, isColdStorageEnabled } from './services/coldStorage.js';
 import { startQueueWorker } from './services/queue.js';
 import { registerQueueHandlers, setQueueIo } from './services/queueHandlers.js';
+import { buildSeo, defaultSeo, seoMetaTags } from './services/seo.js';
 import { cleanExpiredEphemeralMessages, getMaintenanceMode } from './services/rtdb.js';
 import { setupSocket } from './socket/index.js';
 
@@ -131,9 +133,29 @@ app.use('/downloads', express.static(downloadsDir));
 const uploadsDir = resolve(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadsDir));
 
-app.get('*', (_req, res) => {
-  res.set('Cache-Control', 'no-cache');
-  res.sendFile(resolve(clientDist, 'index.html'));
+/* SEO & embeds sociaux : injection serveur des meta OG/Twitter selon l'URL */
+let indexHtmlCache: string | null = null;
+function getIndexHtml(): string {
+  if (indexHtmlCache !== null) return indexHtmlCache;
+  indexHtmlCache = readFileSync(resolve(clientDist, 'index.html'), 'utf8');
+  return indexHtmlCache;
+}
+
+app.get('*', async (req, res) => {
+  try {
+    const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    const seo = await buildSeo(req.path, fullUrl).catch(() => defaultSeo(fullUrl));
+    let html = getIndexHtml();
+    if (html.includes('<!--seo-meta-->')) {
+      html = html.replace('<!--seo-meta-->', seoMetaTags(seo));
+    }
+    res.set('Cache-Control', 'no-cache');
+    res.type('html');
+    res.send(html);
+  } catch {
+    res.set('Cache-Control', 'no-cache');
+    res.sendFile(resolve(clientDist, 'index.html'));
+  }
 });
 
 /* Express error middleware (must be last) */
