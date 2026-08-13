@@ -71,14 +71,14 @@
     "events": "^3.3.0",
     "lucide-react": "^1.17.0",
     "process": "^0.11.10",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "react-router-dom": "^6.28.0",
     "simple-peer": "^9.11.1",
     "socket.io-client": "^4.8.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.12",
+    "@types/react": "^19.2.18",
     "@types/react-dom": "^18.3.1",
     "@types/simple-peer": "^9.11.9",
     "@vitejs/plugin-react": "^4.3.4",
