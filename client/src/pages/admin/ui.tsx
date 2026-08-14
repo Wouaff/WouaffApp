@@ -174,13 +174,14 @@ export function Button({
   loading,
   children,
   className,
+  disabled,
   ...rest
 }: ButtonProps) {
   return (
     <button
       type="button"
       className={`wa-btn wa-btn-${variant} wa-btn-${size}${className ? ` ${className}` : ''}`}
-      disabled={loading || rest.disabled}
+      disabled={loading || disabled}
       {...rest}
     >
       {loading ? <Loader2 size={14} className="wa-spin" /> : icon}
