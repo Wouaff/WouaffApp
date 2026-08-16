@@ -56,6 +56,10 @@ router.post('/register', verifyCaptcha, async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Pseudo trop long (49 caractères maximum)' });
       return;
     }
+    if (basePseudo.length < 3) {
+      res.status(400).json({ error: 'Pseudo trop court (3 caractères minimum)' });
+      return;
+    }
     const uid = genUid();
     const finalPseudo = basePseudo;
     const passwordHash = await bcrypt.hash(password, 10);
