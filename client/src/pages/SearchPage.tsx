@@ -1,4 +1,4 @@
-import { Search, User } from 'lucide-react';
+import { ChevronLeft, Search, User } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import LeftNav from '../components/Home/LeftNav';
@@ -73,7 +73,15 @@ export default function SearchPage() {
       <LeftNav />
       <main className="flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)] bg-[var(--bg-deep)]">
         <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
-          <div className="flex items-center px-4 h-14">
+          <div className="flex items-center px-2 h-14">
+            <button
+              type="button"
+              onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
+              aria-label="Retour"
+              className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+            >
+              <ChevronLeft size={22} />
+            </button>
             <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">Recherche</h1>
           </div>
         </header>

@@ -28,6 +28,7 @@ import {
   getReportActions,
   getReportedGroups,
   getStaffRole,
+  getUserEmail,
   listAllGroups,
   listPostReports,
   listRecentPostComments,
@@ -215,9 +216,18 @@ router.post('/badges/:uid/add/:badgeId', async (req: Request, res: Response) => 
   res.json({ success: true });
 });
 
+/* GET /admin/profile/:uid/email — email d'un utilisateur + statut de vérification (staff) */
+router.get('/profile/:uid/email', async (req: Request, res: Response) => {
+  if (!(await requireRole(req, res, 'moderator'))) return;
+  const info = await getUserEmail(req.params.uid);
+  res.json(info);
+});
+
 /* PUT /admin/profile/:uid — modifier le profil d'un utilisateur */
 router.put('/profile/:uid', async (req: Request, res: Response) => {
-  if (!(await requireRole(req, res, 'moderator'))) return;
+  if (req.body && req.body.email !== undefined) {
+    if (!(await requireRole(req, res, 'owner'))) return;
+  } else if (!(await requireRole(req, res, 'moderator'))) return;
   await updateProfileByAdmin(req.params.uid, req.body);
   res.json({ success: true });
 });

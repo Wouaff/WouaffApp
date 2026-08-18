@@ -1,5 +1,5 @@
 import { IonApp, IonIcon, IonLabel, IonTabBar, IonTabButton } from '@ionic/react';
-import { compass, home, person, videocam } from 'ionicons/icons';
+import { compass, home, notifications, person, videocam } from 'ionicons/icons';
 import type { CSSProperties, ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -7,6 +7,7 @@ const TABS = [
   { path: '/', label: 'Accueil', icon: home, match: (p: string) => p === '/' || p === '' },
   { path: '/explore', label: 'Explorer', icon: compass, match: (p: string) => p === '/explore' },
   { path: '/feed', label: 'Feed', icon: videocam, match: (p: string) => p === '/feed' },
+  { path: '/notifications', label: 'Notifications', icon: notifications, match: (p: string) => p === '/notifications' },
   { path: '/settings', label: 'Profil', icon: person, match: (p: string) => p === '/settings' },
 ];
 
@@ -33,12 +34,16 @@ export default function MobileShell({ children }: { children: ReactNode }) {
       </div>
       {showTabBar && (
         <IonTabBar slot="bottom">
-          {TABS.map((t) => (
-            <IonTabButton key={t.path} tab={t.path} selected={t.match(pathname)} onClick={() => navigate(t.path)}>
-              <IonIcon aria-hidden="true" icon={t.icon} />
-              <IonLabel>{t.label}</IonLabel>
-            </IonTabButton>
-          ))}
+          {TABS.map((t) => {
+            const active = t.match(pathname);
+            return (
+              <IonTabButton key={t.path} tab={t.path} selected={active} onClick={() => navigate(t.path)}>
+                <IonIcon aria-hidden="true" icon={t.icon} />
+                <IonLabel>{t.label}</IonLabel>
+                {active && <span className="is-active-dot" aria-hidden="true" />}
+              </IonTabButton>
+            );
+          })}
         </IonTabBar>
       )}
     </IonApp>

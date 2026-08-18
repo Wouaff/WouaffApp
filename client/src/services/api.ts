@@ -475,6 +475,8 @@ export const admin = {
     recent: () => request<Record<string, UserProfile>>('GET', '/admin/users/recent'),
   },
   profile: {
+    email: (uid: string) =>
+      request<{ email: string | null; emailVerified: boolean }>('GET', `/admin/profile/${uid}/email`),
     update: (uid: string, data: Record<string, unknown>) =>
       request<{ success: boolean }>('PUT', `/admin/profile/${uid}`, data),
     resetWouaffId: (uid: string) => request<{ success: boolean }>('POST', `/admin/profile/${uid}/reset-wouaffid`),

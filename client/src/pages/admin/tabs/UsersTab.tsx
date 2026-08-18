@@ -6,6 +6,7 @@ import {
   Globe,
   KeyRound,
   Loader2,
+  Mail,
   RefreshCw,
   Save,
   Search,
@@ -77,6 +78,11 @@ export function UsersTab({
   const avatarFileRef = useRef<HTMLInputElement>(null);
   const bannerFileRef = useRef<HTMLInputElement>(null);
 
+  const [email, setEmail] = useState('');
+  const [emailOriginal, setEmailOriginal] = useState('');
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+
   const [badgeDefs, setBadgeDefs] = useState<Record<string, { name?: string; icon?: string }>>({});
   const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
   const [badgeMsg, setBadgeMsg] = useState('');
@@ -145,6 +151,21 @@ export function UsersTab({
           else if (typeof raw === 'object') ids = Object.values(raw as Record<string, string>).filter(Boolean);
         }
         setSelectedBadges(ids);
+        setEmailLoading(true);
+        adminApi.profile
+          .email(uid)
+          .then((r) => {
+            const current = r.email || '';
+            setEmail(current);
+            setEmailOriginal(current);
+            setEmailVerified(!!r.emailVerified);
+          })
+          .catch(() => {
+            setEmail('');
+            setEmailOriginal('');
+            setEmailVerified(false);
+          })
+          .finally(() => setEmailLoading(false));
         loadLoginHistory(uid);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Erreur');
@@ -210,6 +231,7 @@ export function UsersTab({
       }
       data.wouaffId = editData.wouaffId;
     }
+    if (isOwner && email.trim() !== emailOriginal.trim()) data.email = email.trim();
     if (Object.keys(data).length === 0) {
       setSaveMsg('Aucune modification');
       return;
@@ -219,6 +241,7 @@ export function UsersTab({
       adminApi.logAction('profile_update', 'user', uid, Object.keys(data).join(', '));
       setSaveMsg('Profil mis à jour ✓');
       toast('Profil mis à jour', 'success');
+      if (data.email !== undefined) setEmailOriginal(data.email);
       setResult({ ...result, profile: { ...result.profile, ...data } });
     } catch (e) {
       setSaveMsg(e instanceof Error ? e.message : 'Erreur');
@@ -370,6 +393,9 @@ export function UsersTab({
                   setQuery('');
                   setResult(null);
                   setLoginHistory([]);
+                  setEmail('');
+                  setEmailOriginal('');
+                  setEmailVerified(false);
                 }}
                 aria-label="Effacer"
               >
@@ -405,6 +431,15 @@ export function UsersTab({
                 <code>{result.uid}</code>
                 <CopyUid value={result.uid} />
               </div>
+              <div className="wa-profile-email">
+                <Mail size={13} />
+                <span>{emailLoading ? 'Chargement…' : email || '(aucun email)'}</span>
+                {!emailLoading && email && (
+                  <span className={`wa-chip wa-chip-${emailVerified ? 'success' : 'danger'}`}>
+                    {emailVerified ? 'Vérifié' : 'Non vérifié'}
+                  </span>
+                )}
+              </div>
               {result.profile.bio && <p className="wa-profile-bio">{result.profile.bio}</p>}
               <div className="wa-profile-badges">
                 {selectedBadges.length > 0 ? (
@@ -439,6 +474,15 @@ export function UsersTab({
                 />
               </Field>
             </div>
+            <Field label="Email" hint={!isOwner ? 'Modification réservée au propriétaire' : undefined}>
+              <Input
+                type="email"
+                value={email}
+                placeholder="email@exemple.com"
+                disabled={!isOwner}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </Field>
             <Field label="Bio">
               <Textarea
                 rows={2}

@@ -1358,6 +1358,15 @@
 .wa-profile-uid code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
+.wa-profile-email {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
 .wa-profile-bio {
   font-size: 13px;
   color: var(--text-secondary);

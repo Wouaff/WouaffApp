@@ -30,9 +30,9 @@ export default function MobilePage({ title, showBack, rightSlot, children, onRef
   };
 
   return (
-    <IonContent className="mobile-page">
+    <div className="mobile-page">
       {title && (
-        <IonHeader className="ion-no-border">
+        <IonHeader translucent={true} className="ion-no-border">
           <IonToolbar>
             {showBack && (
               <IonButtons slot="start">
@@ -46,21 +46,23 @@ export default function MobilePage({ title, showBack, rightSlot, children, onRef
           </IonToolbar>
         </IonHeader>
       )}
-      {children}
-      {onRefresh && (
-        <IonRefresher
-          slot="fixed"
-          onIonRefresh={async (e) => {
-            try {
-              await onRefresh();
-            } finally {
-              e.detail.complete();
-            }
-          }}
-        >
-          <IonRefresherContent />
-        </IonRefresher>
-      )}
-    </IonContent>
+      <IonContent className="mobile-page-content" fullscreen={true}>
+        {children}
+        {onRefresh && (
+          <IonRefresher
+            slot="fixed"
+            onIonRefresh={async (e) => {
+              try {
+                await onRefresh();
+              } finally {
+                e.detail.complete();
+              }
+            }}
+          >
+            <IonRefresherContent />
+          </IonRefresher>
+        )}
+      </IonContent>
+    </div>
   );
 }

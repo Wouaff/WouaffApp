@@ -1106,7 +1106,16 @@ export async function getRecentUsers(limit = 20): Promise<Record<string, Record<
   return result;
 }
 
+export async function getUserEmail(uid: string): Promise<{ email: string | null; emailVerified: boolean }> {
+  const row = await getOne<{ email: string | null; emailVerified: number }>(
+    'SELECT email, emailVerified FROM users WHERE uid=?',
+    [uid],
+  );
+  return { email: row?.email || null, emailVerified: !!row?.emailVerified };
+}
+
 export async function updateProfileByAdmin(uid: string, data: Record<string, unknown>): Promise<void> {
+  let emailChanged = false;
   if (data.email !== undefined) {
     const current = await getOne<{ email: string | null }>('SELECT email FROM users WHERE uid=?', [uid]);
     const newEmail = (data.email as string | null)?.trim() || null;
@@ -1123,6 +1132,7 @@ export async function updateProfileByAdmin(uid: string, data: Record<string, unk
       delete data.email;
     } else {
       data.email = newEmail;
+      emailChanged = true;
     }
   }
   if (data.wouaffId !== undefined) {
@@ -1141,7 +1151,7 @@ export async function updateProfileByAdmin(uid: string, data: Record<string, unk
   const fields: string[] = [];
   const params: unknown[] = [];
   for (const [key, value] of Object.entries(data)) {
-    if (!PROFILE_COLUMNS.has(key) || key === 'publicKey') continue;
+    if (!PROFILE_COLUMNS.has(key) || key === 'publicKey' || key === 'wouaffId') continue;
     fields.push(`${key}=?`);
     params.push(value);
   }
@@ -1149,6 +1159,7 @@ export async function updateProfileByAdmin(uid: string, data: Record<string, unk
     fields.push('wouaffId=?');
     params.push(data.wouaffId || null);
   }
+  if (emailChanged) fields.push('emailVerified=0');
   if (fields.length === 0) return;
   params.push(uid);
   await query(`UPDATE users SET ${fields.join(',')} WHERE uid=?`, params);

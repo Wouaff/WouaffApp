@@ -143,6 +143,7 @@ export interface VideoData {
   pseudo?: string;
   avatar?: string;
   wouaffId?: string;
+  ownedBadges?: string[];
 }
 
 export interface VideoComment {
@@ -190,6 +191,7 @@ export interface SocialPost {
   liked?: boolean;
   reposted?: boolean;
   verified?: boolean;
+  ownedBadges?: string[];
 }
 
 export interface TrendItem {

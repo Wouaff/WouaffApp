@@ -1,12 +1,16 @@
+import { IonModal } from '@ionic/react';
 import { BadgeCheck, Flag, Heart, MessageCircle, Repeat2, Reply, Share2, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useBadges } from '../../hooks/useBadges';
 import { useCap } from '../../hooks/useCap';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
-import { badges as badgesAPI, posts as postsAPI } from '../../services/api';
+import { posts as postsAPI } from '../../services/api';
 import { offPostComment, offPostDeleted, onPostComment, onPostDeleted } from '../../services/socket';
 import type { MentionUser, PostComment, SocialPost } from '../../types';
 import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
+import BadgeIcons from '../Common/BadgeIcons';
 import { showToast } from '../Common/Toast';
 import VoiceMessage from '../Common/VoiceMessage';
 import MentionSuggestions from './MentionSuggestions';
@@ -39,8 +43,9 @@ function formatTime(ts: number): string {
 
 export default function PostModal({ post, onClose, onLike, onRepost, onVote, onCommentDelta }: PostModalProps) {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const badgeDefs = useBadges();
   const [comments, setComments] = useState<PostComment[]>([]);
-  const [badgeDefs, setBadgeDefs] = useState<Record<string, { name?: string; icon?: string }>>({});
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -100,19 +105,6 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
       cancelled = true;
     };
   }, [post.id]);
-
-  useEffect(() => {
-    let cancelled = false;
-    badgesAPI
-      .list()
-      .then((data) => {
-        if (!cancelled) setBadgeDefs(data);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -187,13 +179,13 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
   }`;
 
   return (
-    <div
-      className="modal-overlay active"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <IonModal
+      isOpen
+      backdropDismiss
+      onDidDismiss={onClose}
+      className={isMobile ? 'post-modal-mobile' : 'post-modal-desktop'}
     >
-      <div className="flex flex-col w-full max-w-[600px] max-h-[90dvh] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
+      <div className="flex flex-col w-full h-full overflow-hidden bg-[var(--bg-card)]">
         <div className="flex items-center gap-4 px-4 h-14 border-b border-[var(--border)] flex-shrink-0">
           <button
             type="button"
@@ -206,7 +198,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
           <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">Post</span>
         </div>
 
-        <div className="px-4 pt-4 pb-2 flex gap-3 flex-shrink-0">
+        <div className="post-modal-post px-4 pt-4 pb-2 flex gap-3 flex-shrink-0">
           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
             {post.avatar ? (
               <img src={post.avatar} alt="" className="w-full h-full object-cover" />
@@ -220,6 +212,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
               {post.verified && (
                 <BadgeCheck size={17} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />
               )}
+              <BadgeIcons ids={post.ownedBadges} defs={badgeDefs} size={16} />
               <span className="text-[var(--text-muted)] text-[15px]">·</span>
               <span className="text-[var(--text-muted)] text-[15px]">{post.handle}</span>
               <span className="text-[var(--text-muted)] text-[15px]">·</span>
@@ -432,6 +425,6 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
       </div>
       {reportOpen && <ReportPostModal postId={post.id} onClose={() => setReportOpen(false)} />}
       {shareOpen && <SharePostModal post={post} onClose={() => setShareOpen(false)} />}
-    </div>
+    </IonModal>
   );
 }

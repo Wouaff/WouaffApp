@@ -1,7 +1,9 @@
 import { Heart, MessageCircle, Play } from 'lucide-react';
 import { memo } from 'react';
+import { useBadges } from '../../hooks/useBadges';
 import type { VideoData } from '../../types';
 import { resolveMediaUrl } from '../../utils/media';
+import BadgeIcons from '../Common/BadgeIcons';
 
 interface Props {
   video: VideoData;
@@ -10,6 +12,7 @@ interface Props {
 }
 
 const FeedCard = memo(function FeedCard({ video, onLike, onOpen }: Props) {
+  const badgeDefs = useBadges();
   return (
     <div
       className="feed-card"
@@ -58,7 +61,10 @@ const FeedCard = memo(function FeedCard({ video, onLike, onOpen }: Props) {
               <span>{(video.pseudo || '?')[0]}</span>
             )}
           </div>
-          <span className="feed-card-pseudo">{video.pseudo || 'Inconnu'}</span>
+          <span className="feed-card-pseudo">
+            {video.pseudo || 'Inconnu'}
+            <BadgeIcons ids={video.ownedBadges} defs={badgeDefs} size={12} />
+          </span>
         </div>
         {video.caption && <div className="feed-card-caption">{video.caption}</div>}
         <div className="feed-card-footer">

@@ -2,7 +2,9 @@ import { BadgeCheck, Flag, Heart, MessageCircle, Repeat2, Share2 } from 'lucide-
 import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useBadges } from '../../hooks/useBadges';
 import type { RepostInfo, SocialPost } from '../../types';
+import BadgeIcons from '../Common/BadgeIcons';
 import VoiceMessage from '../Common/VoiceMessage';
 import Poll from './Poll';
 import PostEmbeds from './PostEmbeds';
@@ -33,6 +35,7 @@ function formatTime(ts: number): string {
 
 const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, onVote, onOpen }: PostCardProps) {
   const { user } = useAuth();
+  const badgeDefs = useBadges();
   const [reportOpen, setReportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const isOwn = !!user && post.uid === user.uid;
@@ -111,6 +114,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, on
               <span className="font-bold text-[var(--text-primary)] text-[15px]">{post.pseudo}</span>
             )}
             {post.verified && <BadgeCheck size={17} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />}
+            <BadgeIcons ids={post.ownedBadges} defs={badgeDefs} size={16} />
             <span className="text-[var(--text-muted)] text-[15px]">·</span>
             <span className="text-[var(--text-muted)] text-[15px]">{formatTime(post.time)}</span>
           </div>
@@ -141,11 +145,14 @@ const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, on
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-3 max-w-[425px]" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="post-actions flex items-center justify-between mt-3 max-w-[425px]"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               onClick={() => onOpen(post)}
-              className="flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors text-[var(--text-muted)] hover:text-brand hover:bg-[var(--brand-glow)]"
+              className="post-action-btn flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors text-[var(--text-muted)] hover:text-brand hover:bg-[var(--brand-glow)]"
               aria-label={`Commenter (${post.comments})`}
             >
               <MessageCircle size={17} />
@@ -155,7 +162,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, on
             <button
               type="button"
               onClick={() => onRepost(post.id)}
-              className={`flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors ${
+              className={`post-action-btn flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors ${
                 post.reposted ? 'text-online' : 'text-[var(--text-muted)] hover:text-online hover:bg-online/10'
               }`}
               aria-label={`Repartager (${post.reposts})`}
@@ -167,7 +174,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, on
             <button
               type="button"
               onClick={() => onLike(post.id)}
-              className={`flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors ${
+              className={`post-action-btn flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors ${
                 post.liked ? 'text-red-500' : 'text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10'
               }`}
               aria-label={`J'aime (${post.likes})`}
@@ -182,7 +189,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, on
                 e.stopPropagation();
                 setShareOpen(true);
               }}
-              className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:text-brand hover:bg-[var(--brand-glow)] transition-colors"
+              className="post-action-btn flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:text-brand hover:bg-[var(--brand-glow)] transition-colors"
               aria-label="Partager ce post"
               title="Partager"
             >
@@ -196,7 +203,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, on
                   e.stopPropagation();
                   setReportOpen(true);
                 }}
-                className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                className="post-action-btn flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:text-red-500 hover:bg-red-500/10 transition-colors"
                 aria-label="Signaler ce post"
                 title="Signaler"
               >

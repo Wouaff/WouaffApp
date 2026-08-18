@@ -535,7 +535,7 @@ export default function SettingsPage() {
 
                 <div className="mb-3">
                   <span className={labelCls}>Photo de profil</span>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-4">
                     <div className="flex-shrink-0 w-20 h-20 rounded-full bg-[var(--bg-input)] border border-[var(--border)] overflow-hidden flex items-center justify-center">
                       {avatar ? (
                         <img
@@ -595,7 +595,7 @@ export default function SettingsPage() {
 
                 <div className="mb-3">
                   <span className={labelCls}>Bannière</span>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <div className="flex-shrink-0 w-28 h-16 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] overflow-hidden flex items-center justify-center">
                       {banner ? (
                         <img

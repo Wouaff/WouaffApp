@@ -64,6 +64,7 @@ export interface VideoData {
   likesCount: number;
   commentsCount: number;
   createdAt: number;
+  ownedBadges?: string[];
 }
 
 export interface VideoComment {
@@ -104,6 +105,7 @@ export interface PostData {
   liked: boolean;
   reposted: boolean;
   verified: boolean;
+  ownedBadges?: string[];
 }
 
 export interface PostComment {

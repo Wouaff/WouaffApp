@@ -7,6 +7,7 @@ import { verifyToken } from '../middleware/auth.js';
 import { uploadToQuickUploads } from '../services/quickUploads.js';
 import { getProfile } from '../services/rtdb.js';
 import type { AuthRequest, VideoComment, VideoData } from '../types/index.js';
+import { fetchBadgesMap } from '../utils/badges.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
 
@@ -62,6 +63,7 @@ router.get('/', async (req: Request, res: Response) => {
     for (const lr of likeRows) likesMap[lr.videoId] = true;
   }
   const enriched: Array<VideoData & { pseudo?: string; avatar?: string; wouaffId?: string; liked?: boolean }> = [];
+  const badgesMap = await fetchBadgesMap(rows.map((r) => r.uid));
   for (const row of rows) {
     let location = row.location;
     if (typeof location === 'string') {
@@ -78,6 +80,7 @@ router.get('/', async (req: Request, res: Response) => {
       avatar: (row as unknown as Record<string, unknown>).avatar as string,
       wouaffId: ((row as unknown as Record<string, unknown>).wouaffId as string) || undefined,
       liked: !!likesMap[row.id],
+      ownedBadges: badgesMap.get(row.uid) || [],
     });
   }
   res.json(enriched);
@@ -113,6 +116,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     pseudo: (profile?.pseudo as string) || 'Inconnu',
     avatar: profile?.avatar as string,
     liked,
+    ownedBadges: (await fetchBadgesMap([row.uid])).get(row.uid) || [],
   });
 });
 

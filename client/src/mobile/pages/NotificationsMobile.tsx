@@ -1,4 +1,4 @@
-import { IonButton, IonIcon, IonItem, IonLabel, IonList, IonSpinner, IonText } from '@ionic/react';
+import { IonButton, IonIcon, IonItem, IonLabel, IonList } from '@ionic/react';
 import { chatbubble, checkmarkDone, heart, personAdd, repeat } from 'ionicons/icons';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { communities as communitiesAPI, notifications as notificationsAPI } from
 import { offNotificationNew, onNotificationNew } from '../../services/socket';
 import type { NotificationItem } from '../../types';
 import MobilePage from '../MobilePage';
+import { MobileEmpty, MobileSkeleton } from '../MobileState';
 
 const TYPE_META: Record<NotificationItem['type'], { icon: string; color: string }> = {
   like: { icon: heart, color: 'var(--danger)' },
@@ -108,13 +109,13 @@ export default function NotificationsMobile() {
       }
     >
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <IonSpinner />
-        </div>
+        <MobileSkeleton count={6} />
       ) : items.length === 0 ? (
-        <div className="text-center py-16 px-6">
-          <IonText color="medium">Aucune notification pour le moment.</IonText>
-        </div>
+        <MobileEmpty
+          icon={<IonIcon icon={checkmarkDone} />}
+          title="Tout est calme"
+          text="Tes notifications apparaîtront ici quand quelqu'un interagira avec tes posts."
+        />
       ) : (
         <IonList>
           {items.map((n) => {

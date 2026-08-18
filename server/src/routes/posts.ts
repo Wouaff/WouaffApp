@@ -8,6 +8,7 @@ import { verifyCaptchaIfNewAccount } from '../middleware/captcha.js';
 import { enqueueJob } from '../services/queue.js';
 import { getProfile, reportPost } from '../services/rtdb.js';
 import type { AuthRequest, PostComment, PostData, PostFeedItem, PostPoll } from '../types/index.js';
+import { fetchBadgesMap } from '../utils/badges.js';
 import { extractHashtags } from '../utils/hashtags.js';
 import { insertCommentMentions, insertPostMentions } from '../utils/mentions.js';
 
@@ -99,6 +100,7 @@ async function toPostData(
   likedMap?: Set<string>,
   repostedMap?: Set<string>,
   pollVotes?: Map<string, PollVotes>,
+  badgesMap?: Map<string, string[]>,
 ): Promise<PostData> {
   return {
     id: row.id as string,
@@ -118,6 +120,7 @@ async function toPostData(
     liked: likedMap ? likedMap.has(row.id as string) : false,
     reposted: repostedMap ? repostedMap.has(row.id as string) : false,
     verified: !!row.staffUid,
+    ownedBadges: badgesMap?.get(row.uid as string) ?? [],
   };
 }
 
@@ -166,10 +169,11 @@ async function getRepostItem(repostedByUid: string, postId: string, viewerUid?: 
   const likedMap = viewerUid ? await fetchLikedMap(viewerUid, [postId]) : undefined;
   const repostedMap = viewerUid ? await fetchRepostedMap(viewerUid, [postId]) : undefined;
   const pollVotes = await fetchPollVotes([postId], viewerUid);
+  const badgesMap = await fetchBadgesMap([row.uid as string]);
   return {
     type: 'repost',
     key: `repost:${repostedByUid}:${postId}`,
-    post: await toPostData(row, likedMap, repostedMap, pollVotes),
+    post: await toPostData(row, likedMap, repostedMap, pollVotes, badgesMap),
     repost: {
       uid: repostedByUid,
       pseudo: (row.reposterPseudo as string) || 'Utilisateur',
@@ -348,20 +352,21 @@ router.get('/', async (req: Request, res: Response) => {
   const likedMap = authReq.uid ? await fetchLikedMap(authReq.uid, ids) : undefined;
   const repostedMap = authReq.uid ? await fetchRepostedMap(authReq.uid, ids) : undefined;
   const pollVotes = await fetchPollVotes(ids, authReq.uid);
+  const badgesMap = await fetchBadgesMap([...postRows, ...repostRows].map((r) => r.uid as string));
 
   const items: PostFeedItem[] = [];
   for (const row of postRows) {
     items.push({
       type: 'post',
       key: `post:${row.id}`,
-      post: await toPostData(row, likedMap, repostedMap, pollVotes),
+      post: await toPostData(row, likedMap, repostedMap, pollVotes, badgesMap),
     });
   }
   for (const row of repostRows) {
     items.push({
       type: 'repost',
       key: `repost:${row.repostedByUid}:${row.id}`,
-      post: await toPostData(row, likedMap, repostedMap, pollVotes),
+      post: await toPostData(row, likedMap, repostedMap, pollVotes, badgesMap),
       repost: {
         uid: row.repostedByUid as string,
         pseudo: (row.reposterPseudo as string) || 'Utilisateur',
@@ -399,7 +404,8 @@ router.get('/:id', async (req: Request, res: Response) => {
   const likedMap = authReq.uid ? await fetchLikedMap(authReq.uid, [req.params.id]) : undefined;
   const repostedMap = authReq.uid ? await fetchRepostedMap(authReq.uid, [req.params.id]) : undefined;
   const pollVotes = await fetchPollVotes([req.params.id], authReq.uid);
-  res.json(await toPostData(row, likedMap, repostedMap, pollVotes));
+  const badgesMap = await fetchBadgesMap([row.uid as string]);
+  res.json(await toPostData(row, likedMap, repostedMap, pollVotes, badgesMap));
 });
 
 router.delete('/:id', async (req: Request, res: Response) => {

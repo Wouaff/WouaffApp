@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { badges as badgesAPI } from '../../services/api';
 import type { VideoComment, VideoData } from '../../types';
 import { resolveMediaUrl } from '../../utils/media';
+import BadgeIcons from '../Common/BadgeIcons';
 
 interface Props {
   video: VideoData;
@@ -133,7 +134,10 @@ const FeedVideo = memo(function FeedVideo({ video, isVisible, onLike }: Props) {
           ) : (
             <div className="feed-video-avatar feed-video-avatar-placeholder">{(video.pseudo || '?')[0]}</div>
           )}
-          <span className="feed-video-pseudo">{video.pseudo || 'Inconnu'}</span>
+          <span className="feed-video-pseudo">
+            {video.pseudo || 'Inconnu'}
+            <BadgeIcons ids={video.ownedBadges} defs={badgeDefs} size={14} />
+          </span>
         </div>
         {video.caption && <div className="feed-video-caption">{video.caption}</div>}
         {video.location && (

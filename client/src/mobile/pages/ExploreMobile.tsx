@@ -1,10 +1,13 @@
-import { IonAvatar, IonButton, IonCard, IonCardContent, IonIcon, IonList, IonSpinner, IonText } from '@ionic/react';
-import { people } from 'ionicons/icons';
+import { IonAvatar, IonButton, IonCard, IonCardContent, IonIcon, IonList } from '@ionic/react';
+import { people, trendingUp } from 'ionicons/icons';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Toast, { showToast } from '../../components/Common/Toast';
-import { groups as groupsAPI } from '../../services/api';
+import { groups as groupsAPI, trends as trendsAPI } from '../../services/api';
+import type { TrendItem } from '../../types';
 import MobilePage from '../MobilePage';
+import { MobileEmpty, MobileSkeleton } from '../MobileState';
+import SearchButton from '../SearchButton';
 
 interface PublicGroup {
   gid: string;
@@ -18,6 +21,7 @@ interface PublicGroup {
 export default function ExploreMobile() {
   const navigate = useNavigate();
   const [groups, setGroups] = useState<PublicGroup[]>([]);
+  const [trends, setTrends] = useState<TrendItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [joinedGids, setJoinedGids] = useState<Set<string>>(new Set());
 
@@ -50,6 +54,10 @@ export default function ExploreMobile() {
   useEffect(() => {
     loadGroups();
     loadMyGroups();
+    trendsAPI
+      .list(10)
+      .then(setTrends)
+      .catch(() => {});
   }, [loadGroups, loadMyGroups]);
 
   const getInviteForGroup = async (gid: string): Promise<string | null> => {
@@ -79,16 +87,36 @@ export default function ExploreMobile() {
   };
 
   return (
-    <MobilePage title="Explorer" onRefresh={loadGroups}>
+    <MobilePage title="Explorer" onRefresh={loadGroups} rightSlot={<SearchButton />}>
+      {trends.length > 0 && (
+        <section className="px-4 pt-3">
+          <h2 className="flex items-center gap-1.5 m-0 mb-2 text-[15px] font-extrabold text-[var(--text-primary)]">
+            <IonIcon icon={trendingUp} className="text-brand" />
+            Tendances
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {trends.map((t) => (
+              <button
+                key={t.tag}
+                type="button"
+                onClick={() => navigate(`/hashtag/${encodeURIComponent(t.tag)}`)}
+                className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-[13px] font-bold text-[var(--text-primary)] cursor-pointer hover:border-brand hover:text-brand transition-colors"
+              >
+                <span className="text-brand">#{t.tag}</span>
+                <span className="text-[var(--text-muted)] font-semibold">{t.posts} posts</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <IonSpinner />
-          <IonText color="medium">Chargement des groupes...</IonText>
-        </div>
+        <MobileSkeleton count={4} />
       ) : groups.length === 0 ? (
-        <div className="text-center py-16 px-6">
-          <IonText color="medium">Aucun groupe public pour le moment.</IonText>
-        </div>
+        <MobileEmpty
+          icon={<IonIcon icon={people} />}
+          title="Aucun groupe public"
+          text="Crée ton groupe ou attends l'arrivée de nouveaux groupes publics."
+        />
       ) : (
         <IonList className="ion-padding-horizontal" inset={false}>
           {groups.map((g) => {
@@ -116,7 +144,11 @@ export default function ExploreMobile() {
                       </div>
                     </div>
                     {joined ? (
-                      <IonButton fill="outline" size="small" onClick={() => navigate(`/?group=${g.gid}`)}>
+                      <IonButton
+                        fill="outline"
+                        size="small"
+                        onClick={() => showToast('La messagerie revient bientôt', 'info')}
+                      >
                         Ouvrir
                       </IonButton>
                     ) : (

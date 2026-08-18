@@ -1,5 +1,14 @@
-import { IonLabel, IonSegment, IonSegmentButton, IonSpinner, IonText } from '@ionic/react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  IonIcon,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
+  IonLabel,
+  IonSegment,
+  IonSegmentButton,
+} from '@ionic/react';
+import { paw } from 'ionicons/icons';
+import { useCallback, useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Toast from '../../components/Common/Toast';
 import ComposeBox from '../../components/Home/ComposeBox';
 import PostCard from '../../components/Home/PostCard';
@@ -24,6 +33,8 @@ import {
 } from '../../services/socket';
 import type { FeedItem, PostComment, SocialPost } from '../../types';
 import MobilePage from '../MobilePage';
+import { MobileEmpty, MobileError, MobileSkeleton } from '../MobileState';
+import SearchButton from '../SearchButton';
 
 type FeedTab = 'forYou' | 'following';
 
@@ -33,11 +44,17 @@ function toPostItem(post: SocialPost): FeedItem {
 
 export default function HomeMobile() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<FeedTab>('forYou');
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [pendingPostId, setPendingPostId] = useState<string | null>(null);
 
   const selectedPost = items.find((i) => i.post.id === selectedPostId)?.post || null;
 
@@ -45,18 +62,74 @@ export default function HomeMobile() {
     setLoading(true);
     setError('');
     try {
-      const data = await postsAPI.list(1, 50);
+      const feed = tab === 'following' ? 'following' : 'forYou';
+      const data = await postsAPI.list(1, 20, undefined, undefined, feed);
       setItems(data);
+      setPage(1);
+      setHasMore(data.length > 0);
     } catch (e) {
       setError((e as Error).message || 'Impossible de charger le fil');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tab]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const feed = tab === 'following' ? 'following' : 'forYou';
+      const next = page + 1;
+      const data = await postsAPI.list(next, 20, undefined, undefined, feed);
+      setItems((prev) => {
+        const seen = new Set(prev.map((i) => i.key));
+        return [...prev, ...data.filter((i) => !seen.has(i.key))];
+      });
+      setPage(next);
+      setHasMore(data.length > 0);
+    } catch {
+      /* silencieux — on pourra réessayer au prochain scroll */
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [page, hasMore, loadingMore, tab]);
 
   useEffect(() => {
     loadPosts();
   }, [loadPosts]);
+
+  /* Ouverture d'un post depuis une notification (événement ou ?post=ID) */
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const postId = params.get('post');
+    if (postId) {
+      setPendingPostId(postId);
+      navigate(location.pathname, { replace: true });
+    }
+    const handler = (e: Event) => {
+      const { postId: pid } = (e as CustomEvent<{ postId: string }>).detail;
+      if (pid) setPendingPostId(pid);
+    };
+    window.addEventListener('wouaff:open-post', handler);
+    return () => window.removeEventListener('wouaff:open-post', handler);
+  }, [location.search, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!pendingPostId) return;
+    if (items.some((i) => i.post.id === pendingPostId)) {
+      setSelectedPostId(pendingPostId);
+      setPendingPostId(null);
+    } else {
+      postsAPI
+        .get(pendingPostId)
+        .then((post) => {
+          setItems((prev) => (prev.some((i) => i.post.id === post.id) ? prev : [toPostItem(post), ...prev]));
+          setSelectedPostId(pendingPostId);
+        })
+        .catch(() => {})
+        .finally(() => setPendingPostId(null));
+    }
+  }, [pendingPostId, items]);
 
   useEffect(() => {
     if (!user) return;
@@ -182,14 +255,9 @@ export default function HomeMobile() {
     [updatePost],
   );
 
-  const visibleItems = useMemo(() => {
-    if (tab === 'following') return items.filter((i) => i.type === 'repost' || i.repost);
-    return items;
-  }, [items, tab]);
-
   return (
-    <MobilePage title="Accueil" onRefresh={loadPosts}>
-      <div className="px-3 pt-1">
+    <MobilePage title="Accueil" onRefresh={loadPosts} rightSlot={<SearchButton />}>
+      <div className="px-4 pt-3">
         <IonSegment value={tab} onIonChange={(e) => setTab((e.detail.value as FeedTab) || 'forYou')} color="primary">
           <IonSegmentButton value="forYou">
             <IonLabel>Pour toi</IonLabel>
@@ -200,30 +268,26 @@ export default function HomeMobile() {
         </IonSegment>
       </div>
 
-      <div className="mt-1">
+      <div className="mt-2">
         <ComposeBox onPost={handlePost} />
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <IonSpinner />
-          <IonText color="medium">Chargement du fil...</IonText>
-        </div>
+        <MobileSkeleton count={5} />
       ) : error ? (
-        <div className="text-center py-16 px-6">
-          <IonText color="medium">{error}</IonText>
-        </div>
-      ) : visibleItems.length === 0 ? (
-        <div className="text-center py-16 px-6">
-          <div className="text-4xl mb-3" aria-hidden="true">
-            🐺
-          </div>
-          <IonText color="medium">
-            {tab === 'following' ? 'Suis des comptes pour voir leurs posts ici !' : 'Aucun post pour le moment.'}
-          </IonText>
-        </div>
+        <MobileError message={error} onRetry={loadPosts} />
+      ) : items.length === 0 ? (
+        <MobileEmpty
+          icon={<IonIcon icon={paw} />}
+          title={tab === 'following' ? 'Ton fil est vide' : 'Aucun post pour le moment'}
+          text={
+            tab === 'following'
+              ? 'Suis des comptes pour voir leurs posts ici.'
+              : 'Sois le premier à publier quelque chose.'
+          }
+        />
       ) : (
-        visibleItems.map((item) => (
+        items.map((item) => (
           <PostCard
             key={item.key}
             post={item.post}
@@ -246,6 +310,17 @@ export default function HomeMobile() {
           onCommentDelta={handleCommentDelta}
         />
       )}
+
+      <IonInfiniteScroll
+        threshold="100px"
+        disabled={!hasMore}
+        onIonInfinite={async (e) => {
+          await loadMore();
+          e.target.complete();
+        }}
+      >
+        <IonInfiniteScrollContent loadingSpinner="crescent" loadingText="Chargement..." />
+      </IonInfiniteScroll>
 
       <Toast />
     </MobilePage>
