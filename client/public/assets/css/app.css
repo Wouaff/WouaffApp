@@ -1395,6 +1395,19 @@ body {
   height: 32px;
   flex-shrink: 0;
 }
+.msg-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+}
+.msg-row .msg-bubble {
+  max-width: 100%;
+}
+.msg-avatar-mine {
+  margin: 0 0 0 0;
+}
 .msg-bubble {
   padding: 10px 14px;
   border-radius: var(--radius-msg);
@@ -4416,6 +4429,22 @@ body {
   .chat-back-btn {
     display: flex;
   }
+  .chat-topbar {
+    padding-top: var(--safe-top);
+    height: calc(var(--header-h) + var(--safe-top));
+  }
+  .messages {
+    padding: 12px 10px;
+    gap: 4px;
+  }
+  .msg-bubble {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  .msg-input-area {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
   #main {
     height: 100dvh;
   }
@@ -4923,10 +4952,7 @@ body {
   transition:
     filter 0.3s ease,
     opacity 0.3s ease;
-  background-image: url("/assets/logo/background_black.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background: var(--bg-deep);
 }
 .msg-input-area {
   background: var(--bg-base);
@@ -11340,7 +11366,7 @@ body {
    VERSION MOBILE WEB (Ionic) — appliquée uniquement sous 768px
 ══════════════════════════════════════════════════════════════ */
 :root {
-  --mobile-tab-h: calc(50px + var(--safe-bottom));
+  --mobile-tab-h: calc(56px + var(--safe-bottom));
 }
 .mobile-shell {
   height: 100%;
@@ -11531,6 +11557,11 @@ body {
 
 /* ── Tab bar : fond flouté, cible 56px, feedback au tap ── */
 .mobile-shell ion-tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
   --background: color-mix(in srgb, var(--bg-card) 94%, transparent);
   --color: var(--text-muted);
   --color-selected: var(--brand);

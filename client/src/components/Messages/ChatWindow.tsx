@@ -18,7 +18,10 @@ interface ChatWindowProps {
   conv: ChatTarget;
   meUid: string;
   myPseudo: string;
+  myAvatar?: string;
   senderNames: Record<string, string>;
+  senderAvatars: Record<string, string>;
+  isMobile?: boolean;
   messages: Record<string, MessageData>;
   hasMore: boolean;
   loading: boolean;
@@ -41,7 +44,10 @@ export const ChatWindow = memo(function ChatWindow({
   conv,
   meUid,
   myPseudo,
+  myAvatar,
   senderNames,
+  senderAvatars,
+  isMobile,
   messages,
   hasMore,
   loading,
@@ -141,7 +147,13 @@ export const ChatWindow = memo(function ChatWindow({
   return (
     <div className="flex flex-col h-full min-w-0">
       <div className="chat-topbar">
-        <button type="button" className="chat-back-btn" onClick={onBack} aria-label="Retour">
+        <button
+          type="button"
+          className="chat-back-btn"
+          onClick={onBack}
+          aria-label="Retour"
+          style={isMobile ? { display: 'flex' } : undefined}
+        >
           <ArrowLeft size={20} />
         </button>
         <div
@@ -190,19 +202,46 @@ export const ChatWindow = memo(function ChatWindow({
         {entries.map(([key, msg]) => {
           const mine = msg.from === meUid;
           const showSender = conv.type === 'group' && !mine;
+          const recvAvatar = conv.type === 'group' ? senderAvatars[msg.from] : conv.avatar;
+          const avatarUrl = mine ? myAvatar : recvAvatar;
+          const initial = senderLabel(msg.from)[0]?.toUpperCase() || '?';
+          const avatarEl = (
+            <div className={`msg-avatar ${mine ? 'msg-avatar-mine' : ''}`}>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <span>{mine ? myPseudo[0]?.toUpperCase() || '?' : initial}</span>
+              )}
+            </div>
+          );
           return (
             <div key={key} className={`msg-wrapper ${mine ? 'sent' : 'recv'}`}>
-              {!mine && (
-                <div className={`msg-avatar${conv.type === 'group' ? '' : ' msg-avatar-placeholder'}`}>
-                  <span>{senderLabel(msg.from)[0]?.toUpperCase() || '?'}</span>
+              {!mine && avatarEl}
+              {mine ? (
+                <div className="msg-row">
+                  <MessageBubble
+                    msg={msg}
+                    isMine={mine}
+                    showSender={showSender}
+                    senderName={showSender ? senderLabel(msg.from) : undefined}
+                  />
+                  {avatarEl}
                 </div>
+              ) : (
+                <MessageBubble
+                  msg={msg}
+                  isMine={mine}
+                  showSender={showSender}
+                  senderName={showSender ? senderLabel(msg.from) : undefined}
+                />
               )}
-              <MessageBubble
-                msg={msg}
-                isMine={mine}
-                showSender={showSender}
-                senderName={showSender ? senderLabel(msg.from) : undefined}
-              />
             </div>
           );
         })}

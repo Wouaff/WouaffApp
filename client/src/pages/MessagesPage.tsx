@@ -90,6 +90,8 @@ export default function MessagesPage() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [typingFrom, setTypingFrom] = useState<string | null>(null);
   const [senderNames, setSenderNames] = useState<Record<string, string>>({});
+  const [senderAvatars, setSenderAvatars] = useState<Record<string, string>>({});
+  const [myAvatar, setMyAvatar] = useState<string | undefined>(undefined);
 
   const seenMarked = useRef<Set<string>>(new Set());
   const inflightProfiles = useRef<Set<string>>(new Set());
@@ -111,6 +113,17 @@ export default function MessagesPage() {
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
+
+  /* ── Mon avatar ── */
+  useEffect(() => {
+    if (!meUid) return;
+    fetch('/api/profiles/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((p: { avatar?: string | null } | null) => {
+        if (p?.avatar) setMyAvatar(p.avatar);
+      })
+      .catch(() => {});
+  }, [meUid]);
 
   /* ── Ouverture d'une conversation ── */
   const fetchMessages = useCallback(async (target: ChatTarget, before?: number) => {
@@ -319,7 +332,7 @@ export default function MessagesPage() {
     }
   }, [active, messages, meUid]);
 
-  /* ── Résolution des pseudos de groupe (auteurs inconnus) ── */
+  /* ── Résolution des pseudos/avatars de groupe (auteurs inconnus) ── */
   useEffect(() => {
     const unknown = new Set<string>();
     for (const m of Object.values(messages)) {
@@ -331,8 +344,9 @@ export default function MessagesPage() {
       inflightProfiles.current.add(from);
       fetch(`/api/profiles/${encodeURIComponent(from)}`)
         .then((r) => (r.ok ? r.json() : null))
-        .then((p: { pseudo?: string } | null) => {
+        .then((p: { pseudo?: string; avatar?: string | null } | null) => {
           if (p?.pseudo) setSenderNames((prev) => ({ ...prev, [from]: p.pseudo as string }));
+          if (p?.avatar) setSenderAvatars((prev) => ({ ...prev, [from]: p.avatar as string }));
         })
         .finally(() => inflightProfiles.current.delete(from));
     }
@@ -352,7 +366,7 @@ export default function MessagesPage() {
   return (
     <div className="flex h-full">
       <LeftNav />
-      <main className="flex-1 min-w-0 h-full border-x border-[var(--border)] bg-[var(--bg-deep)] flex overflow-hidden">
+      <main className="flex-1 min-w-0 h-full border-x border-[var(--border)] bg-[var(--bg-base)] flex overflow-hidden">
         <div
           className={`w-full md:w-[340px] md:flex-shrink-0 border-r border-[var(--border)] bg-[var(--bg-base)] flex-col ${
             isMobile && active ? 'hidden md:flex' : 'flex'
@@ -369,13 +383,18 @@ export default function MessagesPage() {
           />
         </div>
 
-        <div className={`flex-1 min-w-0 flex-col ${isMobile && !active ? 'hidden md:flex' : 'flex'}`}>
+        <div
+          className={`flex-1 min-w-0 flex-col bg-[var(--bg-base)] ${isMobile && !active ? 'hidden md:flex' : 'flex'}`}
+        >
           {active ? (
             <ChatWindow
               conv={active}
               meUid={meUid}
               myPseudo={myPseudo}
+              myAvatar={myAvatar}
               senderNames={senderNames}
+              senderAvatars={senderAvatars}
+              isMobile={isMobile}
               messages={messages}
               hasMore={hasMore}
               loading={loadingConvs || messagesLoading}

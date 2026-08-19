@@ -12,84 +12,81 @@ interface MessageBubbleProps {
 }
 
 export const MessageBubble = memo(function MessageBubble({ msg, isMine, showSender, senderName }: MessageBubbleProps) {
-  if (msg.deleted) {
-    return (
-      <div className={`message-bubble message-bubble-deleted ${isMine ? 'mine' : ''}`}>
-        <span className="italic text-[var(--text-muted)] text-[13px]">Message supprimé</span>
-      </div>
-    );
-  }
-
   const reactions = msg.reactions ? groupReactions(msg.reactions) : {};
 
   return (
-    <div className={`message-row ${isMine ? 'mine' : 'theirs'}`}>
-      <div className={`message-bubble ${isMine ? 'mine' : 'theirs'}`}>
-        {showSender && !isMine && <div className="message-sender">{senderName || 'Utilisateur'}</div>}
+    <div className={`msg-bubble ${isMine ? 'mine' : ''}`}>
+      {showSender && !isMine && <div className="msg-sender-name">{senderName || 'Utilisateur'}</div>}
 
-        {msg.replyTo && <div className="message-reply-target">Réponse à un message</div>}
+      {msg.replyTo && (
+        <div className="reply-quote">
+          <div className="reply-quote-name">Réponse</div>
+          <div className="reply-quote-text">{msg.replyTo}</div>
+        </div>
+      )}
 
-        {msg.imageData && (
-          <img
-            src={msg.imageData}
-            alt=""
-            className="message-image"
-            onError={(e) => ((e.target as HTMLElement).style.display = 'none')}
-          />
-        )}
+      {msg.imageData && (
+        <img
+          src={msg.imageData}
+          alt=""
+          className="msg-image"
+          onError={(e) => ((e.target as HTMLElement).style.display = 'none')}
+        />
+      )}
 
-        {msg.audioData && (
-          <div className="message-audio">
-            <VoiceMessage audioData={msg.audioData} duration={msg.duration} />
-          </div>
-        )}
+      {msg.audioData && (
+        <div className="msg-voice">
+          <VoiceMessage audioData={msg.audioData} duration={msg.duration} />
+        </div>
+      )}
 
-        {msg.fileData && (
+      {msg.fileData && (
+        <div className="msg-file">
           <a
             href={msg.fileData}
-            className="message-file"
+            className="file-link"
             onClick={(e) => {
               e.preventDefault();
               downloadFile(msg);
             }}
           >
-            <span className="message-file-icon">
-              <File size={18} />
-            </span>
-            <span className="message-file-name">{msg.fileName || 'Fichier'}</span>
+            <File size={18} />
+            <span className="file-name">{msg.fileName || 'Fichier'}</span>
             <Download size={15} />
           </a>
-        )}
-
-        {msg.contact && (
-          <div className="message-contact">
-            <span className="message-contact-icon">
-              <Phone size={15} />
-            </span>
-            <div>
-              <div className="message-contact-name">{msg.contact.name || 'Contact'}</div>
-              {msg.contact.phone && <div className="message-contact-phone">{msg.contact.phone}</div>}
-            </div>
-          </div>
-        )}
-
-        {msg.text && <div className="message-text">{renderLinkifiedText(msg.text)}</div>}
-
-        {Object.keys(reactions).length > 0 && (
-          <div className="message-reactions">
-            {Object.entries(reactions).map(([emoji, uids]) => (
-              <span key={emoji} className="message-reaction">
-                {emoji}
-                {uids.length > 1 && <b>{uids.length}</b>}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="message-meta">
-          {msg.edited && <span className="message-edited">modifié</span>}
-          <span>{formatTime(msg.time)}</span>
         </div>
+      )}
+
+      {msg.contact && (
+        <div className="msg-contact">
+          <Phone size={15} />
+          <div className="contact-details">
+            <span className="contact-name">{msg.contact.name || 'Contact'}</span>
+            {msg.contact.phone && <span className="contact-tel">{msg.contact.phone}</span>}
+          </div>
+        </div>
+      )}
+
+      {msg.deleted ? (
+        <div className="msg-text deleted">Message supprimé</div>
+      ) : (
+        msg.text && <div className="msg-text">{renderLinkifiedText(msg.text)}</div>
+      )}
+
+      {Object.keys(reactions).length > 0 && (
+        <div className="msg-reactions">
+          {Object.entries(reactions).map(([emoji, uids]) => (
+            <span key={emoji} className={`reaction-chip${isMine ? ' mine' : ''}`}>
+              {emoji}
+              {uids.length > 1 && <b>{uids.length}</b>}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="msg-footer">
+        {!!msg.edited && <span className="msg-edited">modifié</span>}
+        <span className="msg-time">{formatTime(msg.time)}</span>
       </div>
     </div>
   );
