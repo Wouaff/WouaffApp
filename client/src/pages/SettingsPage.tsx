@@ -10,6 +10,7 @@ import {
   Lock,
   LogOut,
   Moon,
+  Music2,
   Palette,
   Plus,
   Save,
@@ -18,12 +19,14 @@ import {
   Trash2,
   Upload,
   User,
+  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Toast, { showToast } from '../components/Common/Toast';
 import LeftNav from '../components/Home/LeftNav';
 import RightSidebar from '../components/Home/RightSidebar';
+import MusicCard, { type ProfileMusic, parseProfileMusic } from '../components/Profile/MusicCard';
 import SecurityTab from '../components/Settings/SecurityTab';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
@@ -69,6 +72,11 @@ export default function SettingsPage() {
   const [banner, setBanner] = useState('');
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [imageLoading, setImageLoading] = useState<'avatar' | 'banner' | null>(null);
+  const [music, setMusic] = useState<ProfileMusic | null>(null);
+  const [musicModalOpen, setMusicModalOpen] = useState(false);
+  const [musicUrl, setMusicUrl] = useState('');
+  const [musicBusy, setMusicBusy] = useState(false);
+  const [musicError, setMusicError] = useState('');
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -99,6 +107,7 @@ export default function SettingsPage() {
         setBanner(p.banner || '');
         setOwnedBadgeIds(normalizeBadgeIds((p as Record<string, unknown>).ownedBadges));
         setSocialLinks(parseSocialLinks((p as Record<string, unknown>).social_links));
+        setMusic(parseProfileMusic(p as Record<string, unknown>));
         const wId = (p.wouaffId as string) || '';
         if (wId) {
           fetch(`/api/public/profile/${encodeURIComponent(wId.startsWith('@') ? wId : `@${wId}`)}`)
@@ -139,6 +148,25 @@ export default function SettingsPage() {
       showToast(`${label} copié`, 'success');
     } catch {
       showToast('Impossible de copier', 'error');
+    }
+  };
+
+  const saveMusic = async () => {
+    const url = musicUrl.trim();
+    if (!url || musicBusy) return;
+    setMusicBusy(true);
+    setMusicError('');
+    try {
+      const res = await profilesAPI.setMusic(url);
+      setMusic(res.music);
+      setMusicModalOpen(false);
+      setMusicUrl('');
+      showToast('Musique ajoutée au profil !', 'success');
+    } catch (e) {
+      const msg = (e as Error)?.message || "Impossible d'ajouter cette musique. Vérifiez le lien.";
+      setMusicError(msg);
+    } finally {
+      setMusicBusy(false);
     }
   };
 
@@ -485,6 +513,67 @@ export default function SettingsPage() {
                   </div>
                   <div className={hintCls}>Partagez cet identifiant pour être ajouté en contact.</div>
                 </div>
+              </div>
+
+              {/* Musique du profil */}
+              <div className={cardCls}>
+                <h3 className={sectionTitleCls}>
+                  <span className={iconBadgeCls}>
+                    <Music2 size={14} />
+                  </span>
+                  Musique du profil
+                </h3>
+                {music ? (
+                  <>
+                    <MusicCard music={music} />
+                    <div className="flex items-center gap-2 mt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMusicUrl(music.url);
+                          setMusicError('');
+                          setMusicModalOpen(true);
+                        }}
+                        className="flex-1 px-4 py-2 rounded-full text-sm font-bold text-[var(--text-primary)] bg-[var(--bg-input)] cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+                      >
+                        Changer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await profilesAPI.removeMusic();
+                            setMusic(null);
+                            showToast('Musique retirée du profil', 'success');
+                          } catch {
+                            showToast('Impossible de retirer la musique', 'error');
+                          }
+                        }}
+                        className="flex-1 px-4 py-2 rounded-full text-sm font-bold text-[var(--danger)] bg-red-500/10 cursor-pointer hover:bg-red-500/20 transition-colors"
+                      >
+                        Retirer
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
+                      Affichez une musique sur votre profil comme sur Instagram. Collez un lien Spotify, SoundCloud,
+                      YouTube Music, Tidal, Deezer ou Apple Music.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMusicUrl('');
+                        setMusicError('');
+                        setMusicModalOpen(true);
+                      }}
+                      className="flex items-center justify-center gap-2 w-full rounded-full bg-brand-dark text-white font-bold text-sm py-3 cursor-pointer border-none hover:bg-[#c75a24] transition-colors"
+                    >
+                      <Music2 size={16} /> Choisir une musique
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Liens sociaux */}
@@ -903,6 +992,80 @@ export default function SettingsPage() {
         </div>
       </main>
       <RightSidebar />
+
+      {musicModalOpen && (
+        <div
+          className="modal-overlay active"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !musicBusy) setMusicModalOpen(false);
+          }}
+        >
+          <div className="w-full max-w-[460px] rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl p-5 sm:p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-[19px] font-extrabold text-[var(--text-primary)] m-0 mb-1">Choisir une musique</h3>
+                <p className="text-[13px] text-[var(--text-secondary)] m-0">
+                  Collez le lien du titre que vous voulez afficher sur votre profil.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMusicModalOpen(false)}
+                disabled={musicBusy}
+                aria-label="Fermer"
+                className="w-8 h-8 rounded-full flex items-center justify-center border-none bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] transition-colors flex-shrink-0"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              {['Spotify', 'SoundCloud', 'YouTube Music', 'Tidal', 'Deezer', 'Apple Music'].map((label) => (
+                <span
+                  key={label}
+                  className="text-[11px] font-bold px-2 py-1 rounded-full bg-[var(--brand-glow)] text-brand"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+            <input
+              type="url"
+              placeholder="https://open.spotify.com/track/..."
+              value={musicUrl}
+              onChange={(e) => {
+                setMusicUrl(e.target.value);
+                setMusicError('');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && musicUrl.trim() && !musicBusy) void saveMusic();
+              }}
+              disabled={musicBusy}
+              aria-label="Lien de la musique"
+              className={inputCls}
+            />
+            {musicError && <div className="text-[12px] text-[var(--danger)] mt-2">{musicError}</div>}
+            <div className="flex items-center justify-end gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => setMusicModalOpen(false)}
+                disabled={musicBusy}
+                className="px-4 py-2 rounded-full text-sm font-bold text-[var(--text-secondary)] bg-[var(--bg-input)] cursor-pointer hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveMusic()}
+                disabled={!musicUrl.trim() || musicBusy}
+                className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold text-white bg-brand cursor-pointer hover:opacity-90 transition-opacity border-none disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {musicBusy && <Loader2 size={15} className="animate-spin" />}
+                {music ? 'Mettre à jour' : 'Ajouter'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deleteModalOpen && (
         <div

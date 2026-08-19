@@ -3,6 +3,7 @@ import type { Server as HTTPServer } from 'node:http';
 import { parseCookie } from 'cookie';
 import { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
+import { isIpBannedCached } from '../middleware/auth.js';
 import { isColdStorageEnabled, saveCallRecord } from '../services/coldStorage.js';
 import { chatId, getReverseContactUids, isUserBanned, setUserOffline, setUserOnline } from '../services/rtdb.js';
 
@@ -47,6 +48,10 @@ export function setupSocket(httpServer: HTTPServer): Server {
     if (!sessionId) {
       return next(new Error('Session manquante'));
     }
+    const sockIp = (socket.handshake.address || '').replace(/^::ffff:/, '');
+    if (await isIpBannedCached(sockIp)) {
+      return next(new Error('Adresse IP bannie'));
+    }
     try {
       const session = await getOne<{ uid: string }>('SELECT uid FROM sessions WHERE sessionId = ?', [sessionId]);
       if (!session) return next(new Error('Session invalide'));
@@ -84,6 +89,24 @@ export function setupSocket(httpServer: HTTPServer): Server {
       if (!member) return;
       socket.join(`group:${gid}`);
       authed.roomsJoined.add(`group:${gid}`);
+    });
+
+    socket.on('leave:dm', () => {
+      for (const room of [...authed.roomsJoined]) {
+        if (room.startsWith('dm:')) {
+          socket.leave(room);
+          authed.roomsJoined.delete(room);
+        }
+      }
+    });
+
+    socket.on('leave:group', () => {
+      for (const room of [...authed.roomsJoined]) {
+        if (room.startsWith('group:')) {
+          socket.leave(room);
+          authed.roomsJoined.delete(room);
+        }
+      }
     });
 
     socket.on('typing:dm', (otherUid: string, isTyping: boolean) => {

@@ -11,6 +11,7 @@ import express from 'express';
 import pool from './config/database.js';
 import { runMigrations } from './config/migrate.js';
 import { patchRouter } from './middleware/asyncHandler.js';
+import { checkIpBan } from './middleware/auth.js';
 import { errorHandler, setupProcessHandlers } from './middleware/errorHandler.js';
 import { maintenanceCheck } from './middleware/maintenance.js';
 import { rateLimit } from './middleware/rateLimit.js';
@@ -60,6 +61,9 @@ app.use(cookieParser());
 
 /* SQL injection guard — scanne tous les champs textuels des requêtes API */
 app.use('/api', sqlGuard);
+
+/* Blocage des adresses IP bannies (toutes routes API confondues) */
+app.use('/api', checkIpBan);
 
 /* Rate limiting */
 app.use('/api/auth/login', rateLimit({ windowMs: 60000, max: 20 }));

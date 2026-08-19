@@ -18,20 +18,20 @@ import { posts as postsAPI } from '../../services/api';
 import {
   offPostComment,
   offPostDeleted,
-  offPostLiked,
   offPostNew,
+  offPostReacted,
   offPostRepost,
   offPostReposted,
   offPostUnrepost,
   onPostComment,
   onPostDeleted,
-  onPostLiked,
   onPostNew,
+  onPostReacted,
   onPostRepost,
   onPostReposted,
   onPostUnrepost,
 } from '../../services/socket';
-import type { FeedItem, PostComment, SocialPost } from '../../types';
+import type { FeedItem, PostComment, PostReaction, SocialPost } from '../../types';
 import MobilePage from '../MobilePage';
 import { MobileEmpty, MobileError, MobileSkeleton } from '../MobileState';
 import SearchButton from '../SearchButton';
@@ -136,11 +136,18 @@ export default function HomeMobile() {
     const handleNew = (post: SocialPost) => {
       setItems((prev) => (prev.some((i) => i.key === toPostItem(post).key) ? prev : [toPostItem(post), ...prev]));
     };
-    const handleLiked = (data: { postId: string; uid: string; liked: boolean; likes: number }) => {
+    const handleReacted = (data: {
+      postId: string;
+      uid: string;
+      type: string;
+      reaction: string | null;
+      reactions: PostReaction[];
+      total: number;
+    }) => {
       if (data.uid === user.uid) return;
       setItems((prev) =>
         prev.map((i) =>
-          i.post.id === data.postId ? { ...i, post: { ...i.post, liked: data.liked, likes: data.likes } } : i,
+          i.post.id === data.postId ? { ...i, post: { ...i.post, likes: data.total, reactions: data.reactions } } : i,
         ),
       );
     };
@@ -170,7 +177,7 @@ export default function HomeMobile() {
       );
     };
     onPostNew(handleNew);
-    onPostLiked(handleLiked);
+    onPostReacted(handleReacted);
     onPostReposted(handleReposted);
     onPostComment(handleComment);
     onPostDeleted(handleDeleted);
@@ -178,7 +185,7 @@ export default function HomeMobile() {
     onPostUnrepost(handleUnrepost);
     return () => {
       offPostNew(handleNew);
-      offPostLiked(handleLiked);
+      offPostReacted(handleReacted);
       offPostReposted(handleReposted);
       offPostComment(handleComment);
       offPostDeleted(handleDeleted);
@@ -201,17 +208,23 @@ export default function HomeMobile() {
     setItems((prev) => prev.map((i) => (i.post.id === id ? { ...i, post: fn(i.post) } : i)));
   }, []);
 
-  const handleLike = useCallback(
-    async (id: string) => {
-      updatePost(id, (p) => ({ ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }));
+  const handleReact = useCallback(
+    async (id: string, type: string) => {
+      const was = items.find((i) => i.post.id === id)?.post.myReaction ?? null;
+      const delta = was ? (was === type ? -1 : 0) : 1;
+      updatePost(id, (p) => ({
+        ...p,
+        myReaction: was === type ? null : type,
+        likes: Math.max(0, p.likes + delta),
+      }));
       try {
-        const res = await postsAPI.like(id);
-        updatePost(id, (p) => ({ ...p, liked: res.liked, likes: res.likes }));
+        const res = await postsAPI.react(id, type);
+        updatePost(id, (p) => ({ ...p, myReaction: res.reaction, likes: res.total, reactions: res.reactions }));
       } catch {
         /* ignore */
       }
     },
-    [updatePost],
+    [updatePost, items],
   );
 
   const handleRepost = useCallback(
@@ -292,7 +305,7 @@ export default function HomeMobile() {
             key={item.key}
             post={item.post}
             repostInfo={item.repost}
-            onLike={handleLike}
+            onReact={handleReact}
             onRepost={handleRepost}
             onVote={handleVote}
             onOpen={(p) => setSelectedPostId(p.id)}
@@ -304,7 +317,7 @@ export default function HomeMobile() {
         <PostModal
           post={selectedPost}
           onClose={() => setSelectedPostId(null)}
-          onLike={handleLike}
+          onReact={handleReact}
           onRepost={handleRepost}
           onVote={handleVote}
           onCommentDelta={handleCommentDelta}

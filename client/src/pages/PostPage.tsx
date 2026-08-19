@@ -52,21 +52,22 @@ export default function PostPage() {
     setPost((prev) => (prev ? fn(prev) : prev));
   }, []);
 
-  const handleLike = useCallback(
-    async (postId: string) => {
+  const handleReact = useCallback(
+    async (postId: string, type: string) => {
       if (!requireAuth()) return;
-      setPost((prev) =>
-        prev
-          ? {
-              ...prev,
-              liked: !prev.liked,
-              likes: prev.likes + (prev.liked ? -1 : 1),
-            }
-          : prev,
-      );
+      setPost((prev) => {
+        if (!prev) return prev;
+        const was = prev.myReaction ?? null;
+        const delta = was ? (was === type ? -1 : 0) : 1;
+        return {
+          ...prev,
+          myReaction: was === type ? null : type,
+          likes: Math.max(0, prev.likes + delta),
+        };
+      });
       try {
-        const res = await postsAPI.like(postId);
-        updatePost((p) => ({ ...p, liked: res.liked, likes: res.likes }));
+        const res = await postsAPI.react(postId, type);
+        updatePost((p) => ({ ...p, myReaction: res.reaction, likes: res.total, reactions: res.reactions }));
       } catch {
         /* ignore */
       }
@@ -196,7 +197,7 @@ export default function PostPage() {
 
           <PostCard
             post={post}
-            onLike={handleLike}
+            onReact={handleReact}
             onRepost={handleRepost}
             onVote={handleVote}
             onOpen={() => setShareOpen(true)}

@@ -173,6 +173,11 @@ export interface GifResult {
   title: string;
 }
 
+export interface PostReaction {
+  type: string;
+  count: number;
+}
+
 export interface SocialPost {
   id: string;
   uid?: string;
@@ -188,7 +193,8 @@ export interface SocialPost {
   likes: number;
   reposts: number;
   comments: number;
-  liked?: boolean;
+  myReaction?: string | null;
+  reactions?: PostReaction[];
   reposted?: boolean;
   verified?: boolean;
   ownedBadges?: string[];

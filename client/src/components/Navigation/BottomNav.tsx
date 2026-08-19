@@ -1,6 +1,7 @@
-import { Compass, Film, Home, User } from 'lucide-react';
-import { memo } from 'react';
+import { Compass, Film, Home, MessageSquare, User } from 'lucide-react';
+import { memo, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { subscribeMessagesUnread } from '../../services/messagesUnread';
 
 interface BottomNavProps {
   storyBadge?: boolean;
@@ -9,13 +10,21 @@ interface BottomNavProps {
 const BottomNav = memo(function BottomNav({ storyBadge }: BottomNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [msgUnread, setMsgUnread] = useState(0);
+
+  useEffect(() => {
+    return subscribeMessagesUnread(setMsgUnread);
+  }, []);
+
   const isHome = location.pathname === '/' || location.pathname === '';
   const isExplore = location.pathname === '/explore';
   const isFeed = location.pathname === '/feed';
   const isSettings = location.pathname === '/settings';
+  const isMessages = location.pathname.startsWith('/messages');
 
   const items = [
     { path: '/', label: 'Accueil', active: isHome, icon: Home },
+    { path: '/messages', label: 'Messages', active: isMessages, icon: MessageSquare, badge: msgUnread > 0 },
     { path: '/explore', label: 'Explorer', active: isExplore, icon: Compass },
     { path: '/feed', label: 'Feed', active: isFeed, icon: Film, badge: storyBadge },
     { path: '/settings', label: 'Profil', active: isSettings, icon: User },
@@ -40,7 +49,11 @@ const BottomNav = memo(function BottomNav({ storyBadge }: BottomNavProps) {
             >
               <div className="relative">
                 <Icon size={20} />
-                {item.badge && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-brand rounded-full" />}
+                {item.badge && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 bg-brand rounded-full text-white text-[9px] font-bold flex items-center justify-center">
+                    {msgUnread > 0 ? (msgUnread > 9 ? '9+' : msgUnread) : ''}
+                  </span>
+                )}
               </div>
               <span className="text-[10px] font-medium">{item.label}</span>
             </button>

@@ -7,7 +7,7 @@ import { verifyToken } from '../middleware/auth.js';
 import { verifyCaptchaIfNewAccount } from '../middleware/captcha.js';
 import { enqueueJob } from '../services/queue.js';
 import { getProfile, reportPost } from '../services/rtdb.js';
-import type { AuthRequest, PostComment, PostData, PostFeedItem, PostPoll } from '../types/index.js';
+import type { AuthRequest, PostComment, PostData, PostFeedItem, PostPoll, PostReaction } from '../types/index.js';
 import { fetchBadgesMap } from '../utils/badges.js';
 import { extractHashtags } from '../utils/hashtags.js';
 import { insertCommentMentions, insertPostMentions } from '../utils/mentions.js';
@@ -97,10 +97,11 @@ async function isVerified(uid: string): Promise<boolean> {
 
 async function toPostData(
   row: Record<string, unknown>,
-  likedMap?: Set<string>,
+  myReactions?: Map<string, string>,
   repostedMap?: Set<string>,
   pollVotes?: Map<string, PollVotes>,
   badgesMap?: Map<string, string[]>,
+  reactionsMap?: Map<string, PostReaction[]>,
 ): Promise<PostData> {
   return {
     id: row.id as string,
@@ -117,23 +118,43 @@ async function toPostData(
     likes: row.likesCount as number,
     reposts: row.repostsCount as number,
     comments: row.commentsCount as number,
-    liked: likedMap ? likedMap.has(row.id as string) : false,
+    myReaction: myReactions?.get(row.id as string) ?? null,
+    reactions: reactionsMap?.get(row.id as string) ?? [],
     reposted: repostedMap ? repostedMap.has(row.id as string) : false,
     verified: !!row.staffUid,
     ownedBadges: badgesMap?.get(row.uid as string) ?? [],
   };
 }
 
-async function fetchLikedMap(uid: string, ids: string[]): Promise<Set<string>> {
-  const set = new Set<string>();
-  if (ids.length === 0) return set;
+async function fetchMyReactions(uid: string, ids: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (ids.length === 0) return map;
   const placeholders = ids.map(() => '?').join(',');
-  const rows = await query<Array<{ postId: string }>>(
-    `SELECT postId FROM post_likes WHERE uid = ? AND postId IN (${placeholders})`,
+  const rows = await query<Array<{ postId: string; type: string }>>(
+    `SELECT postId, type FROM post_likes WHERE uid = ? AND postId IN (${placeholders})`,
     [uid, ...ids],
   );
-  for (const r of rows) set.add(r.postId);
-  return set;
+  for (const r of rows) map.set(r.postId, r.type);
+  return map;
+}
+
+async function fetchReactionCounts(ids: string[]): Promise<Map<string, PostReaction[]>> {
+  const map = new Map<string, PostReaction[]>();
+  if (ids.length === 0) return map;
+  const placeholders = ids.map(() => '?').join(',');
+  const rows = await query<Array<{ postId: string; type: string; cnt: number }>>(
+    `SELECT postId, type, COUNT(*) AS cnt FROM post_likes WHERE postId IN (${placeholders}) GROUP BY postId, type`,
+    ids,
+  );
+  for (const r of rows) {
+    const list = map.get(r.postId) ?? [];
+    list.push({ type: r.type, count: r.cnt });
+    map.set(r.postId, list);
+  }
+  for (const list of map.values()) {
+    list.sort((a, b) => b.count - a.count);
+  }
+  return map;
 }
 
 async function fetchRepostedMap(uid: string, ids: string[]): Promise<Set<string>> {
@@ -166,14 +187,15 @@ async function getRepostItem(repostedByUid: string, postId: string, viewerUid?: 
     postId,
   ]);
   if (!row) return null;
-  const likedMap = viewerUid ? await fetchLikedMap(viewerUid, [postId]) : undefined;
+  const myReactions = viewerUid ? await fetchMyReactions(viewerUid, [postId]) : undefined;
   const repostedMap = viewerUid ? await fetchRepostedMap(viewerUid, [postId]) : undefined;
   const pollVotes = await fetchPollVotes([postId], viewerUid);
   const badgesMap = await fetchBadgesMap([row.uid as string]);
+  const reactionsMap = await fetchReactionCounts([postId]);
   return {
     type: 'repost',
     key: `repost:${repostedByUid}:${postId}`,
-    post: await toPostData(row, likedMap, repostedMap, pollVotes, badgesMap),
+    post: await toPostData(row, myReactions, repostedMap, pollVotes, badgesMap, reactionsMap),
     repost: {
       uid: repostedByUid,
       pseudo: (row.reposterPseudo as string) || 'Utilisateur',
@@ -264,7 +286,8 @@ router.post('/', verifyCaptchaIfNewAccount, async (req: Request, res: Response) 
       likes: 0,
       reposts: 0,
       comments: 0,
-      liked: false,
+      myReaction: null,
+      reactions: [],
       reposted: false,
       verified,
     };
@@ -349,24 +372,25 @@ router.get('/', async (req: Request, res: Response) => {
   );
 
   const ids = [...postRows, ...repostRows].map((r) => r.id as string);
-  const likedMap = authReq.uid ? await fetchLikedMap(authReq.uid, ids) : undefined;
+  const myReactions = authReq.uid ? await fetchMyReactions(authReq.uid, ids) : undefined;
   const repostedMap = authReq.uid ? await fetchRepostedMap(authReq.uid, ids) : undefined;
   const pollVotes = await fetchPollVotes(ids, authReq.uid);
   const badgesMap = await fetchBadgesMap([...postRows, ...repostRows].map((r) => r.uid as string));
+  const reactionsMap = await fetchReactionCounts(ids);
 
   const items: PostFeedItem[] = [];
   for (const row of postRows) {
     items.push({
       type: 'post',
       key: `post:${row.id}`,
-      post: await toPostData(row, likedMap, repostedMap, pollVotes, badgesMap),
+      post: await toPostData(row, myReactions, repostedMap, pollVotes, badgesMap, reactionsMap),
     });
   }
   for (const row of repostRows) {
     items.push({
       type: 'repost',
       key: `repost:${row.repostedByUid}:${row.id}`,
-      post: await toPostData(row, likedMap, repostedMap, pollVotes, badgesMap),
+      post: await toPostData(row, myReactions, repostedMap, pollVotes, badgesMap, reactionsMap),
       repost: {
         uid: row.repostedByUid as string,
         pseudo: (row.reposterPseudo as string) || 'Utilisateur',
@@ -401,11 +425,12 @@ router.get('/:id', async (req: Request, res: Response) => {
     res.status(404).json({ error: 'Post introuvable' });
     return;
   }
-  const likedMap = authReq.uid ? await fetchLikedMap(authReq.uid, [req.params.id]) : undefined;
+  const myReactions = authReq.uid ? await fetchMyReactions(authReq.uid, [req.params.id]) : undefined;
   const repostedMap = authReq.uid ? await fetchRepostedMap(authReq.uid, [req.params.id]) : undefined;
   const pollVotes = await fetchPollVotes([req.params.id], authReq.uid);
   const badgesMap = await fetchBadgesMap([row.uid as string]);
-  res.json(await toPostData(row, likedMap, repostedMap, pollVotes, badgesMap));
+  const reactionsMap = await fetchReactionCounts([req.params.id]);
+  res.json(await toPostData(row, myReactions, repostedMap, pollVotes, badgesMap, reactionsMap));
 });
 
 router.delete('/:id', async (req: Request, res: Response) => {
@@ -452,9 +477,10 @@ router.post('/:id/like', async (req: Request, res: Response) => {
     if (io) io.emit('post:liked', { postId: req.params.id, uid: authReq.uid!, liked: false, likes: row.likesCount });
     res.json({ liked: false, likes: row.likesCount });
   } else {
-    await query('INSERT INTO post_likes (uid, postId, createdAt) VALUES (?,?,?)', [
+    await query('INSERT INTO post_likes (uid, postId, type, createdAt) VALUES (?,?,?,?)', [
       authReq.uid!,
       req.params.id,
+      '❤️',
       Date.now(),
     ]);
     await query('UPDATE posts SET likesCount = likesCount + 1 WHERE id = ?', [req.params.id]);
@@ -474,6 +500,66 @@ router.post('/:id/like', async (req: Request, res: Response) => {
     }
     res.json({ liked: true, likes: row.likesCount });
   }
+});
+
+const REACTIONS = new Set(['❤️', '👍', '🔥', '🤣', '😮', '😢', '🙏']);
+
+router.post('/:id/reaction', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { type } = req.body as { type?: string };
+  if (!type || !REACTIONS.has(type)) {
+    res.status(400).json({ error: 'Réaction invalide' });
+    return;
+  }
+  const post = await getOne<{ uid: string }>('SELECT uid FROM posts WHERE id = ?', [req.params.id]);
+  if (!post) {
+    res.status(404).json({ error: 'Post introuvable' });
+    return;
+  }
+  const existing = await getOne<{ uid: string; type: string }>(
+    'SELECT uid, type FROM post_likes WHERE uid = ? AND postId = ?',
+    [authReq.uid!, req.params.id],
+  );
+  const io: Server = req.app.get('io');
+  let reaction: string | null = type;
+  if (existing && existing.type === type) {
+    await query('DELETE FROM post_likes WHERE uid = ? AND postId = ?', [authReq.uid!, req.params.id]);
+    await query('UPDATE posts SET likesCount = GREATEST(0, likesCount - 1) WHERE id = ?', [req.params.id]);
+    reaction = null;
+  } else if (existing) {
+    await query('UPDATE post_likes SET type = ? WHERE uid = ? AND postId = ?', [type, authReq.uid!, req.params.id]);
+  } else {
+    await query('INSERT INTO post_likes (uid, postId, type, createdAt) VALUES (?,?,?,?)', [
+      authReq.uid!,
+      req.params.id,
+      type,
+      Date.now(),
+    ]);
+    await query('UPDATE posts SET likesCount = likesCount + 1 WHERE id = ?', [req.params.id]);
+    if (post.uid !== authReq.uid) {
+      enqueueJob('notification', {
+        uid: post.uid,
+        actorUid: authReq.uid!,
+        type: 'like',
+        postId: req.params.id,
+      }).catch(() => {});
+    }
+  }
+  const [row] = await query<Array<{ likesCount: number }>>('SELECT likesCount FROM posts WHERE id = ?', [
+    req.params.id,
+  ]);
+  const reactions = (await fetchReactionCounts([req.params.id])).get(req.params.id) ?? [];
+  if (io) {
+    io.emit('post:reacted', {
+      postId: req.params.id,
+      uid: authReq.uid!,
+      type,
+      reaction,
+      reactions,
+      total: row.likesCount,
+    });
+  }
+  res.json({ reaction, reactions, total: row.likesCount });
 });
 
 router.post('/:id/repost', async (req: Request, res: Response) => {

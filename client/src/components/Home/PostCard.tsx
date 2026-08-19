@@ -9,13 +9,14 @@ import VoiceMessage from '../Common/VoiceMessage';
 import Poll from './Poll';
 import PostEmbeds from './PostEmbeds';
 import PostText from './PostText';
+import ReactionPicker, { topReactions } from './Reactions';
 import ReportPostModal from './ReportPostModal';
 import SharePostModal from './SharePostModal';
 
 interface PostCardProps {
   post: SocialPost;
   repostInfo?: RepostInfo;
-  onLike: (id: string) => void;
+  onReact: (id: string, type: string) => void;
   onRepost: (id: string) => void;
   onVote: (id: string, option: number) => void;
   onOpen: (post: SocialPost) => void;
@@ -33,13 +34,15 @@ function formatTime(ts: number): string {
   return `il y a ${d} j`;
 }
 
-const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, onVote, onOpen }: PostCardProps) {
+const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, onVote, onOpen }: PostCardProps) {
   const { user } = useAuth();
   const badgeDefs = useBadges();
   const [reportOpen, setReportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [reactionOpen, setReactionOpen] = useState(false);
   const isOwn = !!user && post.uid === user.uid;
   const initial = (post.pseudo || '?')[0]?.toUpperCase() || '?';
+  const summary = topReactions(post.reactions);
 
   const profileHref =
     post.handle && post.handle.length > 1 && post.handle !== '@inconnu' ? `/@${post.handle.replace(/^@/, '')}` : null;
@@ -145,6 +148,34 @@ const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, on
             </div>
           )}
 
+          {summary.length > 0 && (
+            <div className="flex items-center justify-end mt-2 pr-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setReactionOpen(true);
+                }}
+                className="flex items-center gap-1 rounded-full border-none bg-transparent cursor-pointer px-1 py-0.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
+                aria-label={`${post.likes} réaction(s)`}
+                title={`${post.likes} réaction(s)`}
+              >
+                <span className="flex items-center">
+                  {summary.map((r, i) => (
+                    <span
+                      // biome-ignore lint/suspicious/noArrayIndexKey: ordre du résumé de réactions
+                      key={i}
+                      className="w-5 h-5 rounded-full bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-center text-[11px] -ml-1 first:ml-0"
+                    >
+                      {r.type}
+                    </span>
+                  ))}
+                </span>
+                <span className="text-[13px] font-semibold">{post.likes}</span>
+              </button>
+            </div>
+          )}
+
           <div
             className="post-actions flex items-center justify-between mt-3 max-w-[425px]"
             onClick={(e) => e.stopPropagation()}
@@ -171,17 +202,35 @@ const PostCard = memo(function PostCard({ post, repostInfo, onLike, onRepost, on
               <span>{post.reposts}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => onLike(post.id)}
-              className={`post-action-btn flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors ${
-                post.liked ? 'text-red-500' : 'text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10'
-              }`}
-              aria-label={`J'aime (${post.likes})`}
-            >
-              <Heart size={17} fill={post.liked ? 'currentColor' : 'none'} />
-              <span>{post.likes}</span>
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setReactionOpen((o) => !o);
+                }}
+                className={`post-action-btn flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors ${
+                  post.myReaction ? 'text-red-500' : 'text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10'
+                }`}
+                aria-label={`Réagir (${post.likes})`}
+              >
+                {post.myReaction ? (
+                  <span className="text-[17px] leading-none">{post.myReaction}</span>
+                ) : (
+                  <Heart size={17} />
+                )}
+                <span>{post.likes}</span>
+              </button>
+              {reactionOpen && (
+                <ReactionPicker
+                  onClose={() => setReactionOpen(false)}
+                  onSelect={(type) => {
+                    onReact(post.id, type);
+                    setReactionOpen(false);
+                  }}
+                />
+              )}
+            </div>
 
             <button
               type="button"

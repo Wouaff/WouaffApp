@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 import { getOne, query } from '../config/database.js';
-import { isUserBanned } from '../services/rtdb.js';
+import { isIpBanned as isIpBannedService, isUserBanned } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
 
 const sessionCache = new Map<string, { uid: string; expires: number }>();
@@ -9,6 +9,31 @@ const SESSION_CACHE_TTL = 30000;
 
 const banCache = new Map<string, { banned: boolean; expires: number }>();
 const BAN_CACHE_TTL = 15000;
+
+const ipBanCache = new Map<string, { banned: boolean; expires: number }>();
+const IP_BAN_CACHE_TTL = 15000;
+
+export async function isIpBannedCached(ip: string): Promise<boolean> {
+  if (!ip) return false;
+  const cached = ipBanCache.get(ip);
+  if (cached && Date.now() < cached.expires) return cached.banned;
+  const banned = await isIpBannedService(ip);
+  ipBanCache.set(ip, { banned, expires: Date.now() + IP_BAN_CACHE_TTL });
+  return banned;
+}
+
+export function clearIpBanCache(ip: string): void {
+  ipBanCache.delete(ip);
+}
+
+export async function checkIpBan(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const ip = (req.ip || req.socket?.remoteAddress || '').replace(/^::ffff:/, '');
+  if (await isIpBannedCached(ip)) {
+    res.status(403).json({ error: 'Adresse IP bannie' });
+    return;
+  }
+  next();
+}
 
 async function isBanned(uid: string): Promise<boolean> {
   const cached = banCache.get(uid);

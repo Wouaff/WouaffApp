@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { logout as authLogout, initSession } from '../services/auth';
+import { initMessagesUnread } from '../services/messagesUnread';
 import { connectSocket, disconnectSocket } from '../services/socket';
 
 export interface AuthState {
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUser = useCallback(async () => {
     try {
       connectSocket();
+      initMessagesUnread();
       const res = await fetch('/api/auth/me');
       if (res.status === 403) {
         setBanned(true);

@@ -13,6 +13,7 @@ import type {
   NotificationItem,
   PostComment,
   PostPoll,
+  PostReaction,
   SearchResult,
   SocialPost,
   StoryData,
@@ -109,6 +110,12 @@ export const profiles = {
     }>('GET', `/profiles/suggestions?limit=${limit}`),
   follow: (uid: string) => request<{ following: boolean }>('POST', `/profiles/${uid}/follow`),
   unfollow: (uid: string) => request<{ following: boolean }>('DELETE', `/profiles/${uid}/follow`),
+  setMusic: (url: string) =>
+    request<{
+      success: boolean;
+      music: { provider: string; url: string; title: string; artist: string; thumbnail: string };
+    }>('POST', '/profiles/me/music', { url }),
+  removeMusic: () => request<{ success: boolean }>('DELETE', '/profiles/me/music'),
 };
 
 /* ── Groups ── */
@@ -471,6 +478,22 @@ export const admin = {
       request<{ success: boolean }>('POST', '/admin/bans', { uid, reason, durationHours }),
     unban: (uid: string) => request<{ success: boolean }>('DELETE', `/admin/bans/${uid}`),
   },
+  ipBans: {
+    list: () =>
+      request<
+        Array<{
+          id: number;
+          ip: string;
+          reason: string | null;
+          bannedBy: string;
+          createdAt: number;
+          expiresAt: number | null;
+        }>
+      >('GET', '/admin/ip-bans'),
+    ban: (ip: string, reason?: string, durationHours?: number) =>
+      request<{ success: boolean }>('POST', '/admin/ip-bans', { ip, reason, durationHours }),
+    unban: (id: number) => request<{ success: boolean }>('DELETE', `/admin/ip-bans/${id}`),
+  },
   users: {
     recent: () => request<Record<string, UserProfile>>('GET', '/admin/users/recent'),
   },
@@ -587,6 +610,10 @@ export const posts = {
   ) => request<SocialPost>('POST', '/posts', { text, image, audio, audioDuration, poll, capToken }),
   vote: (id: string, option: number) => request<{ poll: PostPoll }>('POST', `/posts/${id}/vote`, { option }),
   like: (id: string) => request<{ liked: boolean; likes: number }>('POST', `/posts/${id}/like`),
+  react: (id: string, type: string) =>
+    request<{ reaction: string | null; reactions: PostReaction[]; total: number }>('POST', `/posts/${id}/reaction`, {
+      type,
+    }),
   repost: (id: string) =>
     request<{ reposted: boolean; reposts: number; item?: FeedItem }>('POST', `/posts/${id}/repost`),
   comments: (id: string) => request<PostComment[]>('GET', `/posts/${id}/comments`),

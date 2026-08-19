@@ -12,22 +12,22 @@ import { posts as postsAPI } from '../services/api';
 import {
   offPostComment,
   offPostDeleted,
-  offPostLiked,
   offPostNew,
   offPostPoll,
+  offPostReacted,
   offPostRepost,
   offPostReposted,
   offPostUnrepost,
   onPostComment,
   onPostDeleted,
-  onPostLiked,
   onPostNew,
   onPostPoll,
+  onPostReacted,
   onPostRepost,
   onPostReposted,
   onPostUnrepost,
 } from '../services/socket';
-import type { FeedItem, PostComment, PostPoll, SocialPost } from '../types';
+import type { FeedItem, PostComment, PostPoll, PostReaction, SocialPost } from '../types';
 
 type FeedTab = 'forYou' | 'following';
 
@@ -138,9 +138,24 @@ export default function HomePage() {
       const item = toPostItem(post);
       setItems((prev) => (prev.some((i) => i.key === item.key) ? prev : [item, ...prev]));
     };
-    const handleLiked = (data: { postId: string; uid: string; liked: boolean; likes: number }) => {
+    const handleReacted = (data: {
+      postId: string;
+      uid: string;
+      type: string;
+      reaction: string | null;
+      reactions: PostReaction[];
+      total: number;
+    }) => {
       if (data.uid === user.uid) return;
-      updateItem(data.postId, (i) => ({ ...i, post: { ...i.post, liked: data.liked, likes: data.likes } }));
+      updateItem(data.postId, (i) => ({
+        ...i,
+        post: {
+          ...i.post,
+          likes: data.total,
+          reactions: data.reactions,
+          myReaction: data.uid === user.uid ? data.reaction : i.post.myReaction,
+        },
+      }));
     };
     const handleReposted = (data: { postId: string; uid: string; reposted: boolean; reposts: number }) => {
       if (data.uid === user.uid) return;
@@ -165,7 +180,7 @@ export default function HomePage() {
       updateItem(data.postId, (i) => ({ ...i, post: { ...i.post, poll: data.poll } }));
     };
     onPostNew(handleNew);
-    onPostLiked(handleLiked);
+    onPostReacted(handleReacted);
     onPostReposted(handleReposted);
     onPostComment(handleComment);
     onPostDeleted(handleDeleted);
@@ -174,7 +189,7 @@ export default function HomePage() {
     onPostPoll(handlePoll);
     return () => {
       offPostNew(handleNew);
-      offPostLiked(handleLiked);
+      offPostReacted(handleReacted);
       offPostReposted(handleReposted);
       offPostComment(handleComment);
       offPostDeleted(handleDeleted);
@@ -236,15 +251,27 @@ export default function HomePage() {
     [updatePost],
   );
 
-  const handleLike = useCallback(
-    async (id: string) => {
-      updatePost(id, (p) => ({ ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }));
+  const handleReact = useCallback(
+    async (id: string, type: string) => {
+      const current = itemsRef.current.find((i) => i.post.id === id)?.post;
+      const was = current?.myReaction ?? null;
+      const delta = was ? (was === type ? -1 : 0) : 1;
+      updatePost(id, (p) => ({
+        ...p,
+        myReaction: was === type ? null : type,
+        likes: Math.max(0, p.likes + delta),
+      }));
       try {
-        const res = await postsAPI.like(id);
-        updatePost(id, (p) => ({ ...p, liked: res.liked, likes: res.likes }));
+        const res = await postsAPI.react(id, type);
+        updatePost(id, (p) => ({
+          ...p,
+          myReaction: res.reaction,
+          likes: res.total,
+          reactions: res.reactions,
+        }));
       } catch (e) {
         console.error(e);
-        updatePost(id, (p) => ({ ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }));
+        updatePost(id, (p) => ({ ...p, myReaction: was, likes: p.likes - delta }));
       }
     },
     [updatePost],
@@ -352,7 +379,7 @@ export default function HomePage() {
                 key={item.key}
                 post={item.post}
                 repostInfo={item.repost}
-                onLike={handleLike}
+                onReact={handleReact}
                 onRepost={handleRepost}
                 onVote={handleVote}
                 onOpen={openPost}
@@ -366,7 +393,7 @@ export default function HomePage() {
         <PostModal
           post={selectedPost}
           onClose={() => setSelectedPostId(null)}
-          onLike={handleLike}
+          onReact={handleReact}
           onRepost={handleRepost}
           onVote={handleVote}
           onCommentDelta={handleCommentDelta}

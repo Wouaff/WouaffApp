@@ -87,6 +87,11 @@ export interface PostPoll {
   votedIndex: number | null;
 }
 
+export interface PostReaction {
+  type: string;
+  count: number;
+}
+
 export interface PostData {
   id: string;
   uid: string;
@@ -102,7 +107,8 @@ export interface PostData {
   likes: number;
   reposts: number;
   comments: number;
-  liked: boolean;
+  myReaction: string | null;
+  reactions: PostReaction[];
   reposted: boolean;
   verified: boolean;
   ownedBadges?: string[];

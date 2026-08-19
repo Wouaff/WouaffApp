@@ -3,6 +3,7 @@ import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
+import { resolveMusicLink } from '../services/musicOembed.js';
 import { enqueueJob } from '../services/queue.js';
 import {
   deleteUserProfile,
@@ -107,6 +108,38 @@ router.put('/me', async (req: Request, res: Response) => {
       io.to(`user:${cu}`).emit('profile:updated', { uid: authReq.uid!, ...req.body });
     }
   }
+  res.json({ success: true });
+});
+
+/* POST /profiles/me/music — définir la musique affichée sur le profil (lien Spotify/SoundCloud/YT/Tidal/…) */
+router.post('/me/music', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { url } = req.body as { url?: string };
+  if (!url || typeof url !== 'string') {
+    res.status(400).json({ error: 'Veuillez fournir un lien' });
+    return;
+  }
+  const music = await resolveMusicLink(url);
+  if (!music) {
+    res.status(400).json({
+      error: 'Lien non reconnu. Collez un lien Spotify, SoundCloud, YouTube Music, Tidal, Deezer ou Apple Music.',
+    });
+    return;
+  }
+  await query(
+    'UPDATE users SET musicProvider=?, musicUrl=?, musicTitle=?, musicArtist=?, musicThumbnail=? WHERE uid=?',
+    [music.provider, music.url, music.title, music.artist, music.thumbnail, authReq.uid!],
+  );
+  res.json({ success: true, music });
+});
+
+/* DELETE /profiles/me/music — retirer la musique du profil */
+router.delete('/me/music', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  await query(
+    'UPDATE users SET musicProvider=NULL, musicUrl=NULL, musicTitle=NULL, musicArtist=NULL, musicThumbnail=NULL WHERE uid=?',
+    [authReq.uid!],
+  );
   res.json({ success: true });
 });
 

@@ -1,10 +1,12 @@
+import { isIP } from 'node:net';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import type { Server } from 'socket.io';
-import { query } from '../config/database.js';
-import { clearBanCache, verifyToken } from '../middleware/auth.js';
+import { getOne, query } from '../config/database.js';
+import { clearBanCache, clearIpBanCache, verifyToken } from '../middleware/auth.js';
 import {
   addBadgeToUser,
+  banIp,
   banUser,
   clearGroupReport,
   clearPostReport,
@@ -15,6 +17,7 @@ import {
   deleteUserProfile,
   deleteVideoById,
   getActiveBans,
+  getActiveIpBans,
   getAdminAnalytics,
   getAdminLogs,
   getAdminStats,
@@ -46,6 +49,7 @@ import {
   setStaff,
   setStaffRole,
   setUserBadges,
+  unbanIpById,
   unbanUser,
   updateGroup,
   updateProfileByAdmin,
@@ -320,6 +324,58 @@ router.delete('/bans/:uid', async (req: Request, res: Response) => {
   await unbanUser(req.params.uid);
   await clearBanCache(req.params.uid);
   await logAdminAction((req as AuthRequest).uid!, 'user_unban', 'user', req.params.uid);
+  res.json({ success: true });
+});
+
+/* ── Bannissements d'adresses IP ── */
+
+/* GET /admin/ip-bans — liste des IP bannies actives */
+router.get('/ip-bans', async (req: Request, res: Response) => {
+  if (!(await requireRole(req, res, 'owner'))) return;
+  res.json(await getActiveIpBans(200));
+});
+
+/* POST /admin/ip-bans — bannir une adresse IP */
+router.post('/ip-bans', async (req: Request, res: Response) => {
+  if (!(await requireRole(req, res, 'owner'))) return;
+  const authReq = req as AuthRequest;
+  const { ip, reason, durationHours } = req.body as { ip?: string; reason?: string; durationHours?: number };
+  if (!ip || isIP(ip) === 0) {
+    res.status(400).json({ error: 'Adresse IP invalide' });
+    return;
+  }
+  if (ip === '::1' || ip === '127.0.0.1' || ip.startsWith('::ffff:127.')) {
+    res.status(400).json({ error: 'Impossible de bannir une adresse locale' });
+    return;
+  }
+  const expiresAt =
+    typeof durationHours === 'number' && durationHours > 0 ? Date.now() + durationHours * 3600000 : undefined;
+  await banIp(ip, reason, authReq.uid!, expiresAt);
+  await clearIpBanCache(ip);
+  const io: Server = req.app.get('io');
+  if (io) {
+    for (const s of io.sockets.sockets.values()) {
+      const sockIp = (s.handshake?.address || '').replace(/^::ffff:/, '');
+      if (sockIp === ip) s.disconnect(true);
+    }
+  }
+  await logAdminAction(authReq.uid!, 'ip_ban', 'ip', ip, reason || '');
+  res.json({ success: true });
+});
+
+/* DELETE /admin/ip-bans/:id — débannir une adresse IP */
+router.delete('/ip-bans/:id', async (req: Request, res: Response) => {
+  if (!(await requireRole(req, res, 'owner'))) return;
+  const authReq = req as AuthRequest;
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id) || id <= 0) {
+    res.status(400).json({ error: 'ID invalide' });
+    return;
+  }
+  const row = await getOne<{ ip: string }>('SELECT ip FROM ip_bans WHERE id=?', [id]);
+  await unbanIpById(id);
+  if (row) await clearIpBanCache(row.ip);
+  await logAdminAction(authReq.uid!, 'ip_unban', 'ip', row?.ip || String(id));
   res.json({ success: true });
 });
 

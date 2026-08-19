@@ -1,10 +1,13 @@
 import { IonApp, IonIcon, IonLabel, IonTabBar, IonTabButton } from '@ionic/react';
-import { compass, home, notifications, person, videocam } from 'ionicons/icons';
+import { chatbubbles, compass, home, notifications, person, videocam } from 'ionicons/icons';
 import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { subscribeMessagesUnread } from '../services/messagesUnread';
 
 const TABS = [
   { path: '/', label: 'Accueil', icon: home, match: (p: string) => p === '/' || p === '' },
+  { path: '/messages', label: 'Messages', icon: chatbubbles, match: (p: string) => p.startsWith('/messages') },
   { path: '/explore', label: 'Explorer', icon: compass, match: (p: string) => p === '/explore' },
   { path: '/feed', label: 'Feed', icon: videocam, match: (p: string) => p === '/feed' },
   { path: '/notifications', label: 'Notifications', icon: notifications, match: (p: string) => p === '/notifications' },
@@ -17,6 +20,11 @@ const FULLSCREEN_PATHS: string[] = [];
 export default function MobileShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [msgUnread, setMsgUnread] = useState(0);
+
+  useEffect(() => {
+    return subscribeMessagesUnread(setMsgUnread);
+  }, []);
 
   const pathname = location.pathname;
   const showTabBar = !FULLSCREEN_PATHS.includes(pathname) && TABS.some((t) => t.match(pathname));
@@ -36,10 +44,12 @@ export default function MobileShell({ children }: { children: ReactNode }) {
         <IonTabBar slot="bottom">
           {TABS.map((t) => {
             const active = t.match(pathname);
+            const badge = t.path === '/messages' ? msgUnread : 0;
             return (
               <IonTabButton key={t.path} tab={t.path} selected={active} onClick={() => navigate(t.path)}>
                 <IonIcon aria-hidden="true" icon={t.icon} />
                 <IonLabel>{t.label}</IonLabel>
+                {badge > 0 && <span className="msg-tab-badge">{badge > 99 ? '99+' : badge}</span>}
                 {active && <span className="is-active-dot" aria-hidden="true" />}
               </IonTabButton>
             );

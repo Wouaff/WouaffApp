@@ -52,15 +52,21 @@ export default function TagPage() {
 
   const openPost = useCallback((p: SocialPost) => setSelectedPostId(p.id), []);
 
-  const handleLike = useCallback(
-    async (id: string) => {
-      updatePost(id, (p) => ({ ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }));
+  const handleReact = useCallback(
+    async (id: string, type: string) => {
+      const was = itemsRef.current.find((i) => i.post.id === id)?.post.myReaction ?? null;
+      const delta = was ? (was === type ? -1 : 0) : 1;
+      updatePost(id, (p) => ({
+        ...p,
+        myReaction: was === type ? null : type,
+        likes: Math.max(0, p.likes + delta),
+      }));
       try {
-        const res = await postsAPI.like(id);
-        updatePost(id, (p) => ({ ...p, liked: res.liked, likes: res.likes }));
+        const res = await postsAPI.react(id, type);
+        updatePost(id, (p) => ({ ...p, myReaction: res.reaction, likes: res.total, reactions: res.reactions }));
       } catch (e) {
         console.error(e);
-        updatePost(id, (p) => ({ ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }));
+        updatePost(id, (p) => ({ ...p, myReaction: was, likes: p.likes - delta }));
       }
     },
     [updatePost],
@@ -183,7 +189,7 @@ export default function TagPage() {
               key={item.key}
               post={item.post}
               repostInfo={item.repost}
-              onLike={handleLike}
+              onReact={handleReact}
               onRepost={handleRepost}
               onVote={handleVote}
               onOpen={openPost}
@@ -196,7 +202,7 @@ export default function TagPage() {
         <PostModal
           post={selectedPost}
           onClose={() => setSelectedPostId(null)}
-          onLike={handleLike}
+          onReact={handleReact}
           onRepost={handleRepost}
           onVote={handleVote}
           onCommentDelta={handleCommentDelta}

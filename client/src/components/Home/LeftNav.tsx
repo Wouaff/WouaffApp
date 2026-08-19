@@ -1,7 +1,20 @@
-import { Bell, Bookmark, Compass, Film, Home, LogOut, Settings, ShieldCheck, User, Users } from 'lucide-react';
+import {
+  Bell,
+  Bookmark,
+  Compass,
+  Film,
+  Home,
+  LogOut,
+  MessageSquare,
+  Settings,
+  ShieldCheck,
+  User,
+  Users,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { subscribeMessagesUnread } from '../../services/messagesUnread';
 import { offNotificationNew, onNotificationNew } from '../../services/socket';
 
 interface NavItem {
@@ -13,6 +26,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { path: '/', label: 'Accueil', icon: Home },
+  { path: '/messages', label: 'Messages', icon: MessageSquare },
   { path: '/communities', label: 'Communautés', icon: Users },
   { path: '/explore', label: 'Explorer', icon: Compass },
   { path: '/notifications', label: 'Notifications', icon: Bell },
@@ -32,6 +46,11 @@ export default function LeftNav() {
   const [avatar, setAvatar] = useState('');
   const [myHandle, setMyHandle] = useState('');
   const [unread, setUnread] = useState(0);
+  const [msgUnread, setMsgUnread] = useState(0);
+
+  useEffect(() => {
+    return subscribeMessagesUnread(setMsgUnread);
+  }, []);
 
   useEffect(() => {
     fetch('/api/notifications/unread-count')
@@ -123,6 +142,11 @@ export default function LeftNav() {
                 {item.path === '/notifications' && unread > 0 && (
                   <span className="ml-auto bg-brand text-white text-[11px] font-bold rounded-full min-w-[18px] h-[18px] px-1.5 flex items-center justify-center">
                     {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
+                {item.path === '/messages' && msgUnread > 0 && (
+                  <span className="ml-auto bg-brand text-white text-[11px] font-bold rounded-full min-w-[18px] h-[18px] px-1.5 flex items-center justify-center">
+                    {msgUnread > 99 ? '99+' : msgUnread}
                   </span>
                 )}
                 {item.soon && (

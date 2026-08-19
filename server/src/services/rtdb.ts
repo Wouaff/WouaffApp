@@ -496,6 +496,11 @@ const PROFILE_COLUMNS = new Set([
   'lastSeen',
   'createdAt',
   'social_links',
+  'musicProvider',
+  'musicUrl',
+  'musicTitle',
+  'musicArtist',
+  'musicThumbnail',
 ]);
 
 export async function updateProfile(uid: string, data: Record<string, unknown>): Promise<void> {
@@ -1541,6 +1546,56 @@ export async function getActiveBans(limit = 100): Promise<Array<Record<string, u
      LEFT JOIN users u ON u.uid = b.uid
      WHERE b.expiresAt IS NULL OR b.expiresAt > ?
      ORDER BY b.createdAt DESC
+     LIMIT ?`,
+    [Date.now(), limit],
+  );
+}
+
+/* ── Bannissements par adresse IP ── */
+
+export async function banIp(
+  ip: string,
+  reason: string | undefined,
+  bannedBy: string,
+  expiresAt?: number,
+): Promise<void> {
+  await query(
+    'INSERT INTO ip_bans (ip, reason, bannedBy, createdAt, expiresAt) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE reason=VALUES(reason), bannedBy=VALUES(bannedBy), createdAt=VALUES(createdAt), expiresAt=VALUES(expiresAt)',
+    [ip, reason || null, bannedBy, Date.now(), expiresAt ?? null],
+  );
+}
+
+export async function unbanIp(ip: string): Promise<void> {
+  await query('DELETE FROM ip_bans WHERE ip=?', [ip]);
+}
+
+export async function unbanIpById(id: number): Promise<void> {
+  await query('DELETE FROM ip_bans WHERE id=?', [id]);
+}
+
+export async function getIpBan(
+  ip: string,
+): Promise<{ reason: string | null; expiresAt: number | null; createdAt: number } | null> {
+  const row = await getOne<{ reason: string | null; expiresAt: number | null; createdAt: number }>(
+    'SELECT reason, expiresAt, createdAt FROM ip_bans WHERE ip=?',
+    [ip],
+  );
+  if (!row) return null;
+  if (row.expiresAt !== null && row.expiresAt <= Date.now()) return null;
+  return row;
+}
+
+export async function isIpBanned(ip: string): Promise<boolean> {
+  if (!ip) return false;
+  return (await getIpBan(ip)) !== null;
+}
+
+export async function getActiveIpBans(limit = 200): Promise<Array<Record<string, unknown>>> {
+  return query(
+    `SELECT id, ip, reason, bannedBy, createdAt, expiresAt
+     FROM ip_bans
+     WHERE expiresAt IS NULL OR expiresAt > ?
+     ORDER BY createdAt DESC
      LIMIT ?`,
     [Date.now(), limit],
   );

@@ -605,6 +605,26 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0 16px;
 }
+.wa-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+.wa-form-err {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--danger);
+}
+.wa-avatar-ip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-input);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
 .wa-hidden-input {
   display: none;
 }

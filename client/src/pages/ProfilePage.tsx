@@ -1,4 +1,4 @@
-import { BadgeCheck, ChevronLeft, UserPlus } from 'lucide-react';
+import { BadgeCheck, ChevronLeft, MessageSquare, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import FollowModal from '../components/Home/FollowModal';
@@ -6,6 +6,7 @@ import LeftNav from '../components/Home/LeftNav';
 import PostCard from '../components/Home/PostCard';
 import PostModal from '../components/Home/PostModal';
 import RightSidebar from '../components/Home/RightSidebar';
+import MusicCard, { parseProfileMusic } from '../components/Profile/MusicCard';
 import { useAuth } from '../hooks/useAuth';
 import { posts as postsAPI, profiles as profilesAPI } from '../services/api';
 import { offPostPoll, onPostPoll } from '../services/socket';
@@ -150,15 +151,21 @@ export default function ProfilePage() {
 
   const openPost = useCallback((p: SocialPost) => setSelectedPostId(p.id), []);
 
-  const handleLike = useCallback(
-    async (id: string) => {
-      updatePost(id, (p) => ({ ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }));
+  const handleReact = useCallback(
+    async (id: string, type: string) => {
+      const was = postsRef.current.find((i) => i.post.id === id)?.post.myReaction ?? null;
+      const delta = was ? (was === type ? -1 : 0) : 1;
+      updatePost(id, (p) => ({
+        ...p,
+        myReaction: was === type ? null : type,
+        likes: Math.max(0, p.likes + delta),
+      }));
       try {
-        const res = await postsAPI.like(id);
-        updatePost(id, (p) => ({ ...p, liked: res.liked, likes: res.likes }));
+        const res = await postsAPI.react(id, type);
+        updatePost(id, (p) => ({ ...p, myReaction: res.reaction, likes: res.total, reactions: res.reactions }));
       } catch (e) {
         console.error(e);
-        updatePost(id, (p) => ({ ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }));
+        updatePost(id, (p) => ({ ...p, myReaction: was, likes: p.likes - delta }));
       }
     },
     [updatePost],
@@ -279,6 +286,7 @@ export default function ProfilePage() {
   const banner = p.banner as string | undefined;
   const bio = p.bio as string | undefined;
   const socialLinks = parseSocialLinks(p.social_links).filter((l) => l.url.trim());
+  const music = parseProfileMusic(p);
   const ownedBadgesRaw = p.ownedBadges as string[] | Record<string, string> | undefined;
   let badgeIds: string[] = [];
   if (ownedBadgesRaw) {
@@ -297,18 +305,28 @@ export default function ProfilePage() {
       Modifier le profil
     </button>
   ) : (
-    <button
-      type="button"
-      onClick={handleFollow}
-      disabled={followPending}
-      className={`transition-colors font-bold text-sm rounded-full px-5 py-2 cursor-pointer border-none disabled:opacity-50 ${
-        following
-          ? 'bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border)]'
-          : 'bg-brand text-white hover:opacity-90'
-      }`}
-    >
-      {following ? 'Abonné' : 'Suivre'}
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => navigate(`/messages?uid=${encodeURIComponent(data.uid)}`)}
+        className="flex items-center gap-1.5 border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors font-bold text-sm rounded-full px-5 py-2 bg-transparent cursor-pointer"
+      >
+        <MessageSquare size={15} />
+        Message
+      </button>
+      <button
+        type="button"
+        onClick={handleFollow}
+        disabled={followPending}
+        className={`transition-colors font-bold text-sm rounded-full px-5 py-2 cursor-pointer border-none disabled:opacity-50 ${
+          following
+            ? 'bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border)]'
+            : 'bg-brand text-white hover:opacity-90'
+        }`}
+      >
+        {following ? 'Abonné' : 'Suivre'}
+      </button>
+    </div>
   );
 
   return (
@@ -400,6 +418,8 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {music && <MusicCard music={music} />}
+
             <div className="flex items-center gap-4 mt-3">
               <span className="text-[14px] text-[var(--text-primary)]">
                 <strong>{data.postsCount}</strong> <span className="text-[var(--text-muted)]">posts</span>
@@ -456,7 +476,7 @@ export default function ProfilePage() {
                 key={item.key}
                 post={item.post}
                 repostInfo={item.repost}
-                onLike={handleLike}
+                onReact={handleReact}
                 onRepost={handleRepost}
                 onVote={handleVote}
                 onOpen={openPost}
@@ -470,7 +490,7 @@ export default function ProfilePage() {
         <PostModal
           post={selectedPost}
           onClose={() => setSelectedPostId(null)}
-          onLike={handleLike}
+          onReact={handleReact}
           onRepost={handleRepost}
           onVote={handleVote}
           onCommentDelta={handleCommentDelta}

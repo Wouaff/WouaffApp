@@ -24,6 +24,7 @@ const FeedPage = lazy(() => import('./pages/FeedPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const MaintenancePage = lazy(() => import('./pages/MaintenancePage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const PostPage = lazy(() => import('./pages/PostPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const PublicGroupsPage = lazy(() => import('./pages/PublicGroupsPage'));
@@ -144,7 +145,7 @@ function SeoTitle() {
   useEffect(() => {
     const titles: Record<string, string> = {
       '/': "Wouaff — t'as capté 🐺",
-      '/chat': 'Messages — Wouaff',
+      '/messages': 'Messages — Wouaff',
       '/explore': 'Explorer — Wouaff',
       '/feed': 'Feed — Wouaff',
       '/settings': 'Paramètres — Wouaff',
@@ -201,6 +202,20 @@ function AppRoutes() {
             ) : (
               <AppShell>
                 <NotificationsPage />
+              </AppShell>
+            )
+          }
+        />
+        <Route
+          path="/messages"
+          element={
+            isMobile ? (
+              <MobileAppShell>
+                <MessagesPage />
+              </MobileAppShell>
+            ) : (
+              <AppShell>
+                <MessagesPage />
               </AppShell>
             )
           }

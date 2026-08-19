@@ -1,6 +1,7 @@
 import {
   Activity,
   ArrowLeft,
+  Ban,
   Flag,
   Key,
   LayoutDashboard,
@@ -27,6 +28,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { admin as adminApi, profiles } from '../../services/api';
 import type { UserProfile } from '../../types';
+import { BansTab } from './tabs/BansTab';
 import { DashboardTab } from './tabs/DashboardTab';
 import { type GroupRequest, GroupsTab } from './tabs/GroupsTab';
 import { LogsTab } from './tabs/LogsTab';
@@ -36,7 +38,7 @@ import { StaffTab } from './tabs/StaffTab';
 import { type UserRequest, UsersTab } from './tabs/UsersTab';
 import { Avatar, Button, Chip, ConfirmProvider, Spinner, ToastProvider, useToast } from './ui';
 
-export type TabId = 'dashboard' | 'moderation' | 'groups' | 'reports' | 'users' | 'staff' | 'logs';
+export type TabId = 'dashboard' | 'moderation' | 'groups' | 'reports' | 'users' | 'bans' | 'staff' | 'logs';
 
 export const TABS: Array<{ id: TabId; label: string; icon: ReactNode }> = [
   { id: 'dashboard', label: 'Tableau de bord', icon: <LayoutDashboard size={18} /> },
@@ -44,6 +46,7 @@ export const TABS: Array<{ id: TabId; label: string; icon: ReactNode }> = [
   { id: 'groups', label: 'Groupes', icon: <Users size={18} /> },
   { id: 'reports', label: 'Signalements', icon: <Flag size={18} /> },
   { id: 'users', label: 'Utilisateurs', icon: <User size={18} /> },
+  { id: 'bans', label: 'Bans', icon: <Ban size={18} /> },
   { id: 'staff', label: 'Staff', icon: <Shield size={18} /> },
   { id: 'logs', label: 'Activité', icon: <Activity size={18} /> },
 ];
@@ -460,6 +463,7 @@ export default function AdminApp() {
           {tab === 'users' && (
             <UsersTab request={userRequest} onClearRequest={() => setUserRequest(null)} isOwner={isOwner} />
           )}
+          {tab === 'bans' && <BansTab isOwner={isOwner} />}
           {tab === 'staff' && <StaffTab isOwner={isOwner} />}
           {tab === 'logs' && <LogsTab />}
         </main>

@@ -35,6 +35,7 @@ interface ComposeBoxProps {
 
 export default function ComposeBox({ onPost }: ComposeBoxProps) {
   const { user } = useAuth();
+  const [avatar, setAvatar] = useState('');
   const [text, setText] = useState('');
   const [image, setImage] = useState('');
   const [imageLoading, setImageLoading] = useState(false);
@@ -93,6 +94,19 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   }, []);
 
   const mention = useMentionAutocomplete(applyMention);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/profiles/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((profile) => {
+        if (!cancelled && profile) setAvatar((profile.avatar as string) || '');
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const handler = () => textareaRef.current?.focus();
@@ -273,7 +287,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   return (
     <div className="flex gap-3 p-4 border-b border-[var(--border)]">
       <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
-        <span>{initial}</span>
+        {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
       </div>
       <div className="flex-1 min-w-0">
         <div className="relative">

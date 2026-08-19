@@ -5,6 +5,7 @@ import type {
   NotificationItem,
   PostComment,
   PostPoll,
+  PostReaction,
   SocialPost,
   SocketMessageEvent,
 } from '../types';
@@ -434,6 +435,31 @@ export function onPostLiked(cb: (data: { postId: string; uid: string; liked: boo
 }
 export function offPostLiked(cb: (data: { postId: string; uid: string; liked: boolean; likes: number }) => void): void {
   socket?.off('post:liked', cb);
+}
+
+export function onPostReacted(
+  cb: (data: {
+    postId: string;
+    uid: string;
+    type: string;
+    reaction: string | null;
+    reactions: PostReaction[];
+    total: number;
+  }) => void,
+): void {
+  socket?.on('post:reacted', cb);
+}
+export function offPostReacted(
+  cb: (data: {
+    postId: string;
+    uid: string;
+    type: string;
+    reaction: string | null;
+    reactions: PostReaction[];
+    total: number;
+  }) => void,
+): void {
+  socket?.off('post:reacted', cb);
 }
 
 export function onPostReposted(

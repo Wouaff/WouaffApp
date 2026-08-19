@@ -24,13 +24,14 @@ import MentionSuggestions from './MentionSuggestions';
 import Poll from './Poll';
 import PostEmbeds from './PostEmbeds';
 import PostText from './PostText';
+import ReactionPicker, { topReactions } from './Reactions';
 import ReportPostModal from './ReportPostModal';
 import SharePostModal from './SharePostModal';
 
 interface PostModalProps {
   post: SocialPost;
   onClose: () => void;
-  onLike: (id: string) => void;
+  onReact: (id: string, type: string) => void;
   onRepost: (id: string) => void;
   onVote: (id: string, option: number) => void;
   onCommentDelta: (id: string, delta: number) => void;
@@ -48,7 +49,7 @@ function formatTime(ts: number): string {
   return `il y a ${d} j`;
 }
 
-export default function PostModal({ post, onClose, onLike, onRepost, onVote, onCommentDelta }: PostModalProps) {
+export default function PostModal({ post, onClose, onReact, onRepost, onVote, onCommentDelta }: PostModalProps) {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const badgeDefs = useBadges();
@@ -58,10 +59,12 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
   const [sending, setSending] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [reactionOpen, setReactionOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<PostComment | null>(null);
   const commentInputRef = useRef<HTMLInputElement>(null);
   const cap = useCap('comment');
   const isOwn = !!user && post.uid === user.uid;
+  const summary = topReactions(post.reactions);
 
   const startReply = useCallback((c: PostComment) => {
     const handle = c.handle || (c.pseudo ? `@${c.pseudo.toLowerCase().replace(/\s+/g, '')}` : '');
@@ -217,7 +220,7 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
   const actionBtn =
     'flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors text-[var(--text-muted)] hover:text-brand hover:bg-[var(--brand-glow)]';
   const actionBtnLiked = `flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors ${
-    post.liked ? 'text-red-500' : 'text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10'
+    post.myReaction ? 'text-red-500' : 'text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10'
   }`;
   const actionBtnReposted = `flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors ${
     post.reposted ? 'text-online' : 'text-[var(--text-muted)] hover:text-online hover:bg-online/10'
@@ -301,15 +304,30 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
             <Repeat2 size={17} />
             <span>{post.reposts}</span>
           </button>
-          <button
-            type="button"
-            onClick={() => onLike(post.id)}
-            className={actionBtnLiked}
-            aria-label={`J'aime (${post.likes})`}
-          >
-            <Heart size={17} fill={post.liked ? 'currentColor' : 'none'} />
-            <span>{post.likes}</span>
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setReactionOpen((o) => !o)}
+              className={actionBtnLiked}
+              aria-label={`Réagir (${post.likes})`}
+            >
+              {post.myReaction ? (
+                <span className="text-[17px] leading-none">{post.myReaction}</span>
+              ) : (
+                <Heart size={17} />
+              )}
+              <span>{post.likes}</span>
+            </button>
+            {reactionOpen && (
+              <ReactionPicker
+                onClose={() => setReactionOpen(false)}
+                onSelect={(type) => {
+                  onReact(post.id, type);
+                  setReactionOpen(false);
+                }}
+              />
+            )}
+          </div>
           <button
             type="button"
             onClick={() => setShareOpen(true)}
@@ -331,6 +349,31 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
             </button>
           )}
         </div>
+
+        {summary.length > 0 && (
+          <div className="flex items-center justify-end px-4 py-1 border-b border-[var(--border)]">
+            <button
+              type="button"
+              onClick={() => setReactionOpen(true)}
+              className="flex items-center gap-1 rounded-full border-none bg-transparent cursor-pointer px-1 py-0.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
+              aria-label={`${post.likes} réaction(s)`}
+              title={`${post.likes} réaction(s)`}
+            >
+              <span className="flex items-center">
+                {summary.map((r, i) => (
+                  <span
+                    // biome-ignore lint/suspicious/noArrayIndexKey: ordre du résumé de réactions
+                    key={i}
+                    className="w-5 h-5 rounded-full bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-center text-[11px] -ml-1 first:ml-0"
+                  >
+                    {r.type}
+                  </span>
+                ))}
+              </span>
+              <span className="text-[13px] font-semibold">{post.likes}</span>
+            </button>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
           {loading ? (
