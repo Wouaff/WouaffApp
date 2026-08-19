@@ -144,7 +144,7 @@ function SeoTitle() {
   const loc = useLocation();
   useEffect(() => {
     const titles: Record<string, string> = {
-      '/': "Wouaff — t'as capté 🐺",
+      '/': "Wouaff — ta meute, pas l'algo. 🐺",
       '/messages': 'Messages — Wouaff',
       '/explore': 'Explorer — Wouaff',
       '/feed': 'Feed — Wouaff',

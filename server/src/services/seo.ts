@@ -36,9 +36,8 @@ function esc(s: string): string {
 
 export function defaultSeo(url: string): SeoData {
   return {
-    title: "Wouaff — t'as capté 🐺",
-    description:
-      'Wouaff, le réseau social français et souverain. Chat privé sécurisé (E2EE), posts, vidéos et communautés.',
+    title: "Wouaff — ta meute, pas l'algo. 🐺",
+    description: 'Serveurs + MP chiffrés. Fait en France. Pas de pub, pas de tracking.',
     image: `${SITE_URL}/assets/logo/logo.png`,
     url,
     type: 'website',
