@@ -1,4 +1,5 @@
 import { clearE2EE, getPublicKey, initE2EE } from './e2ee';
+import type { LoginResult } from './security';
 
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
@@ -21,7 +22,7 @@ export async function register(
   return data;
 }
 
-export async function login(email: string, password: string): Promise<{ uid: string; pseudo: string }> {
+export async function login(email: string, password: string): Promise<LoginResult> {
   const res = await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

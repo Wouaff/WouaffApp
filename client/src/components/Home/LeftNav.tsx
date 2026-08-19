@@ -1,4 +1,4 @@
-import { Bell, Bookmark, Compass, Film, Home, LogOut, Settings, User, Users } from 'lucide-react';
+import { Bell, Bookmark, Compass, Film, Home, LogOut, Settings, ShieldCheck, User, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -143,6 +143,23 @@ export default function LeftNav() {
         </button>
 
         <div className="mt-auto">
+          {(user?.staffRole === 'owner' || user?.staffRole === 'moderator') && (
+            <button
+              onClick={() => navigate('/admin')}
+              className="flex items-center gap-3 rounded-full p-2.5 w-full cursor-pointer border-none bg-transparent hover:bg-[var(--bg-hover)] transition-colors text-left"
+              aria-label="Panneau d'administration"
+            >
+              <div className="w-9 h-9 rounded-full bg-[var(--brand-glow)] flex items-center justify-center flex-shrink-0">
+                <ShieldCheck size={18} className="text-brand" />
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-[15px] font-bold text-[var(--text-primary)] truncate">Administration</span>
+                <span className="text-xs text-[var(--text-muted)] truncate">
+                  {user?.staffRole === 'owner' ? 'Propriétaire' : 'Modérateur'}
+                </span>
+              </div>
+            </button>
+          )}
           <a
             href="https://discord.com/invite/yUX9KbFsZ6"
             target="_blank"

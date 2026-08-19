@@ -11493,6 +11493,21 @@ body {
   --color: var(--text-primary);
 }
 
+/* ── Page de connexion mobile (Ionic, hors MobileShell) ── */
+.mobile-login {
+  --ion-background-color: var(--bg-base);
+  --ion-text-color: var(--text-primary);
+  --ion-color-primary: var(--brand);
+  height: 100%;
+}
+.mobile-login-content {
+  --background: var(--bg-base);
+  --color: var(--text-primary);
+}
+.mobile-login-content::part(scroll) {
+  overscroll-behavior-y: contain;
+}
+
 /* ── Header translucent / large title ── */
 .mobile-shell ion-header.ion-no-border {
   background: color-mix(in srgb, var(--bg-base) 86%, transparent);

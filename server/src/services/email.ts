@@ -48,6 +48,23 @@ export async function sendVerificationEmail(to: string, code: string): Promise<b
   }
 }
 
+export async function send2FAEmail(to: string, code: string): Promise<boolean> {
+  try {
+    await transporter.sendMail({
+      from: EMAIL_FROM,
+      to,
+      subject: `Votre code de connexion : ${code} — Wouaff`,
+      html: `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;background:#f5f5f5;padding:40px 20px}.card{max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,.08)}.logo{text-align:center;font-size:24px;font-weight:700;color:#7c3aed;margin-bottom:20px}h2{text-align:center;color:#1a1a2e;margin:0 0 8px}p{color:#555;line-height:1.6;text-align:center;margin:0 0 24px}.code{display:block;width:fit-content;margin:0 auto 24px;padding:16px 32px;background:#7c3aed;color:#fff;font-size:32px;font-weight:800;letter-spacing:8px;border-radius:12px}.footer{text-align:center;color:#999;font-size:12px;margin-top:24px}</style></head><body><div class="card"><div class="logo">Wouaff</div><h2>Votre code de connexion</h2><p>Une tentative de connexion est en cours. Saisissez ce code pour la valider (valable 10 minutes).</p><span class="code">${code}</span><p style="font-size:12px;color:#888">Si vous n'êtes pas à l'origine de cette connexion, changez immédiatement votre mot de passe.</p><div class="footer">Wouaff · Sécurité de votre compte</div></div></body></html>`,
+    });
+    lastError = null;
+    return true;
+  } catch (err) {
+    lastError = (err as { message?: string }).message ?? null;
+    console.error('[EMAIL] send2FA error:', (err as { message?: string }).message);
+    return false;
+  }
+}
+
 export async function sendPasswordResetEmail(to: string, token: string): Promise<boolean> {
   const link = `${APP_URL}/reset-password?token=${token}`;
   try {

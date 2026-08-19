@@ -454,6 +454,17 @@ export function offPostComment(cb: (data: { postId: string; comment: PostComment
   socket?.off('post:comment', cb);
 }
 
+export function onCommentLiked(
+  cb: (data: { commentId: number; postId: string; uid: string; liked: boolean; likes: number }) => void,
+): void {
+  socket?.on('comment:liked', cb);
+}
+export function offCommentLiked(
+  cb: (data: { commentId: number; postId: string; uid: string; liked: boolean; likes: number }) => void,
+): void {
+  socket?.off('comment:liked', cb);
+}
+
 export function onPostDeleted(cb: (data: { postId: string }) => void): void {
   socket?.on('post:deleted', cb);
 }

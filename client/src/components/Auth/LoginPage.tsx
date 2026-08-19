@@ -1,9 +1,16 @@
-import { Check, Lock, MapPin, ShieldCheck } from 'lucide-react';
+import { Check, ChevronLeft, KeyRound, Lock, MapPin, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useCap } from '../../hooks/useCap';
 import { login, register } from '../../services/auth';
+import {
+  browserSupportsWebAuthn,
+  isPasskeyResult,
+  passkeys as passkeysAPI,
+  type TwoFactorMethods,
+  twoFactor as twoFactorAPI,
+} from '../../services/security';
 
 function validateEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -55,6 +62,14 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const cap = useCap('register');
+
+  const [twoFactor, setTwoFactor] = useState<{ loginChallenge: string; methods: TwoFactorMethods } | null>(null);
+  const [twoFACode, setTwoFACode] = useState('');
+  const [twoFAMethod, setTwoFAMethod] = useState<'totp' | 'email' | 'recovery'>('totp');
+  const [twoFAInfo, setTwoFAInfo] = useState('');
+  const [sending2FA, setSending2FA] = useState(false);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const canPasskey = browserSupportsWebAuthn();
 
   useEffect(() => {
     if (user) navigate('/');
@@ -113,7 +128,15 @@ export default function LoginPage() {
         if (isRegister) {
           await register(email, password, pseudo, cap.token);
         } else {
-          await login(email, password);
+          const data = await login(email, password);
+          if (isPasskeyResult(data)) {
+            setTwoFactor({ loginChallenge: data.loginChallenge, methods: data.twoFactorMethods });
+            setTwoFAMethod(data.twoFactorMethods.totp ? 'totp' : data.twoFactorMethods.email ? 'email' : 'recovery');
+            setTwoFACode('');
+            setError('');
+            setIsLoading(false);
+            return;
+          }
         }
         await refresh();
         cap.reset();
@@ -133,6 +156,74 @@ export default function LoginPage() {
     setPseudo('');
     setConfirmPassword('');
   };
+
+  const handleSendEmail2FA = useCallback(async () => {
+    if (!twoFactor) return;
+    setSending2FA(true);
+    setTwoFAInfo('');
+    setError('');
+    try {
+      await twoFactorAPI.sendEmail(twoFactor.loginChallenge);
+      setTwoFAInfo('Code envoyé par email.');
+    } catch (err: unknown) {
+      setError((err as Error).message || "Impossible d'envoyer le code");
+    } finally {
+      setSending2FA(false);
+    }
+  }, [twoFactor]);
+
+  const handleSubmit2FA = useCallback(
+    async (e: React.SyntheticEvent) => {
+      e.preventDefault();
+      if (!twoFactor) return;
+      setError('');
+      setTwoFAInfo('');
+      setSending2FA(true);
+      try {
+        const data = await twoFactorAPI.verify(twoFactor.loginChallenge, twoFACode, twoFAMethod);
+        if (!isPasskeyResult(data)) {
+          setTwoFactor(null);
+          await refresh();
+          requestAnimationFrame(() => navigate('/'));
+        }
+      } catch (err: unknown) {
+        setError((err as Error).message || 'Code invalide');
+      } finally {
+        setSending2FA(false);
+      }
+    },
+    [twoFactor, twoFACode, twoFAMethod, navigate, refresh],
+  );
+
+  const handlePasskeyLogin = useCallback(async () => {
+    setPasskeyBusy(true);
+    setError('');
+    try {
+      const data = await passkeysAPI.login(email || undefined);
+      if (isPasskeyResult(data)) {
+        setTwoFactor({ loginChallenge: data.loginChallenge, methods: data.twoFactorMethods });
+        setTwoFAMethod(data.twoFactorMethods.totp ? 'totp' : data.twoFactorMethods.email ? 'email' : 'recovery');
+        setTwoFACode('');
+        return;
+      }
+      await refresh();
+      requestAnimationFrame(() => navigate('/'));
+    } catch (err: unknown) {
+      setError((err as Error).message || "Échec de la connexion par clé d'accès");
+    } finally {
+      setPasskeyBusy(false);
+    }
+  }, [email, navigate, refresh]);
+
+  const backToPassword = () => {
+    setTwoFactor(null);
+    setTwoFACode('');
+    setError('');
+    setTwoFAInfo('');
+  };
+
+  const twoFAMethods = twoFactor?.methods;
+  const showPasskeyButton = !isRegister && !twoFactor && canPasskey;
 
   return (
     <div className="flex min-h-dvh bg-[var(--bg-deep)]">
@@ -194,253 +285,405 @@ export default function LoginPage() {
           </div>
 
           <div key={isRegister ? 'register' : 'login'} className="w-full animate-[authModeIn_0.28s_ease-out]">
-            <div className="mb-9">
-              <div className="hidden lg:flex items-center gap-3 mb-10">
-                <span className="w-8 h-[3px] rounded-full bg-brand-dark" />
-                <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#8b98a5]">Espace membre</span>
-              </div>
-              <h2 className="text-[32px] leading-tight font-black m-0 text-white tracking-[-0.02em]">
-                {isRegister ? 'Créer un compte' : 'Rejoins la communauté'}
-              </h2>
-              <p className="text-[#8b98a5] text-[15px] mt-2 m-0">
-                {isRegister ? 'Inscris-toi en 30 secondes' : 'Connecte-toi pour continuer'}
-              </p>
-            </div>
+            {twoFactor ? (
+              <div className="w-full">
+                <button
+                  type="button"
+                  onClick={backToPassword}
+                  className="flex items-center gap-1 border-none bg-transparent p-0 text-[13px] font-bold text-[#8b98a5] cursor-pointer hover:text-white transition-colors mb-8"
+                >
+                  <ChevronLeft size={16} /> Retour à la connexion
+                </button>
 
-            <div className="mb-5">
-              <label htmlFor="email" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
-                Adresse email
-              </label>
-              <input
-                id="email"
-                type="email"
-                inputMode="email"
-                placeholder="nom@exemple.fr"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
-                className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
-              />
-            </div>
+                <div className="mb-9">
+                  <div className="hidden lg:flex items-center gap-3 mb-10">
+                    <span className="w-8 h-[3px] rounded-full bg-brand-dark" />
+                    <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#8b98a5]">Sécurité</span>
+                  </div>
+                  <h2 className="text-[32px] leading-tight font-black m-0 text-white tracking-[-0.02em]">
+                    Double authentification
+                  </h2>
+                  <p className="text-[#8b98a5] text-[15px] mt-2 m-0">
+                    Saisis le code de vérification pour valider ta connexion.
+                  </p>
+                </div>
 
-            {isRegister && (
-              <div className="mb-5">
-                <label htmlFor="pseudo" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
-                  Pseudo
-                </label>
-                <input
-                  id="pseudo"
-                  type="text"
-                  inputMode="text"
-                  placeholder="Ton pseudo"
-                  maxLength={20}
-                  value={pseudo}
-                  onChange={(e) => setPseudo(e.target.value)}
-                  autoComplete="username"
-                  onFocus={(e) =>
-                    setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
-                  }
-                  className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
-                />
-              </div>
-            )}
-
-            <div className="mb-5">
-              <div className="relative">
-                <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="password" className="block text-[13px] font-bold text-[#d6d9db]">
-                    Mot de passe
-                  </label>
-                  {isRegister && (
+                <div className="flex gap-2 mb-5">
+                  {twoFAMethods?.totp && (
                     <button
                       type="button"
-                      className="border-none bg-transparent p-0 text-[12px] font-bold text-brand cursor-pointer hover:text-brand-light transition-colors"
                       onClick={() => {
-                        const generated = generatePassword();
-                        setPassword(generated);
-                        setConfirmPassword(generated);
-                        setShowPassword(true);
-                        setShowConfirmPassword(true);
+                        setTwoFAMethod('totp');
+                        setTwoFACode('');
                       }}
+                      className={`flex-1 py-2.5 rounded-full text-[14px] font-bold border-none cursor-pointer font-sans transition-colors ${
+                        twoFAMethod === 'totp'
+                          ? 'bg-brand-dark text-white'
+                          : 'bg-[#181d25] text-[#8b98a5] hover:text-white'
+                      }`}
                     >
-                      Générer un mot de passe
+                      Application
+                    </button>
+                  )}
+                  {twoFAMethods?.email && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTwoFAMethod('email');
+                        setTwoFACode('');
+                      }}
+                      className={`flex-1 py-2.5 rounded-full text-[14px] font-bold border-none cursor-pointer font-sans transition-colors ${
+                        twoFAMethod === 'email'
+                          ? 'bg-brand-dark text-white'
+                          : 'bg-[#181d25] text-[#8b98a5] hover:text-white'
+                      }`}
+                    >
+                      Email
+                    </button>
+                  )}
+                  {twoFAMethods?.recovery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTwoFAMethod('recovery');
+                        setTwoFACode('');
+                      }}
+                      className={`flex-1 py-2.5 rounded-full text-[14px] font-bold border-none cursor-pointer font-sans transition-colors ${
+                        twoFAMethod === 'recovery'
+                          ? 'bg-brand-dark text-white'
+                          : 'bg-[#181d25] text-[#8b98a5] hover:text-white'
+                      }`}
+                    >
+                      Récupération
                     </button>
                   )}
                 </div>
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  inputMode="text"
-                  placeholder="Ton mot de passe"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete={isRegister ? 'new-password' : 'current-password'}
-                  onFocus={(e) =>
-                    setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
-                  }
-                  className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 pr-12 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
-                />
-                <button
-                  type="button"
-                  className="absolute right-4 bottom-[15px] bg-transparent border-none cursor-pointer p-1 text-[#71767b] hover:text-white transition-colors"
-                  onClick={() => setShowPassword((p) => !p)}
-                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                >
-                  <svg
-                    className="w-4 h-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    {showPassword ? (
-                      <>
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                        <line x1="1" y1="1" x2="23" y2="23" />
-                      </>
-                    ) : (
-                      <>
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </>
-                    )}
-                  </svg>
-                </button>
-              </div>
-              {isRegister && (
-                <div className="mt-2">
-                  <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5 list-none p-0 m-0">
-                    {[
-                      ['Au moins 8 caractères', pwReqs.length],
-                      ['Une majuscule', pwReqs.uppercase],
-                      ['Une minuscule', pwReqs.lowercase],
-                      ['Un chiffre', pwReqs.number],
-                      ['Un caractère spécial', pwReqs.special],
-                    ].map(([label, valid]) => (
-                      <li
-                        key={String(label)}
-                        className={`flex items-center gap-1.5 text-[11px] transition-all ${valid ? 'text-[#5fd38d]' : 'text-[#8b98a5] opacity-45'}`}
-                      >
-                        <span
-                          className={`flex h-[14px] w-[14px] flex-shrink-0 items-center justify-center rounded-full border transition-colors ${valid ? 'border-[#3ca66a] bg-[#173c2a]' : 'border-[#66717d] bg-[#66717d]/20'}`}
-                        >
-                          {valid && <Check size={9} strokeWidth={3} />}
-                        </span>
-                        {label}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
 
-            {isRegister && (
-              <div className="mb-5">
-                <div className="relative">
-                  <label htmlFor="confirmPassword" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
-                    Confirmer le mot de passe
+                <div className="mb-5">
+                  <label htmlFor="twofaCode" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
+                    {twoFAMethod === 'recovery'
+                      ? 'Code de récupération'
+                      : twoFAMethod === 'email'
+                        ? 'Code reçu par email'
+                        : 'Code de l’application'}
                   </label>
                   <input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    inputMode="text"
-                    placeholder="Confirmer le mot de passe"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    autoComplete="new-password"
+                    id="twofaCode"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="000000"
+                    value={twoFACode}
+                    onChange={(e) => setTwoFACode(e.target.value)}
                     onFocus={(e) =>
                       setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
                     }
-                    className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 pr-12 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
+                    className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d] tracking-[0.2em]"
                   />
+                </div>
+
+                {twoFAMethod === 'email' && (
                   <button
                     type="button"
-                    className="absolute right-4 bottom-[15px] bg-transparent border-none cursor-pointer p-1 text-[#71767b] hover:text-white transition-colors"
-                    onClick={() => setShowConfirmPassword((p) => !p)}
-                    aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    onClick={handleSendEmail2FA}
+                    disabled={sending2FA}
+                    className="w-full h-[44px] mb-4 rounded-full bg-[#181d25] border border-[#303742] text-[#d6d9db] text-[14px] font-bold cursor-pointer font-sans hover:border-[#59626e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      {showConfirmPassword ? (
-                        <>
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                          <line x1="1" y1="1" x2="23" y2="23" />
-                        </>
-                      ) : (
-                        <>
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </>
+                    {sending2FA ? 'Envoi...' : 'Envoyer le code par email'}
+                  </button>
+                )}
+
+                {twoFAInfo && (
+                  <div className="mb-4 text-sm text-[#5fd38d] bg-[#173c2a]/40 border border-[#3ca66a]/40 rounded-[10px] px-4 py-3">
+                    {twoFAInfo}
+                  </div>
+                )}
+
+                {error && (
+                  <div
+                    role="alert"
+                    className="border border-red-500/40 bg-red-500/10 rounded-[10px] px-4 py-3 mb-5 text-sm text-red-400 animate-[shake_0.3s_ease-in-out]"
+                  >
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSubmit2FA}
+                  disabled={sending2FA || twoFACode.length < 4}
+                  className="w-full h-[52px] bg-brand-dark text-white px-6 rounded-full font-black text-[15px] border-none cursor-pointer font-sans hover:bg-[#c75a24] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {sending2FA ? 'Vérification...' : 'Vérifier'}
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mb-9">
+                  <div className="hidden lg:flex items-center gap-3 mb-10">
+                    <span className="w-8 h-[3px] rounded-full bg-brand-dark" />
+                    <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#8b98a5]">
+                      Espace membre
+                    </span>
+                  </div>
+                  <h2 className="text-[32px] leading-tight font-black m-0 text-white tracking-[-0.02em]">
+                    {isRegister ? 'Créer un compte' : 'Rejoins la communauté'}
+                  </h2>
+                  <p className="text-[#8b98a5] text-[15px] mt-2 m-0">
+                    {isRegister ? 'Inscris-toi en 30 secondes' : 'Connecte-toi pour continuer'}
+                  </p>
+                </div>
+
+                <div className="mb-5">
+                  <label htmlFor="email" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
+                    Adresse email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    inputMode="email"
+                    placeholder="nom@exemple.fr"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    onFocus={(e) =>
+                      setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
+                    }
+                    className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
+                  />
+                </div>
+
+                {isRegister && (
+                  <div className="mb-5">
+                    <label htmlFor="pseudo" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
+                      Pseudo
+                    </label>
+                    <input
+                      id="pseudo"
+                      type="text"
+                      inputMode="text"
+                      placeholder="Ton pseudo"
+                      maxLength={20}
+                      value={pseudo}
+                      onChange={(e) => setPseudo(e.target.value)}
+                      autoComplete="username"
+                      onFocus={(e) =>
+                        setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
+                      }
+                      className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
+                    />
+                  </div>
+                )}
+
+                <div className="mb-5">
+                  <div className="relative">
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="password" className="block text-[13px] font-bold text-[#d6d9db]">
+                        Mot de passe
+                      </label>
+                      {isRegister && (
+                        <button
+                          type="button"
+                          className="border-none bg-transparent p-0 text-[12px] font-bold text-brand cursor-pointer hover:text-brand-light transition-colors"
+                          onClick={() => {
+                            const generated = generatePassword();
+                            setPassword(generated);
+                            setConfirmPassword(generated);
+                            setShowPassword(true);
+                            setShowConfirmPassword(true);
+                          }}
+                        >
+                          Générer un mot de passe
+                        </button>
                       )}
-                    </svg>
+                    </div>
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      inputMode="text"
+                      placeholder="Ton mot de passe"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete={isRegister ? 'new-password' : 'current-password'}
+                      onFocus={(e) =>
+                        setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
+                      }
+                      className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 pr-12 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-4 bottom-[15px] bg-transparent border-none cursor-pointer p-1 text-[#71767b] hover:text-white transition-colors"
+                      onClick={() => setShowPassword((p) => !p)}
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        {showPassword ? (
+                          <>
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
+                  </div>
+                  {isRegister && (
+                    <div className="mt-2">
+                      <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5 list-none p-0 m-0">
+                        {[
+                          ['Au moins 8 caractères', pwReqs.length],
+                          ['Une majuscule', pwReqs.uppercase],
+                          ['Une minuscule', pwReqs.lowercase],
+                          ['Un chiffre', pwReqs.number],
+                          ['Un caractère spécial', pwReqs.special],
+                        ].map(([label, valid]) => (
+                          <li
+                            key={String(label)}
+                            className={`flex items-center gap-1.5 text-[11px] transition-all ${valid ? 'text-[#5fd38d]' : 'text-[#8b98a5] opacity-45'}`}
+                          >
+                            <span
+                              className={`flex h-[14px] w-[14px] flex-shrink-0 items-center justify-center rounded-full border transition-colors ${valid ? 'border-[#3ca66a] bg-[#173c2a]' : 'border-[#66717d] bg-[#66717d]/20'}`}
+                            >
+                              {valid && <Check size={9} strokeWidth={3} />}
+                            </span>
+                            {label}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                {isRegister && (
+                  <div className="mb-5">
+                    <div className="relative">
+                      <label htmlFor="confirmPassword" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
+                        Confirmer le mot de passe
+                      </label>
+                      <input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        inputMode="text"
+                        placeholder="Confirmer le mot de passe"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        autoComplete="new-password"
+                        onFocus={(e) =>
+                          setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
+                        }
+                        className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 pr-12 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-4 bottom-[15px] bg-transparent border-none cursor-pointer p-1 text-[#71767b] hover:text-white transition-colors"
+                        onClick={() => setShowConfirmPassword((p) => !p)}
+                        aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          {showConfirmPassword ? (
+                            <>
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </>
+                          ) : (
+                            <>
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </>
+                          )}
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {!isRegister && (
+                  <div className="text-right -mt-2 mb-6">
+                    <a
+                      href="/forgot-password"
+                      className="text-[#8b98a5] hover:text-brand text-[13px] no-underline transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigate('/forgot-password');
+                      }}
+                    >
+                      Mot de passe oublié ?
+                    </a>
+                  </div>
+                )}
+
+                {error && (
+                  <div
+                    role="alert"
+                    className="border border-red-500/40 bg-red-500/10 rounded-[10px] px-4 py-3 mb-5 text-sm text-red-400 animate-[shake_0.3s_ease-in-out]"
+                  >
+                    {error}
+                  </div>
+                )}
+
+                {isRegister && <div className="mb-5 flex justify-center">{cap.widget}</div>}
+
+                <button
+                  type="submit"
+                  className="w-full h-[52px] bg-brand-dark text-white px-6 rounded-full font-black text-[15px] border-none cursor-pointer font-sans hover:bg-[#c75a24] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                >
+                  {isLoading
+                    ? isRegister
+                      ? 'Création...'
+                      : 'Connexion...'
+                    : isRegister
+                      ? 'Créer le compte'
+                      : 'Se connecter'}
+                </button>
+
+                <div className="text-center text-sm mt-7">
+                  <span className="text-[#71767b]">{isRegister ? 'Déjà un compte ?' : 'Pas de compte ?'}</span>
+                  <button
+                    type="button"
+                    className="bg-transparent border-none text-brand font-bold cursor-pointer text-sm ml-1 font-sans hover:underline"
+                    onClick={toggleMode}
+                  >
+                    {isRegister ? 'Connecte-toi' : 'Inscris-toi'}
                   </button>
                 </div>
-              </div>
+
+                {showPasskeyButton && (
+                  <button
+                    type="button"
+                    onClick={handlePasskeyLogin}
+                    disabled={passkeyBusy}
+                    className="mt-6 w-full h-[52px] bg-[#181d25] border border-[#303742] text-white px-6 rounded-full font-black text-[15px] flex items-center justify-center gap-2.5 cursor-pointer font-sans hover:border-[#59626e] hover:bg-[#1d232c] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <KeyRound size={18} />
+                    {passkeyBusy ? 'Vérification...' : 'Se connecter avec une clé d’accès'}
+                  </button>
+                )}
+              </>
             )}
-
-            {!isRegister && (
-              <div className="text-right -mt-2 mb-6">
-                <a
-                  href="/forgot-password"
-                  className="text-[#8b98a5] hover:text-brand text-[13px] no-underline transition-colors"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate('/forgot-password');
-                  }}
-                >
-                  Mot de passe oublié ?
-                </a>
-              </div>
-            )}
-
-            {error && (
-              <div
-                role="alert"
-                className="border border-red-500/40 bg-red-500/10 rounded-[10px] px-4 py-3 mb-5 text-sm text-red-400 animate-[shake_0.3s_ease-in-out]"
-              >
-                {error}
-              </div>
-            )}
-
-            {isRegister && <div className="mb-5 flex justify-center">{cap.widget}</div>}
-
-            <button
-              type="submit"
-              className="w-full h-[52px] bg-brand-dark text-white px-6 rounded-full font-black text-[15px] border-none cursor-pointer font-sans hover:bg-[#c75a24] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              onClick={handleSubmit}
-              disabled={isLoading}
-            >
-              {isLoading
-                ? isRegister
-                  ? 'Création...'
-                  : 'Connexion...'
-                : isRegister
-                  ? 'Créer le compte'
-                  : 'Se connecter'}
-            </button>
-
-            <div className="text-center text-sm mt-7">
-              <span className="text-[#71767b]">{isRegister ? 'Déjà un compte ?' : 'Pas de compte ?'}</span>
-              <button
-                type="button"
-                className="bg-transparent border-none text-brand font-bold cursor-pointer text-sm ml-1 font-sans hover:underline"
-                onClick={toggleMode}
-              >
-                {isRegister ? 'Connecte-toi' : 'Inscris-toi'}
-              </button>
-            </div>
           </div>
 
           <div className="hidden lg:flex items-center justify-center gap-1.5 mt-10 text-[12px] text-[#536471]">

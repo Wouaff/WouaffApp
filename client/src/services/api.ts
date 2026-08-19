@@ -594,6 +594,8 @@ export const posts = {
     request<PostComment>('POST', `/posts/${id}/comments`, { text, capToken }),
   delete: (id: string) => request<{ success: boolean }>('DELETE', `/posts/${id}`),
   deleteComment: (commentId: number) => request<{ success: boolean }>('DELETE', `/posts/comments/${commentId}`),
+  likeComment: (commentId: number) =>
+    request<{ liked: boolean; likes: number }>('POST', `/posts/comments/${commentId}/like`),
   report: (id: string, reason?: string) => request<{ success: boolean }>('POST', `/posts/${id}/report`, { reason }),
 };
 

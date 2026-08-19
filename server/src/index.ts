@@ -33,6 +33,7 @@ import postsRouter from './routes/posts.js';
 import profilesRouter from './routes/profiles.js';
 import publicRouter from './routes/public.js';
 import searchRouter from './routes/search.js';
+import securityRouter from './routes/security.js';
 import statusRouter from './routes/status.js';
 import storiesRouter from './routes/stories.js';
 import trendsRouter from './routes/trends.js';
@@ -93,6 +94,7 @@ app.set('io', io);
 
 /* REST API (all routers auto-wrap async handlers) */
 app.use('/api/auth', patchRouter(authRouter));
+app.use('/api/auth', patchRouter(securityRouter));
 app.use('/api/captcha', patchRouter(captchaRouter));
 app.use('/api/communities', patchRouter(communitiesRouter));
 app.use('/api/messages', patchRouter(messagesRouter));

@@ -7,7 +7,14 @@ import { useCap } from '../../hooks/useCap';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
 import { posts as postsAPI } from '../../services/api';
-import { offPostComment, offPostDeleted, onPostComment, onPostDeleted } from '../../services/socket';
+import {
+  offCommentLiked,
+  offPostComment,
+  offPostDeleted,
+  onCommentLiked,
+  onPostComment,
+  onPostDeleted,
+} from '../../services/socket';
 import type { MentionUser, PostComment, SocialPost } from '../../types';
 import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
 import BadgeIcons from '../Common/BadgeIcons';
@@ -122,11 +129,25 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
     const handleDeleted = (data: { postId: string }) => {
       if (data.postId === post.id) onClose();
     };
+    const handleCommentLiked = (data: {
+      commentId: number;
+      postId: string;
+      uid: string;
+      liked: boolean;
+      likes: number;
+    }) => {
+      if (data.postId !== post.id) return;
+      setComments((prev) =>
+        prev.map((c) => (c.id === data.commentId ? { ...c, liked: data.liked, likes: data.likes } : c)),
+      );
+    };
     onPostComment(handleComment);
     onPostDeleted(handleDeleted);
+    onCommentLiked(handleCommentLiked);
     return () => {
       offPostComment(handleComment);
       offPostDeleted(handleDeleted);
+      offCommentLiked(handleCommentLiked);
     };
   }, [post.id, onClose]);
 
@@ -165,6 +186,30 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
       }
     },
     [post.id, onCommentDelta],
+  );
+
+  const toggleCommentLike = useCallback(
+    async (commentId: number) => {
+      const prev = comments.find((c) => c.id === commentId);
+      if (!prev) return;
+      setComments((prevComments) =>
+        prevComments.map((c) =>
+          c.id === commentId ? { ...c, liked: !c.liked, likes: c.likes + (c.liked ? -1 : 1) } : c,
+        ),
+      );
+      try {
+        const res = await postsAPI.likeComment(commentId);
+        setComments((prevComments) =>
+          prevComments.map((c) => (c.id === commentId ? { ...c, liked: res.liked, likes: res.likes } : c)),
+        );
+      } catch {
+        setComments((prevComments) =>
+          prevComments.map((c) => (c.id === commentId ? { ...c, liked: prev.liked, likes: prev.likes } : c)),
+        );
+        showToast('Impossible de liker le commentaire', 'error');
+      }
+    },
+    [comments],
   );
 
   const initial = (post.pseudo || '?')[0]?.toUpperCase() || '?';
@@ -331,6 +376,18 @@ export default function PostModal({ post, onClose, onLike, onRepost, onVote, onC
                       <span className="text-[var(--text-muted)] text-[13px]">·</span>
                       <span className="text-[var(--text-muted)] text-[13px]">{formatTime(c.createdAt)}</span>
                       <div className="ml-auto flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleCommentLike(c.id)}
+                          aria-label={`J'aime ce commentaire (${c.likes})`}
+                          title="J'aime"
+                          className={`flex items-center gap-1 text-[12px] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 transition-colors ${
+                            c.liked ? 'text-red-500' : 'text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10'
+                          }`}
+                        >
+                          <Heart size={13} fill={c.liked ? 'currentColor' : 'none'} />
+                          {c.likes > 0 && <span>{c.likes}</span>}
+                        </button>
                         <button
                           type="button"
                           onClick={() => startReply(c)}

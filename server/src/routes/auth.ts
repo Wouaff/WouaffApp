@@ -9,6 +9,7 @@ import { enqueueNewUserAlert } from '../services/discordWebhook.js';
 import { genCode, getLastEmailError, sendVerificationEmail } from '../services/email.js';
 import { enqueueJob } from '../services/queue.js';
 import { getStaffRole, isStaff, isUserBanned } from '../services/rtdb.js';
+import { createLoginChallenge, get2FAStatus } from '../services/twoFA.js';
 import type { AuthRequest } from '../types/index.js';
 
 const router: Router = Router();
@@ -128,6 +129,20 @@ router.post('/login', async (req: Request, res: Response) => {
     const banned = await isUserBanned(profile.uid);
     if (banned) {
       res.status(403).json({ error: 'Ce compte est banni.' });
+      return;
+    }
+    const twoFA = await get2FAStatus(profile.uid);
+    if (twoFA.totpEnabled || twoFA.email2faEnabled) {
+      const loginChallenge = await createLoginChallenge(profile.uid);
+      res.json({
+        twoFactorRequired: true,
+        loginChallenge,
+        twoFactorMethods: {
+          totp: twoFA.totpEnabled,
+          email: twoFA.email2faEnabled,
+          recovery: twoFA.recoveryCodesGenerated,
+        },
+      });
       return;
     }
     const { sessionId } = await createSession(profile.uid, {

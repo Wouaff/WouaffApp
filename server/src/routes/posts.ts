@@ -593,6 +593,8 @@ router.post('/:id/comments', verifyCaptchaIfNewAccount, async (req: Request, res
     avatar: profile?.avatar as string,
     ownedBadges: badgeRows.map((b) => b.badgeId),
     verified: !!staff,
+    likes: 0,
+    liked: false,
   };
   const io: Server = req.app.get('io');
   if (io) io.emit('post:comment', { postId: req.params.id, comment });
@@ -652,6 +654,7 @@ router.post('/:id/vote', async (req: Request, res: Response) => {
 });
 
 router.get('/:id/comments', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
   const offset = Math.max(0, parseInt(req.query.offset as string, 10) || 0);
   const rows = await query<Array<PostComment & { uid: string }>>(
@@ -662,11 +665,17 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
   for (const row of rows) {
     const rowRecord = row as unknown as Record<string, unknown>;
     const authorUid = rowRecord.uid as string;
-    const [badgeRows, staff] = await Promise.all([
+    const [badgeRows, staff, likedRow] = await Promise.all([
       query<Array<{ badgeId: string }>>('SELECT badgeId FROM user_badges WHERE uid = ? ORDER BY sortOrder ASC', [
         authorUid,
       ]),
       getOne<{ uid: string }>('SELECT uid FROM staff WHERE uid = ?', [authorUid]),
+      authReq.uid
+        ? getOne<{ uid: string }>('SELECT uid FROM comment_likes WHERE commentId = ? AND uid = ?', [
+            row.id,
+            authReq.uid,
+          ])
+        : Promise.resolve(undefined),
     ]);
     enriched.push({
       ...row,
@@ -675,9 +684,69 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
       handle: toCommentHandle(rowRecord.wouaffId as string, rowRecord.pseudo as string),
       ownedBadges: badgeRows.map((b) => b.badgeId),
       verified: !!staff,
+      likes: (rowRecord.likesCount as number) || 0,
+      liked: !!likedRow,
     });
   }
   res.json(enriched);
+});
+
+router.post('/comments/:commentId/like', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const commentId = parseInt(req.params.commentId, 10);
+  if (!commentId) {
+    res.status(400).json({ error: 'Commentaire invalide' });
+    return;
+  }
+  const comment = await getOne<{ uid: string; postId: string }>('SELECT uid, postId FROM post_comments WHERE id = ?', [
+    commentId,
+  ]);
+  if (!comment) {
+    res.status(404).json({ error: 'Commentaire introuvable' });
+    return;
+  }
+  const io: Server = req.app.get('io');
+  const existing = await getOne<{ uid: string }>('SELECT uid FROM comment_likes WHERE commentId = ? AND uid = ?', [
+    commentId,
+    authReq.uid!,
+  ]);
+  if (existing) {
+    await query('DELETE FROM comment_likes WHERE commentId = ? AND uid = ?', [commentId, authReq.uid!]);
+    await query('UPDATE post_comments SET likesCount = GREATEST(0, likesCount - 1) WHERE id = ?', [commentId]);
+    const [row] = await query<Array<{ likesCount: number }>>('SELECT likesCount FROM post_comments WHERE id = ?', [
+      commentId,
+    ]);
+    if (io) {
+      io.emit('comment:liked', {
+        commentId,
+        postId: comment.postId,
+        uid: authReq.uid!,
+        liked: false,
+        likes: row.likesCount,
+      });
+    }
+    res.json({ liked: false, likes: row.likesCount });
+  } else {
+    await query('INSERT INTO comment_likes (commentId, uid, createdAt) VALUES (?,?,?)', [
+      commentId,
+      authReq.uid!,
+      Date.now(),
+    ]);
+    await query('UPDATE post_comments SET likesCount = likesCount + 1 WHERE id = ?', [commentId]);
+    const [row] = await query<Array<{ likesCount: number }>>('SELECT likesCount FROM post_comments WHERE id = ?', [
+      commentId,
+    ]);
+    if (io) {
+      io.emit('comment:liked', {
+        commentId,
+        postId: comment.postId,
+        uid: authReq.uid!,
+        liked: true,
+        likes: row.likesCount,
+      });
+    }
+    res.json({ liked: true, likes: row.likesCount });
+  }
 });
 
 router.delete('/comments/:commentId', async (req: Request, res: Response) => {

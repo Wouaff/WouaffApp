@@ -1,3 +1,4 @@
+import { IonApp } from '@ionic/react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import BannedScreen from './components/Common/BannedScreen';
@@ -12,6 +13,7 @@ import { ThemeProvider } from './hooks/useTheme';
 import MobileShell from './mobile/MobileShell';
 
 const LoginPage = lazy(() => import('./components/Auth/LoginPage'));
+const MobileLoginPage = lazy(() => import('./components/Auth/MobileLoginPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage'));
 const CommunityPage = lazy(() => import('./pages/CommunityPage'));
@@ -160,7 +162,18 @@ function AppRoutes() {
     <>
       <SeoTitle />
       <Routes>
-        <Route path="/auth" element={<LoginPage />} />
+        <Route
+          path="/auth"
+          element={
+            isMobile ? (
+              <IonApp className="mobile-shell mobile-login">
+                <MobileLoginPage />
+              </IonApp>
+            ) : (
+              <LoginPage />
+            )
+          }
+        />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />

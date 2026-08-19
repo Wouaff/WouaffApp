@@ -8,6 +8,7 @@ import {
   Link2,
   Loader2,
   Lock,
+  LogOut,
   Moon,
   Palette,
   Plus,
@@ -23,6 +24,7 @@ import { useNavigate } from 'react-router-dom';
 import Toast, { showToast } from '../components/Common/Toast';
 import LeftNav from '../components/Home/LeftNav';
 import RightSidebar from '../components/Home/RightSidebar';
+import SecurityTab from '../components/Settings/SecurityTab';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { badges as badgesAPI, profiles as profilesAPI } from '../services/api';
@@ -32,7 +34,7 @@ import type { SocialLink } from '../utils/socialLinks';
 import { PLATFORMS, parseSocialLinks, socialLinksToJson } from '../utils/socialLinks';
 
 type BadgeDef = { name?: string; icon?: string; description?: string };
-type Tab = 'profile' | 'account' | 'badges';
+type Tab = 'profile' | 'account' | 'badges' | 'security';
 
 function normalizeBadgeIds(raw: unknown): string[] {
   if (!raw) return [];
@@ -243,6 +245,7 @@ export default function SettingsPage() {
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'profile', label: 'Profil', icon: <User size={16} /> },
     { id: 'account', label: 'Compte', icon: <Lock size={16} /> },
+    { id: 'security', label: 'Sécurité', icon: <ShieldCheck size={16} /> },
     { id: 'badges', label: 'Badges', icon: <Award size={16} /> },
   ];
 
@@ -269,6 +272,31 @@ export default function SettingsPage() {
                   Gérez votre profil, votre compte et vos badges
                 </div>
               </div>
+              {(user?.staffRole === 'owner' || user?.staffRole === 'moderator') && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin')}
+                  aria-label="Panneau d'administration"
+                  title="Administration"
+                  className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-[var(--text-muted)] hover:text-brand hover:bg-[var(--bg-hover)] transition-colors flex-shrink-0"
+                >
+                  <ShieldCheck size={19} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Se déconnecter ?')) {
+                    logout();
+                    navigate('/auth');
+                  }
+                }}
+                aria-label="Se déconnecter"
+                title="Se déconnecter"
+                className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--bg-hover)] transition-colors flex-shrink-0"
+              >
+                <LogOut size={19} />
+              </button>
             </div>
             <div className="px-3 pb-3 pt-1">
               <div className="flex bg-[var(--bg-input)] border border-[var(--border)] rounded-full p-1">
@@ -777,6 +805,27 @@ export default function SettingsPage() {
                 )}
               </div>
 
+              {(user?.staffRole === 'owner' || user?.staffRole === 'moderator') && (
+                <div className={cardCls}>
+                  <h3 className={sectionTitleCls}>
+                    <span className={iconBadgeCls}>
+                      <ShieldCheck size={14} />
+                    </span>
+                    Modération
+                  </h3>
+                  <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
+                    Accédez au panneau d'administration pour gérer les utilisateurs, les publications et la modération.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin')}
+                    className="flex items-center justify-center gap-2 w-full rounded-full bg-brand-dark text-white font-bold text-sm py-3 cursor-pointer border-none hover:bg-[#c75a24] transition-colors"
+                  >
+                    <ShieldCheck size={16} /> Panneau d'administration
+                  </button>
+                </div>
+              )}
+
               <div className={`${cardCls} border-red-500/30`}>
                 <h3 className="flex items-center gap-2.5 text-[12px] font-extrabold uppercase tracking-wider text-[var(--danger)] mb-3">
                   <span className="w-7 h-7 rounded-lg bg-red-500/10 text-[var(--danger)] flex items-center justify-center flex-shrink-0">
@@ -798,6 +847,8 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+
+          {tab === 'security' && <SecurityTab />}
 
           {tab === 'badges' && (
             <div className="p-4">

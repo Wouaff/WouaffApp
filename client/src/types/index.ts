@@ -225,6 +225,8 @@ export interface PostComment {
   avatar?: string;
   ownedBadges?: string[];
   verified?: boolean;
+  likes: number;
+  liked: boolean;
 }
 
 export interface RepostInfo {
