@@ -1,5 +1,5 @@
 import { IonApp, IonIcon, IonLabel, IonTabBar, IonTabButton } from '@ionic/react';
-import { chatbubbles, compass, home, notifications, person, videocam } from 'ionicons/icons';
+import { chatbubbles, home, notifications, person, videocam } from 'ionicons/icons';
 import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -8,7 +8,6 @@ import { subscribeMessagesUnread } from '../services/messagesUnread';
 const TABS = [
   { path: '/', label: 'Accueil', icon: home, match: (p: string) => p === '/' || p === '' },
   { path: '/messages', label: 'Messages', icon: chatbubbles, match: (p: string) => p.startsWith('/messages') },
-  { path: '/explore', label: 'Explorer', icon: compass, match: (p: string) => p === '/explore' },
   { path: '/feed', label: 'Feed', icon: videocam, match: (p: string) => p === '/feed' },
   { path: '/notifications', label: 'Notifications', icon: notifications, match: (p: string) => p === '/notifications' },
   { path: '/settings', label: 'Profil', icon: person, match: (p: string) => p === '/settings' },

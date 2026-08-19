@@ -36,8 +36,8 @@ function esc(s: string): string {
 
 export function defaultSeo(url: string): SeoData {
   return {
-    title: "Wouaff — ta meute, pas l'algo. 🐺",
-    description: 'Serveurs + MP chiffrés. Fait en France. Pas de pub, pas de tracking.',
+    title: 'Wouaff — ton fil, pas leur algo',
+    description: 'Posts, vidéos, communautés, MP chiffrés. Zéro pub. Tes données restent en France.',
     image: `${SITE_URL}/assets/logo/logo.png`,
     url,
     type: 'website',

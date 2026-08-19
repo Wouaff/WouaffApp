@@ -5,6 +5,7 @@ import BannedScreen from './components/Common/BannedScreen';
 import ConnectionLostOverlay from './components/Common/ConnectionLostOverlay';
 import EmailVerificationBanner from './components/Common/EmailVerificationBanner';
 import OpenSourceBanner from './components/Common/OpenSourceBanner';
+import PwaInstallPrompt from './components/Common/PwaInstallPrompt';
 import TitleBar from './components/Common/TitleBar';
 import MobileLayout from './components/Layout/MobileLayout';
 import { useAuth } from './hooks/useAuth';
@@ -20,6 +21,7 @@ const CommunityPage = lazy(() => import('./pages/CommunityPage'));
 const DiscoverCommunitiesPage = lazy(() => import('./pages/DiscoverCommunitiesPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const DownloadPage = lazy(() => import('./pages/DownloadPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const FeedPage = lazy(() => import('./pages/FeedPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const MaintenancePage = lazy(() => import('./pages/MaintenancePage'));
@@ -27,7 +29,6 @@ const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const PostPage = lazy(() => import('./pages/PostPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
-const PublicGroupsPage = lazy(() => import('./pages/PublicGroupsPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -35,7 +36,6 @@ const TagPage = lazy(() => import('./pages/TagPage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 
 const HomeMobile = lazy(() => import('./mobile/pages/HomeMobile'));
-const ExploreMobile = lazy(() => import('./mobile/pages/ExploreMobile'));
 const FeedMobile = lazy(() => import('./mobile/pages/FeedMobile'));
 const NotificationsMobile = lazy(() => import('./mobile/pages/NotificationsMobile'));
 
@@ -63,6 +63,21 @@ function DiscordPresenceTracker() {
     window.electronAPI.updateDiscordPresence('home');
   }, [loc]);
   return null;
+}
+
+function HomeRoot({ isMobile }: { isMobile: boolean }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div id="loadingOverlay" className="loading-overlay hidden" />;
+  if (!user) return <LandingPage />;
+  return isMobile ? (
+    <MobileAppShell>
+      <HomeMobile />
+    </MobileAppShell>
+  ) : (
+    <AppShell>
+      <HomePage />
+    </AppShell>
+  );
 }
 
 function AppShell({ children }: { children: React.ReactNode }) {
@@ -144,9 +159,8 @@ function SeoTitle() {
   const loc = useLocation();
   useEffect(() => {
     const titles: Record<string, string> = {
-      '/': "Wouaff — ta meute, pas l'algo. 🐺",
+      '/': 'Wouaff — ton fil, pas leur algo',
       '/messages': 'Messages — Wouaff',
-      '/explore': 'Explorer — Wouaff',
       '/feed': 'Feed — Wouaff',
       '/settings': 'Paramètres — Wouaff',
       '/admin': 'Administration — Wouaff',
@@ -178,20 +192,7 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route
-          path="/"
-          element={
-            isMobile ? (
-              <MobileAppShell>
-                <HomeMobile />
-              </MobileAppShell>
-            ) : (
-              <AppShell>
-                <HomePage />
-              </AppShell>
-            )
-          }
-        />
+        <Route path="/" element={<HomeRoot isMobile={isMobile} />} />
         <Route
           path="/notifications"
           element={
@@ -344,22 +345,6 @@ function AppRoutes() {
         />
         <Route path="/download" element={<DownloadPage />} />
         <Route
-          path="/explore"
-          element={
-            isMobile ? (
-              <MobileProtected>
-                <ExploreMobile />
-              </MobileProtected>
-            ) : (
-              <ProtectedRoute>
-                <MaintenanceGuard>
-                  <PublicGroupsPage />
-                </MaintenanceGuard>
-              </ProtectedRoute>
-            )
-          }
-        />
-        <Route
           path="/search"
           element={
             isMobile ? (
@@ -406,6 +391,7 @@ export default function App() {
       <ThemeProvider>
         <ConnectionLostOverlay />
         <OpenSourceBanner />
+        <PwaInstallPrompt />
         <DiscordPresenceTracker />
         <BannedGuard>
           <div className="flex flex-col h-dvh">

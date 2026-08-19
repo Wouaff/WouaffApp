@@ -49,6 +49,8 @@ const FEATURES = [
   { icon: Lock, label: 'Politique zéro log', desc: 'Nous ne traçons pas vos activités' },
 ];
 
+const GENERIC_ERR = 'Ça a merdé de notre côté. Réessaie. Si ça persiste, ping-nous sur Discord.';
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { user, refresh } = useAuth();
@@ -74,6 +76,12 @@ export default function LoginPage() {
   useEffect(() => {
     if (user) navigate('/');
   }, [user, navigate]);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('mode') === 'register') {
+      setIsRegister(true);
+    }
+  }, []);
 
   const pwReqs = getPasswordReqs(password);
   const pwValid = Object.values(pwReqs).every((v) => v);
@@ -142,7 +150,7 @@ export default function LoginPage() {
         cap.reset();
         requestAnimationFrame(() => navigate('/'));
       } catch (err: unknown) {
-        setError((err as Error).message || "Une erreur s'est produite");
+        setError((err as Error).message || GENERIC_ERR);
       } finally {
         setIsLoading(false);
       }
@@ -187,7 +195,7 @@ export default function LoginPage() {
           requestAnimationFrame(() => navigate('/'));
         }
       } catch (err: unknown) {
-        setError((err as Error).message || 'Code invalide');
+        setError((err as Error).message || 'Ce code a expiré. On t’en renvoie un.');
       } finally {
         setSending2FA(false);
       }
@@ -247,11 +255,10 @@ export default function LoginPage() {
 
         <div className="relative z-10 max-w-md">
           <h1 className="text-4xl font-black leading-tight text-white m-0 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
-            Le premier réseau social <span className="text-brand-light">français</span> et{' '}
-            <span className="text-brand-light">souverain</span>.
+            Ton fil. <span className="text-brand-light">Pas leur algo.</span>
           </h1>
           <p className="mt-4 text-[15px] leading-relaxed text-white/80 m-0">
-            Conçu en France, hébergé en France, pour les Français. Vos données restent chez vous.
+            Posts, vidéos, communautés, MP chiffrés. Zéro pub. Tes données restent en France.
           </p>
           <div className="mt-8 flex flex-col gap-4">
             {FEATURES.map((f) => {
@@ -281,7 +288,7 @@ export default function LoginPage() {
           <div className="mb-10 lg:hidden">
             <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-14 h-14 mb-5" />
             <h1 className="text-2xl font-black m-0 text-white">Wouaff</h1>
-            <p className="text-[#8b98a5] text-sm mt-1 m-0">Le réseau social français et souverain 🐺</p>
+            <p className="text-[#8b98a5] text-sm mt-1 m-0">Ton fil, pas leur algo 🐺</p>
           </div>
 
           <div key={isRegister ? 'register' : 'login'} className="w-full animate-[authModeIn_0.28s_ease-out]">
@@ -427,10 +434,10 @@ export default function LoginPage() {
                     </span>
                   </div>
                   <h2 className="text-[32px] leading-tight font-black m-0 text-white tracking-[-0.02em]">
-                    {isRegister ? 'Créer un compte' : 'Rejoins la communauté'}
+                    {isRegister ? 'Crée ton compte.' : 'C’est toi ?'}
                   </h2>
                   <p className="text-[#8b98a5] text-[15px] mt-2 m-0">
-                    {isRegister ? 'Inscris-toi en 30 secondes' : 'Connecte-toi pour continuer'}
+                    {isRegister ? 'Un pseudo, un mail. Tes premiers abonnements, juste après.' : 'Ton fil t’attend.'}
                   </p>
                 </div>
 
@@ -651,13 +658,7 @@ export default function LoginPage() {
                   onClick={handleSubmit}
                   disabled={isLoading}
                 >
-                  {isLoading
-                    ? isRegister
-                      ? 'Création...'
-                      : 'Connexion...'
-                    : isRegister
-                      ? 'Créer le compte'
-                      : 'Se connecter'}
+                  {isLoading ? (isRegister ? 'Création...' : 'Connexion...') : isRegister ? 'C’est parti' : 'Entrer'}
                 </button>
 
                 <div className="text-center text-sm mt-7">
@@ -667,7 +668,7 @@ export default function LoginPage() {
                     className="bg-transparent border-none text-brand font-bold cursor-pointer text-sm ml-1 font-sans hover:underline"
                     onClick={toggleMode}
                   >
-                    {isRegister ? 'Connecte-toi' : 'Inscris-toi'}
+                    {isRegister ? 'Entrer' : 'Rejoindre Wouaff'}
                   </button>
                 </div>
 

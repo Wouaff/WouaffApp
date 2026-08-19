@@ -22,7 +22,7 @@ export function notificationPermission(): NotificationPermission {
 }
 
 export async function registerNotificationsServiceWorker(): Promise<void> {
-  if (!isBrowserNotificationsSupported()) return;
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
   try {
     swReg = await navigator.serviceWorker.register(SW_PATH);
   } catch {

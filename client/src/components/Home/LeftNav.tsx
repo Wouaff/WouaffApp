@@ -1,16 +1,4 @@
-import {
-  Bell,
-  Bookmark,
-  Compass,
-  Film,
-  Home,
-  LogOut,
-  MessageSquare,
-  Settings,
-  ShieldCheck,
-  User,
-  Users,
-} from 'lucide-react';
+import { Bell, Bookmark, Film, Home, LogOut, MessageSquare, Settings, ShieldCheck, User, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -28,7 +16,6 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/', label: 'Accueil', icon: Home },
   { path: '/messages', label: 'Messages', icon: MessageSquare },
   { path: '/communities', label: 'Communautés', icon: Users },
-  { path: '/explore', label: 'Explorer', icon: Compass },
   { path: '/notifications', label: 'Notifications', icon: Bell },
   { path: '/feed', label: 'Feed', icon: Film },
   { path: '/bookmarks', label: 'Signets', icon: Bookmark, soon: true },

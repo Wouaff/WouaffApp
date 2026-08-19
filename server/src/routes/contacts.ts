@@ -4,12 +4,16 @@ import type { Server } from 'socket.io';
 import { verifyToken } from '../middleware/auth.js';
 import {
   acceptContactRequest,
+  findUsersByPhones,
   getContacts,
+  getContactsSyncStatus,
   getPendingRequests,
   getProfile,
   getProfiles,
   getSentRequests,
   isBlocked,
+  markContactsSynced,
+  normalizePhone,
   rejectContactRequest,
   removeContact,
   searchByWouaffId,
@@ -19,6 +23,38 @@ import type { AuthRequest } from '../types/index.js';
 
 const router: Router = Router();
 router.use(verifyToken);
+
+/* GET /contacts/sync-status — à afficher (popup) ou pas ? */
+router.get('/sync-status', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  res.json(await getContactsSyncStatus(authReq.uid!));
+});
+
+/* POST /contacts/sync — enregistrer mon n° et retrouver mes amis par téléphone */
+router.post('/sync', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { phone, contacts } = req.body as { phone?: string; contacts?: string[] };
+  const ownPhone = typeof phone === 'string' ? normalizePhone(phone) : undefined;
+  if (typeof phone === 'string' && phone.trim() && !ownPhone) {
+    res.status(400).json({ error: 'Numéro de téléphone invalide' });
+    return;
+  }
+  const list = Array.isArray(contacts) ? contacts.map((n) => String(n)).filter(Boolean) : [];
+  const phoneMap = await findUsersByPhones(list);
+  const matches: Array<{
+    uid: string;
+    pseudo: string;
+    avatar: string | null;
+    wouaffId: string | null;
+  }> = [];
+  for (const profile of phoneMap.values()) {
+    if (profile.uid === authReq.uid) continue;
+    matches.push(profile);
+  }
+  const missing = list.map((n) => normalizePhone(n)).filter((n): n is string => !!n && !phoneMap.has(n));
+  await markContactsSynced(authReq.uid!, ownPhone ?? null);
+  res.json({ matches, missing, phone: ownPhone ?? null });
+});
 
 /* GET /contacts — liste des contacts */
 router.get('/', async (req: Request, res: Response) => {

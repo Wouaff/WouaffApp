@@ -6,7 +6,6 @@ import CommunityCreateModal from '../components/Home/CommunityCreateModal';
 import CommunityPostCard from '../components/Home/CommunityPostCard';
 import CommunityPostModal from '../components/Home/CommunityPostModal';
 import LeftNav from '../components/Home/LeftNav';
-import OnboardingModal from '../components/Home/OnboardingModal';
 import { communities as communitiesAPI } from '../services/api';
 import type { Community, CommunityPost } from '../types';
 
@@ -21,7 +20,6 @@ export default function CommunitiesPage() {
   const [hasMore, setHasMore] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
-  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('wouaff_onboarding_done'));
   const sentinelRef = useRef<HTMLDivElement>(null);
   const offsetRef = useRef(0);
   const loadingRef = useRef(false);
@@ -134,13 +132,6 @@ export default function CommunitiesPage() {
     for (const c of mine) map.set(c.name, c.myRole);
     return map;
   }, [mine]);
-
-  const onboardDone = useCallback(() => {
-    localStorage.setItem('wouaff_onboarding_done', '1');
-    setShowOnboarding(false);
-    loadMine();
-    loadFeed(0);
-  }, [loadMine, loadFeed]);
 
   return (
     <div className="flex h-full">
@@ -261,7 +252,6 @@ export default function CommunitiesPage() {
           onPinned={handlePinned}
         />
       )}
-      {showOnboarding && <OnboardingModal onDone={onboardDone} />}
     </div>
   );
 }

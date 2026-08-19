@@ -430,7 +430,7 @@ export async function searchGroupMessages(gid: string, searchQuery: string): Pro
 /* ── Profiles ── */
 
 function sanitizeProfile(row: Record<string, unknown>): Record<string, unknown> {
-  const { publicKey, passwordHash, email, ...profile } = row;
+  const { publicKey, passwordHash, email, phone, ...profile } = row;
   const result = profile as Record<string, unknown>;
   if (publicKey) {
     try {
@@ -1096,6 +1096,132 @@ export async function getRandomUserSuggestions(
     [uid, uid, limit],
   );
   return rows;
+}
+
+/* ── Onboarding & contacts téléphone ── */
+
+export async function getOnboardingStatus(uid: string): Promise<{ completed: boolean; required: boolean }> {
+  const row = await getOne<{ onboardingCompletedAt: number }>('SELECT onboardingCompletedAt FROM users WHERE uid = ?', [
+    uid,
+  ]);
+  if (row && row.onboardingCompletedAt > 0) return { completed: true, required: false };
+  const [follows, subs] = await Promise.all([
+    query<Array<{ c: number }>>('SELECT COUNT(*) AS c FROM follows WHERE followerUid = ?', [uid]),
+    query<Array<{ c: number }>>('SELECT COUNT(*) AS c FROM subscriptions WHERE userId = ?', [uid]),
+  ]);
+  const empty = (follows[0]?.c ?? 0) === 0 && (subs[0]?.c ?? 0) === 0;
+  return { completed: false, required: empty };
+}
+
+export async function markOnboardingCompleted(uid: string): Promise<void> {
+  await query('UPDATE users SET onboardingCompletedAt = ? WHERE uid = ?', [Date.now(), uid]);
+}
+
+export interface OnboardingUserSuggestion {
+  uid: string;
+  pseudo: string;
+  avatar: string | null;
+  bio: string | null;
+  wouaffId: string | null;
+  isStaff: boolean;
+}
+
+export async function getOnboardingUserSuggestions(uid: string, limit = 12): Promise<OnboardingUserSuggestion[]> {
+  const rows = await query<
+    Array<{
+      uid: string;
+      pseudo: string;
+      avatar: string | null;
+      bio: string | null;
+      wouaffId: string | null;
+      isStaff: number;
+    }>
+  >(
+    `SELECT u.uid, u.pseudo, u.avatar, u.bio, u.wouaffId,
+            CASE WHEN s.uid IS NULL THEN 0 ELSE 1 END AS isStaff,
+            (SELECT COUNT(*) FROM follows f WHERE f.followedUid = u.uid) AS followers
+     FROM users u
+     LEFT JOIN staff s ON s.uid = u.uid
+     WHERE u.uid != ? AND u.uid NOT IN (SELECT followedUid FROM follows WHERE followerUid = ?)
+     ORDER BY isStaff DESC, followers DESC, u.createdAt ASC
+     LIMIT ?`,
+    [uid, uid, limit],
+  );
+  return rows.map((r) => ({
+    uid: r.uid,
+    pseudo: r.pseudo,
+    avatar: r.avatar,
+    bio: r.bio,
+    wouaffId: r.wouaffId,
+    isStaff: r.isStaff === 1,
+  }));
+}
+
+export async function getOnboardingCommunitySuggestions(limit = 12): Promise<Array<Record<string, unknown>>> {
+  return query<Array<Record<string, unknown>>>(
+    `SELECT c.id, c.name, c.displayName, c.avatar, c.category,
+            COUNT(DISTINCT m.userId) AS memberCount
+     FROM communities c
+     LEFT JOIN community_members m ON m.communityId = c.id
+     WHERE c.isPrivate = 0
+     GROUP BY c.id
+     ORDER BY memberCount DESC, c.createdAt DESC
+     LIMIT ?`,
+    [limit],
+  );
+}
+
+export function normalizePhone(raw: string): string | null {
+  let s = (raw || '').trim();
+  if (!s) return null;
+  let plus = false;
+  if (s.startsWith('+')) {
+    plus = true;
+    s = s.slice(1);
+  }
+  s = s.replace(/[^\d]/g, '');
+  if (!s) return null;
+  if (!plus) {
+    s = s.startsWith('0') ? `33${s.slice(1)}` : `33${s}`;
+  }
+  const full = `+${s}`;
+  if (!/^\+[1-9]\d{6,14}$/.test(full)) return null;
+  return full;
+}
+
+export async function setUserPhone(uid: string, phone: string | null): Promise<void> {
+  await query('UPDATE users SET phone = ? WHERE uid = ?', [phone, uid]);
+}
+
+export async function getContactsSyncStatus(uid: string): Promise<{ completed: boolean; phone: string | null }> {
+  const row = await getOne<{ contactsSyncedAt: number; phone: string | null }>(
+    'SELECT contactsSyncedAt, phone FROM users WHERE uid = ?',
+    [uid],
+  );
+  return { completed: !!row && row.contactsSyncedAt > 0, phone: row?.phone || null };
+}
+
+export async function markContactsSynced(uid: string, phone: string | null): Promise<void> {
+  await query('UPDATE users SET contactsSyncedAt = ?, phone = ? WHERE uid = ?', [Date.now(), phone, uid]);
+}
+
+export async function findUsersByPhones(
+  phones: string[],
+): Promise<Map<string, { uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>> {
+  const map = new Map<string, { uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>();
+  const unique = [...new Set(phones.map((p) => normalizePhone(p)).filter((p): p is string => !!p))];
+  if (unique.length === 0) return map;
+  const placeholders = unique.map(() => '?').join(',');
+  const rows = await query<
+    Array<{ phone: string; uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>
+  >(
+    `SELECT phone, uid, pseudo, avatar, wouaffId FROM users WHERE phone IN (${placeholders}) AND phone IS NOT NULL`,
+    unique,
+  );
+  for (const r of rows) {
+    map.set(r.phone, { uid: r.uid, pseudo: r.pseudo, avatar: r.avatar, wouaffId: r.wouaffId });
+  }
+  return map;
 }
 
 export async function getRecentUsers(limit = 20): Promise<Record<string, Record<string, unknown>>> {

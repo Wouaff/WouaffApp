@@ -1,4 +1,4 @@
-import { Compass, Film, Home, MessageSquare, User } from 'lucide-react';
+import { Film, Home, MessageSquare, User } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { subscribeMessagesUnread } from '../../services/messagesUnread';
@@ -17,7 +17,6 @@ const BottomNav = memo(function BottomNav({ storyBadge }: BottomNavProps) {
   }, []);
 
   const isHome = location.pathname === '/' || location.pathname === '';
-  const isExplore = location.pathname === '/explore';
   const isFeed = location.pathname === '/feed';
   const isSettings = location.pathname === '/settings';
   const isMessages = location.pathname.startsWith('/messages');
@@ -25,7 +24,6 @@ const BottomNav = memo(function BottomNav({ storyBadge }: BottomNavProps) {
   const items = [
     { path: '/', label: 'Accueil', active: isHome, icon: Home },
     { path: '/messages', label: 'Messages', active: isMessages, icon: MessageSquare, badge: msgUnread > 0 },
-    { path: '/explore', label: 'Explorer', active: isExplore, icon: Compass },
     { path: '/feed', label: 'Feed', active: isFeed, icon: Film, badge: storyBadge },
     { path: '/settings', label: 'Profil', active: isSettings, icon: User },
   ];

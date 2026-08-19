@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { showToast, default as Toast } from '../components/Common/Toast';
 import ComposeBox from '../components/Home/ComposeBox';
 import LeftNav from '../components/Home/LeftNav';
+import OnboardingController from '../components/Home/OnboardingController';
 import PostCard from '../components/Home/PostCard';
 import PostModal from '../components/Home/PostModal';
 import RightSidebar from '../components/Home/RightSidebar';
@@ -401,6 +402,7 @@ export default function HomePage() {
       )}
       <Toast />
       {introOpen && <WelcomeIntro onDone={closeIntro} />}
+      <OnboardingController />
     </div>
   );
 }

@@ -66,6 +66,12 @@ export default function MobileLoginPage() {
     if (user) navigate('/');
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('mode') === 'register') {
+      setIsRegister(true);
+    }
+  }, []);
+
   const pwReqs = getPasswordReqs(password);
   const pwValid = Object.values(pwReqs).every((v) => v);
 
@@ -126,7 +132,9 @@ export default function MobileLoginPage() {
         }
         await finishLogin();
       } catch (err: unknown) {
-        setError((err as Error).message || "Une erreur s'est produite");
+        setError(
+          (err as Error).message || 'Ça a merdé de notre côté. Réessaie. Si ça persiste, ping-nous sur Discord.',
+        );
       } finally {
         setIsLoading(false);
       }
@@ -163,7 +171,7 @@ export default function MobileLoginPage() {
           await finishLogin();
         }
       } catch (err: unknown) {
-        setError((err as Error).message || 'Code invalide');
+        setError((err as Error).message || 'Ce code a expiré. On t’en renvoie un.');
       } finally {
         setSending2FA(false);
       }
@@ -335,10 +343,10 @@ export default function MobileLoginPage() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="mb-1">
                 <h2 className="text-[24px] font-black m-0 text-[var(--text-primary)] tracking-[-0.02em]">
-                  {isRegister ? 'Créer un compte' : 'Rejoins la communauté'}
+                  {isRegister ? 'Crée ton compte.' : 'C’est toi ?'}
                 </h2>
                 <p className="text-[14px] text-[var(--text-muted)] mt-1 m-0">
-                  {isRegister ? 'Inscris-toi en 30 secondes' : 'Connecte-toi pour continuer'}
+                  {isRegister ? 'Un pseudo, un mail. Tes premiers abonnements, juste après.' : 'Ton fil t’attend.'}
                 </p>
               </div>
 
@@ -490,13 +498,7 @@ export default function MobileLoginPage() {
               )}
 
               <button type="submit" disabled={isLoading} className={primaryBtnCls}>
-                {isLoading
-                  ? isRegister
-                    ? 'Création...'
-                    : 'Connexion...'
-                  : isRegister
-                    ? 'Créer le compte'
-                    : 'Se connecter'}
+                {isLoading ? (isRegister ? 'Création...' : 'Connexion...') : isRegister ? 'C’est parti' : 'Entrer'}
               </button>
 
               {!isRegister && canPasskey && (
@@ -513,7 +515,7 @@ export default function MobileLoginPage() {
                   className="bg-transparent border-none text-brand font-bold cursor-pointer text-sm ml-1 font-sans hover:underline"
                   onClick={toggleMode}
                 >
-                  {isRegister ? 'Connecte-toi' : 'Inscris-toi'}
+                  {isRegister ? 'Entrer' : 'Rejoindre Wouaff'}
                 </button>
               </div>
             </form>

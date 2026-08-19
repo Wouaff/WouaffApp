@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Toast from '../../components/Common/Toast';
 import ComposeBox from '../../components/Home/ComposeBox';
+import OnboardingController from '../../components/Home/OnboardingController';
 import PostCard from '../../components/Home/PostCard';
 import PostModal from '../../components/Home/PostModal';
 import { useAuth } from '../../hooks/useAuth';
@@ -336,6 +337,7 @@ export default function HomeMobile() {
       </IonInfiniteScroll>
 
       <Toast />
+      <OnboardingController />
     </MobilePage>
   );
 }

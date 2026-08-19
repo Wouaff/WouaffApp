@@ -213,6 +213,13 @@ export const communities = {
 };
 
 /* ── Contacts ── */
+export interface ContactMatch {
+  uid: string;
+  pseudo: string;
+  avatar: string | null;
+  wouaffId: string | null;
+}
+
 export const contacts = {
   list: () => request<Record<string, UserProfile>>('GET', '/contacts'),
   add: (wouaffId: string) =>
@@ -227,6 +234,45 @@ export const contacts = {
     }>('GET', '/contacts/pending'),
   accept: (uid: string) => request<{ success: boolean }>('PUT', `/contacts/${uid}/accept`),
   reject: (uid: string) => request<{ success: boolean }>('DELETE', `/contacts/${uid}/reject`),
+  syncStatus: () => request<{ completed: boolean; phone: string | null }>('GET', '/contacts/sync-status'),
+  sync: (phone: string | undefined, contactsList: string[]) =>
+    request<{ matches: ContactMatch[]; missing: string[]; phone: string | null }>('POST', '/contacts/sync', {
+      phone,
+      contacts: contactsList,
+    }),
+};
+
+/* ── Onboarding (compte neuf : suivre des comptes + communautés) ── */
+export interface OnboardingUser {
+  uid: string;
+  pseudo: string;
+  avatar: string | null;
+  bio: string | null;
+  wouaffId: string | null;
+  isStaff: boolean;
+}
+
+export interface OnboardingCommunity {
+  id: string;
+  name: string;
+  displayName: string | null;
+  avatar: string | null;
+  category: string;
+  memberCount: number;
+}
+
+export const onboarding = {
+  status: () => request<{ completed: boolean; required: boolean }>('GET', '/onboarding/status'),
+  suggestions: () =>
+    request<{ users: OnboardingUser[]; communities: OnboardingCommunity[]; minimum: number }>(
+      'GET',
+      '/onboarding/suggestions',
+    ),
+  complete: (followUids: string[], communityNames: string[]) =>
+    request<{ success: boolean; followed: number; subscribed: number }>('POST', '/onboarding/complete', {
+      followUids,
+      communityNames,
+    }),
 };
 
 /* ── Stories ── */
