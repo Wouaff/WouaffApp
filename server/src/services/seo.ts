@@ -98,6 +98,7 @@ export async function buildSeo(pathname: string, fullUrl: string): Promise<SeoDa
 export function seoMetaTags(seo: SeoData): string {
   const image = seo.image || `${SITE_URL}/assets/logo/logo.png`;
   return `
+    <title>${esc(seo.title)}</title>
     <meta name="title" content="${esc(seo.title)}" />
     <meta name="description" content="${esc(seo.description)}" />
     <meta property="og:type" content="${esc(seo.type)}" />

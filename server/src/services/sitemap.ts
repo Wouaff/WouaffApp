@@ -10,10 +10,7 @@ interface UrlEntry {
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const POSTS_LIMIT = 40000;
-const COMMUNITY_POSTS_LIMIT = 4000;
 const PROFILES_LIMIT = 5000;
-const COMMUNITIES_LIMIT = 500;
-const HASHTAGS_LIMIT = 500;
 
 let cache: { xml: string; expiresAt: number } | null = null;
 
@@ -54,29 +51,13 @@ async function loadEntries(): Promise<UrlEntry[]> {
     { loc: `${SITE_URL}/download`, changefreq: 'monthly', priority: '0.5' },
   ];
 
-  const [posts, communityPosts, profiles, communities, hashtags] = await Promise.all([
+  const [posts, profiles] = await Promise.all([
     query<Array<{ id: string; createdAt: number }>>('SELECT id, createdAt FROM posts ORDER BY createdAt DESC LIMIT ?', [
       POSTS_LIMIT,
     ]),
-    query<Array<{ id: string; name: string; createdAt: number }>>(
-      `SELECT cp.id, c.name, cp.createdAt
-       FROM community_posts cp
-       JOIN communities c ON c.id = cp.communityId
-       WHERE cp.deletedAt IS NULL AND c.isPrivate = 0
-       ORDER BY cp.createdAt DESC
-       LIMIT ?`,
-      [COMMUNITY_POSTS_LIMIT],
-    ),
     query<Array<{ wouaffId: string }>>(
       'SELECT wouaffId FROM users WHERE wouaffId IS NOT NULL AND wouaffId != "" ORDER BY createdAt DESC LIMIT ?',
       [PROFILES_LIMIT],
-    ),
-    query<Array<{ name: string }>>('SELECT name FROM communities WHERE isPrivate = 0 ORDER BY createdAt DESC LIMIT ?', [
-      COMMUNITIES_LIMIT,
-    ]),
-    query<Array<{ tag: string }>>(
-      'SELECT tag FROM hashtag_occurrences GROUP BY tag HAVING COUNT(*) >= 2 ORDER BY MAX(createdAt) DESC LIMIT ?',
-      [HASHTAGS_LIMIT],
     ),
   ]);
 
@@ -89,15 +70,6 @@ async function loadEntries(): Promise<UrlEntry[]> {
     });
   }
 
-  for (const cp of communityPosts) {
-    entries.push({
-      loc: `${SITE_URL}/c/${encodeURIComponent(cp.name)}/p/${encodeURIComponent(cp.id)}`,
-      lastmod: isoDate(cp.createdAt),
-      changefreq: 'weekly',
-      priority: '0.8',
-    });
-  }
-
   for (const profile of profiles) {
     const handle = (profile.wouaffId || '').replace(/^@/, '');
     if (!handle) continue;
@@ -105,22 +77,6 @@ async function loadEntries(): Promise<UrlEntry[]> {
       loc: `${SITE_URL}/@${encodeURIComponent(handle)}`,
       changefreq: 'weekly',
       priority: '0.6',
-    });
-  }
-
-  for (const community of communities) {
-    entries.push({
-      loc: `${SITE_URL}/c/${encodeURIComponent(community.name)}`,
-      changefreq: 'weekly',
-      priority: '0.7',
-    });
-  }
-
-  for (const hashtag of hashtags) {
-    entries.push({
-      loc: `${SITE_URL}/hashtag/${encodeURIComponent(hashtag.tag)}`,
-      changefreq: 'weekly',
-      priority: '0.5',
     });
   }
 

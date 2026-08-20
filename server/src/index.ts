@@ -44,7 +44,7 @@ import { archiveOldCalls, initColdStorage, isColdStorageEnabled } from './servic
 import { startQueueWorker } from './services/queue.js';
 import { registerQueueHandlers, setQueueIo } from './services/queueHandlers.js';
 import { cleanExpiredEphemeralMessages, getMaintenanceMode } from './services/rtdb.js';
-import { buildSeo, defaultSeo, seoMetaTags } from './services/seo.js';
+import { buildSeo, defaultSeo, SITE_URL, seoMetaTags } from './services/seo.js';
 import { buildSitemap, robotsTxt } from './services/sitemap.js';
 import { setupSocket } from './socket/index.js';
 
@@ -171,13 +171,38 @@ function getIndexHtml(): string {
   return indexHtmlCache;
 }
 
+/* Pages qui ne doivent pas être indexées (routes protégées / auth) */
+const NOINDEX_PATHS = [
+  /^\/auth/,
+  /^\/forgot-password/,
+  /^\/reset-password/,
+  /^\/verify-email/,
+  /^\/notifications/,
+  /^\/messages/,
+  /^\/hashtag\//,
+  /^\/settings/,
+  /^\/feed/,
+  /^\/communities/,
+  /^\/discover/,
+  /^\/c\//,
+  /^\/search/,
+  /^\/admin/,
+];
+
 app.get('*', async (req, res) => {
   try {
-    const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-    const seo = await buildSeo(req.path, fullUrl).catch(() => defaultSeo(fullUrl));
+    const pathname = req.path;
+    const canonicalUrl = `${SITE_URL}${pathname}`;
+    const seo = await buildSeo(pathname, canonicalUrl).catch(() => defaultSeo(canonicalUrl));
     let html = getIndexHtml();
     if (html.includes('<!--seo-meta-->')) {
       html = html.replace('<!--seo-meta-->', seoMetaTags(seo));
+    }
+    if (NOINDEX_PATHS.some((re) => re.test(pathname))) {
+      html = html.replace(
+        '<meta name="robots" content="index, follow" />',
+        '<meta name="robots" content="noindex, nofollow" />',
+      );
     }
     res.set('Cache-Control', 'no-cache');
     res.type('html');
