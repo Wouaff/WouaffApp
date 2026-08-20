@@ -1,9 +1,12 @@
 import { ArrowBigDown, ArrowBigUp, Link2, MessageCircle, Pin, Shield, Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
 import { communities as communitiesAPI } from '../../services/api';
-import type { CommunityComment, CommunityPost, CommunityRole } from '../../types';
+import type { CommunityComment, CommunityPost, CommunityRole, MentionUser } from '../../types';
+import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
 import { showToast } from '../Common/Toast';
+import MentionSuggestions from './MentionSuggestions';
 import PostText from './PostText';
 
 function formatTime(ts: number): string {
@@ -41,7 +44,22 @@ export default function CommunityPostModal({
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const commentInputRef = useRef<HTMLInputElement>(null);
   const isMod = myRole === 'admin' || myRole === 'moderator';
+
+  const applyMention = useCallback((mentionUser: MentionUser, token: MentionToken) => {
+    setText((prev) => replaceMentionAt(prev, token, `${mentionUser.handle} `));
+    requestAnimationFrame(() => {
+      const el = commentInputRef.current;
+      if (el) {
+        el.focus();
+        const pos = token.start + mentionUser.handle.length + 1;
+        el.setSelectionRange(pos, pos);
+      }
+    });
+  }, []);
+
+  const mention = useMentionAutocomplete(applyMention);
 
   const loadComments = useCallback(() => {
     setLoading(true);
@@ -72,6 +90,7 @@ export default function CommunityPostModal({
       const comment = await communitiesAPI.addComment(post.communityName, post.id, value);
       setComments((prev) => [...prev, comment]);
       setText('');
+      mention.reset();
     } catch (err) {
       showToast((err as Error).message || "Erreur lors de l'envoi", 'error');
     } finally {
@@ -296,18 +315,33 @@ export default function CommunityPostModal({
         </div>
 
         <div className="flex items-center gap-2 px-4 py-3 border-t border-[var(--border)] flex-shrink-0">
-          <input
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submitComment();
-            }}
-            placeholder="Répondre..."
-            maxLength={2000}
-            aria-label="Répondre au post"
-            className="flex-1 bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
-          />
+          <div className="relative flex-1 min-w-0">
+            <input
+              ref={commentInputRef}
+              type="text"
+              value={text}
+              onChange={(e) => {
+                const value = e.target.value;
+                setText(value);
+                mention.handleChange(value, e.target.selectionStart ?? value.length);
+              }}
+              onKeyDown={(e) => {
+                if (mention.handleKeyDown(e)) return;
+                if (e.key === 'Enter') submitComment();
+              }}
+              placeholder="Répondre..."
+              maxLength={2000}
+              aria-label="Répondre au post"
+              className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
+            />
+            <MentionSuggestions
+              open={mention.open}
+              query={mention.query}
+              results={mention.results}
+              activeIndex={mention.activeIndex}
+              onSelect={mention.selectActive}
+            />
+          </div>
           <button
             type="button"
             onClick={submitComment}

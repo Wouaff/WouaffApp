@@ -16,16 +16,15 @@ export function getMentionAt(text: string, caret: number): MentionToken | null {
   let i = caret - 1;
   if (i >= text.length) i = text.length - 1;
   if (i < 0) return null;
-  if (text[i] !== '@') return null;
-  const start = i;
-  let j = start + 1;
-  let end = j;
-  while (j < text.length && isWordChar(text[j])) {
-    end = j + 1;
-    j += 1;
-  }
-  if (start > 0 && isWordChar(text[start - 1])) return null;
-  return { start, end, query: text.slice(start, end).slice(1).toLowerCase() };
+  const ch = text[i];
+  if (ch !== '@' && !isWordChar(ch)) return null;
+  let start = i;
+  while (start >= 0 && text[start] !== '@' && isWordChar(text[start])) start -= 1;
+  if (start < 0 || text[start] !== '@') return null;
+  if (start > 0 && !/\s/.test(text[start - 1])) return null;
+  let end = start + 1;
+  while (end < text.length && isWordChar(text[end])) end += 1;
+  return { start, end, query: text.slice(start + 1, end).toLowerCase() };
 }
 
 export function replaceMentionAt(text: string, token: MentionToken, replacement: string): string {
