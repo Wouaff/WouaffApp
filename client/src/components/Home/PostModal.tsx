@@ -1,6 +1,7 @@
 import { IonModal } from '@ionic/react';
 import { Flag, Heart, MessageCircle, Repeat2, Reply, Share2, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useBadges } from '../../hooks/useBadges';
 import { useCap } from '../../hooks/useCap';
@@ -232,6 +233,14 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
       backdropDismiss
       onDidDismiss={onClose}
       className={isMobile ? 'post-modal-mobile' : 'post-modal-desktop'}
+      style={
+        isMobile
+          ? undefined
+          : ({
+              '--width': 'min(640px, 100vw)',
+              '--height': 'min(82vh, 760px)',
+            } as CSSProperties)
+      }
     >
       <div className="flex flex-col w-full h-full overflow-hidden bg-[var(--bg-card)]">
         <div className="flex items-center gap-4 px-4 h-14 border-b border-[var(--border)] flex-shrink-0">
