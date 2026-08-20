@@ -2573,8 +2573,15 @@ body {
 
 /* ── MEDIA MESSAGE RENDERING ── */
 .msg-image {
-  display: flex;
+  display: block;
   margin-top: 4px;
+  max-width: 100%;
+  max-height: min(340px, 40vh);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  cursor: zoom-in;
 }
 .msg-file {
   display: flex;

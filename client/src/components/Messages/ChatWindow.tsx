@@ -40,6 +40,35 @@ function readAsDataUrl(file: File): Promise<string> {
   });
 }
 
+async function resizeImage(file: File): Promise<string> {
+  const dataUrl = await readAsDataUrl(file);
+  try {
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('image invalide'));
+      img.src = dataUrl;
+    });
+    const MAX_DIM = 1600;
+    let { width, height } = img;
+    const scale = Math.min(MAX_DIM / width, MAX_DIM / height);
+    if (scale < 1) {
+      width = Math.max(1, Math.round(width * scale));
+      height = Math.max(1, Math.round(height * scale));
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0, width, height);
+    const isPng = file.type === 'image/png';
+    return canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', isPng ? undefined : 0.85);
+  } catch {
+    return dataUrl;
+  }
+}
+
 export const ChatWindow = memo(function ChatWindow({
   conv,
   meUid,
@@ -131,7 +160,7 @@ export const ChatWindow = memo(function ChatWindow({
   const pickImage = async (file: File | undefined) => {
     if (!file) return;
     try {
-      const data = await readAsDataUrl(file);
+      const data = await resizeImage(file);
       setImageData(data);
     } catch {
       /* fichier illisible */
