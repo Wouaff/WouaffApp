@@ -260,6 +260,8 @@ export const ChatWindow = memo(function ChatWindow({
                     isMine={mine}
                     showSender={showSender}
                     senderName={showSender ? senderLabel(msg.from) : undefined}
+                    convId={conv.id}
+                    isGroup={conv.type === 'group'}
                   />
                   {avatarEl}
                 </div>
@@ -269,6 +271,8 @@ export const ChatWindow = memo(function ChatWindow({
                   isMine={mine}
                   showSender={showSender}
                   senderName={showSender ? senderLabel(msg.from) : undefined}
+                  convId={conv.id}
+                  isGroup={conv.type === 'group'}
                 />
               )}
             </div>

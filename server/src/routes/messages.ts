@@ -4,7 +4,9 @@ import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
 import {
   chatId,
+  getGroupMessageBlob,
   getGroupMessages,
+  getMessageBlob,
   getMessages,
   markMessagesAsSeen,
   pushGroupMessage,
@@ -15,6 +17,11 @@ import {
   updateMessage,
 } from '../services/rtdb.js';
 import type { AuthRequest, MessageData } from '../types/index.js';
+
+const MSG_COLS =
+  'msgKey, fromUid, text, type, time, seen, encrypted, ct, iv, fileName, duration, pendingFrom, senderName, replyTo, messageTheme, forwardedFrom, ephemeralDuration, pinned, reactions, id';
+const MSG_GROUP_COLS =
+  'msgKey, fromUid, text, type, time, deleted, edited, encrypted, ct, iv, fileName, duration, senderName, replyTo, messageTheme, forwardedFrom, seenBy, ephemeralDuration, pinned, id';
 
 const router: Router = Router();
 router.use(verifyToken);
@@ -306,7 +313,7 @@ router.get('/:uid/pinned', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
   const rows = await query<Array<MessageData & { msgKey: string }>>(
-    'SELECT * FROM messages WHERE convId=? AND pinned=1 ORDER BY time DESC LIMIT 5',
+    `SELECT ${MSG_COLS} FROM messages WHERE convId=? AND pinned=1 ORDER BY time DESC LIMIT 5`,
     [cid],
   );
   const result: Record<string, MessageData> = {};
@@ -326,7 +333,7 @@ router.get('/:uid/pinned', async (req: Request, res: Response) => {
 router.get('/group/:gid/pinned', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
   const rows = await query<Array<MessageData & { msgKey: string }>>(
-    'SELECT * FROM group_messages WHERE gid=? AND pinned=1 ORDER BY time DESC LIMIT 5',
+    `SELECT ${MSG_GROUP_COLS} FROM group_messages WHERE gid=? AND pinned=1 ORDER BY time DESC LIMIT 5`,
     [req.params.gid],
   );
   const result: Record<string, MessageData> = {};
@@ -363,6 +370,29 @@ router.post('/group/:gid/:msgKey/pin', async (req: Request, res: Response) => {
       isGroup: true,
     });
   res.json({ success: true });
+});
+
+/* GET /messages/:uid/:msgKey/blob — données blob d'un message DM */
+router.get('/:uid/:msgKey/blob', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const cid = chatId(authReq.uid!, req.params.uid);
+  const blob = await getMessageBlob(cid, req.params.msgKey);
+  if (!blob) {
+    res.status(404).json({ error: 'Message introuvable' });
+    return;
+  }
+  res.json(blob);
+});
+
+/* GET /messages/group/:gid/:msgKey/blob — données blob d'un message groupe */
+router.get('/group/:gid/:msgKey/blob', async (req: Request, res: Response) => {
+  if (!(await requireGroupMember(req, res))) return;
+  const blob = await getGroupMessageBlob(req.params.gid, req.params.msgKey);
+  if (!blob) {
+    res.status(404).json({ error: 'Message introuvable' });
+    return;
+  }
+  res.json(blob);
 });
 
 /* POST /messages/:uid/:msgKey/reaction — toggle réaction DM */

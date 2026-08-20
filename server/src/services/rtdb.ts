@@ -3,6 +3,11 @@ import type { MessageData } from '../types/index.js';
 
 /* ── Helpers ── */
 
+const MSG_COLS =
+  'msgKey, fromUid, text, type, time, seen, encrypted, ct, iv, fileName, duration, pendingFrom, senderName, replyTo, messageTheme, forwardedFrom, ephemeralDuration, pinned, reactions, id';
+const MSG_GROUP_COLS =
+  'msgKey, fromUid, text, type, time, deleted, edited, encrypted, ct, iv, fileName, duration, senderName, replyTo, messageTheme, forwardedFrom, seenBy, ephemeralDuration, pinned, id';
+
 export function chatId(uid1: string, uid2: string): string {
   return [uid1, uid2].sort().join('_');
 }
@@ -248,8 +253,8 @@ export async function getMessages(
   const take = limit + 1;
   const rows = await query<Array<MessageData & { msgKey: string }>>(
     before
-      ? 'SELECT * FROM messages WHERE convId = ? AND time < ? ORDER BY time DESC LIMIT ?'
-      : 'SELECT * FROM messages WHERE convId = ? ORDER BY time DESC LIMIT ?',
+      ? `SELECT ${MSG_COLS} FROM messages WHERE convId = ? AND time < ? ORDER BY time DESC LIMIT ?`
+      : `SELECT ${MSG_COLS} FROM messages WHERE convId = ? ORDER BY time DESC LIMIT ?`,
     before ? [convId, before, take] : [convId, take],
   );
   const hasMore = rows.length > limit;
@@ -266,6 +271,17 @@ export async function getMessages(
     } as unknown as MessageData;
   }
   return { messages: result, hasMore };
+}
+
+export async function getMessageBlob(
+  convId: string,
+  msgKey: string,
+): Promise<{ imageData?: string; fileData?: string; fileName?: string; audioData?: string; contactData?: string } | null> {
+  const row = await getOne<{ imageData?: string; fileData?: string; fileName?: string; audioData?: string; contactData?: string }>(
+    'SELECT imageData, fileData, fileName, audioData, contactData FROM messages WHERE convId=? AND msgKey=?',
+    [convId, msgKey],
+  );
+  return row || null;
 }
 
 export async function pushMessage(convId: string, msg: MessageData): Promise<string> {
@@ -352,8 +368,8 @@ export async function getGroupMessages(
   const take = limit + 1;
   const rows = await query<Array<MessageData & { msgKey: string }>>(
     before
-      ? 'SELECT * FROM group_messages WHERE gid = ? AND time < ? ORDER BY time DESC LIMIT ?'
-      : 'SELECT * FROM group_messages WHERE gid = ? ORDER BY time DESC LIMIT ?',
+      ? `SELECT ${MSG_GROUP_COLS} FROM group_messages WHERE gid = ? AND time < ? ORDER BY time DESC LIMIT ?`
+      : `SELECT ${MSG_GROUP_COLS} FROM group_messages WHERE gid = ? ORDER BY time DESC LIMIT ?`,
     before ? [gid, before, take] : [gid, take],
   );
   const hasMore = rows.length > limit;
@@ -374,6 +390,17 @@ export async function getGroupMessages(
     result[key] = msg;
   }
   return { messages: result, hasMore };
+}
+
+export async function getGroupMessageBlob(
+  gid: string,
+  msgKey: string,
+): Promise<{ imageData?: string; fileData?: string; fileName?: string; audioData?: string } | null> {
+  const row = await getOne<{ imageData?: string; fileData?: string; fileName?: string; audioData?: string }>(
+    'SELECT imageData, fileData, fileName, audioData FROM group_messages WHERE gid=? AND msgKey=?',
+    [gid, msgKey],
+  );
+  return row || null;
 }
 
 export async function pushGroupMessage(gid: string, msg: MessageData): Promise<string> {
@@ -444,7 +471,7 @@ export async function updateGroupMessage(gid: string, msgKey: string, updates: P
 
 export async function searchMessages(convId: string, searchQuery: string): Promise<Record<string, MessageData>> {
   const rows = await query<Array<MessageData & { msgKey: string }>>(
-    'SELECT * FROM messages WHERE convId = ? AND text LIKE ? AND (deleted IS NULL OR deleted = 0) ORDER BY time DESC LIMIT 20',
+    `SELECT ${MSG_COLS} FROM messages WHERE convId = ? AND text LIKE ? AND (deleted IS NULL OR deleted = 0) ORDER BY time DESC LIMIT 20`,
     [convId, `%${searchQuery}%`],
   );
   const result: Record<string, MessageData> = {};
@@ -462,7 +489,7 @@ export async function searchMessages(convId: string, searchQuery: string): Promi
 
 export async function searchGroupMessages(gid: string, searchQuery: string): Promise<Record<string, MessageData>> {
   const rows = await query<Array<MessageData & { msgKey: string }>>(
-    'SELECT * FROM group_messages WHERE gid = ? AND text LIKE ? AND (deleted IS NULL OR deleted = 0) ORDER BY time DESC LIMIT 20',
+    `SELECT ${MSG_GROUP_COLS} FROM group_messages WHERE gid = ? AND text LIKE ? AND (deleted IS NULL OR deleted = 0) ORDER BY time DESC LIMIT 20`,
     [gid, `%${searchQuery}%`],
   );
   const result: Record<string, MessageData> = {};
@@ -834,7 +861,7 @@ export async function getAllWouaffIds(): Promise<Record<string, string>> {
 
 export async function getPendingMessagesForUser(uid: string): Promise<Record<string, unknown>> {
   const rows = await query<Array<Record<string, unknown>>>(
-    'SELECT * FROM messages WHERE pendingFrom=? OR (convId LIKE ? AND fromUid!=?)',
+    `SELECT ${MSG_COLS} FROM messages WHERE pendingFrom=? OR (convId LIKE ? AND fromUid!=?)`,
     [uid, `%${uid}%`, uid],
   );
   const result: Record<string, unknown> = {};

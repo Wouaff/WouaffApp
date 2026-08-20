@@ -88,6 +88,16 @@ export const messages = {
     request<{ success: boolean }>('POST', `/messages/group/${gid}/${msgKey}/pin`, { pinned }),
   getPinned: (uid: string) => request<Record<string, unknown>>('GET', `/messages/${uid}/pinned`),
   getPinnedGroup: (gid: string) => request<Record<string, unknown>>('GET', `/messages/group/${gid}/pinned`),
+  blob: (uid: string, msgKey: string) =>
+    request<{ imageData?: string; fileData?: string; fileName?: string; audioData?: string; contactData?: string }>(
+      'GET',
+      `/messages/${uid}/${msgKey}/blob`,
+    ),
+  blobGroup: (gid: string, msgKey: string) =>
+    request<{ imageData?: string; fileData?: string; fileName?: string; audioData?: string }>(
+      'GET',
+      `/messages/group/${gid}/${msgKey}/blob`,
+    ),
 };
 
 /* ── Profiles ── */

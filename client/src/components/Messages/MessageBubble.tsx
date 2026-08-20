@@ -1,5 +1,6 @@
 import { Download, File, Phone, X } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
+import { messages as messagesApi } from '../../services/api';
 import type { MessageData } from '../../types';
 import { downloadFile, formatTime, groupReactions, renderLinkifiedText } from '../../utils/chatHelpers';
 import VoiceMessage from '../Common/VoiceMessage';
@@ -9,24 +10,65 @@ interface MessageBubbleProps {
   isMine: boolean;
   showSender?: boolean;
   senderName?: string;
+  convId?: string;
+  isGroup?: boolean;
 }
 
-export const MessageBubble = memo(function MessageBubble({ msg, isMine, showSender, senderName }: MessageBubbleProps) {
+function needsBlob(msg: MessageData): boolean {
+  return !!(msg.type === 'image' || msg.type === 'file' || msg.type === 'audio' || msg.type === 'contact');
+}
+
+export const MessageBubble = memo(function MessageBubble({
+  msg,
+  isMine,
+  showSender,
+  senderName,
+  convId,
+  isGroup,
+}: MessageBubbleProps) {
   const reactions = msg.reactions ? groupReactions(msg.reactions) : {};
   const [viewer, setViewer] = useState(false);
+  const [blob, setBlob] = useState<{
+    imageData?: string;
+    fileData?: string;
+    fileName?: string;
+    audioData?: string;
+    contact?: Record<string, string>;
+  } | null>(null);
 
   useEffect(() => {
-    if (!viewer) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setViewer(false);
+    if (!needsBlob(msg) || blob) return;
+    if (!convId) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = isGroup
+          ? await messagesApi.blobGroup(convId, msg.msgKey as string)
+          : await messagesApi.blob(convId, msg.msgKey as string);
+        if (cancelled) return;
+        const d = data as { imageData?: string; fileData?: string; fileName?: string; audioData?: string; contactData?: string };
+        setBlob({
+          imageData: d.imageData || undefined,
+          fileData: d.fileData || undefined,
+          fileName: d.fileName || undefined,
+          audioData: d.audioData || undefined,
+          contact: d.contactData ? JSON.parse(d.contactData) : undefined,
+        });
+      } catch {
+        /* blob indisponible */
+      }
     };
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', onKey);
+    void load();
     return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('keydown', onKey);
+      cancelled = true;
     };
-  }, [viewer]);
+  }, [msg, convId, isGroup, blob]);
+
+  const imageData = msg.imageData || blob?.imageData;
+  const audioData = msg.audioData || blob?.audioData;
+  const fileData = msg.fileData || blob?.fileData;
+  const fileName = msg.fileName || blob?.fileName;
+  const contact = msg.contact || blob?.contact;
 
   return (
     <>
@@ -40,9 +82,9 @@ export const MessageBubble = memo(function MessageBubble({ msg, isMine, showSend
           </div>
         )}
 
-        {msg.imageData && (
+        {imageData && (
           <img
-            src={msg.imageData}
+            src={imageData}
             alt=""
             className="msg-image"
             style={{
@@ -64,35 +106,35 @@ export const MessageBubble = memo(function MessageBubble({ msg, isMine, showSend
           />
         )}
 
-        {msg.audioData && (
+        {audioData && (
           <div className="msg-voice">
-            <VoiceMessage audioData={msg.audioData} duration={msg.duration} />
+            <VoiceMessage audioData={audioData} duration={msg.duration} />
           </div>
         )}
 
-        {msg.fileData && (
+        {fileData && (
           <div className="msg-file">
             <a
-              href={msg.fileData}
+              href={fileData}
               className="file-link"
               onClick={(e) => {
                 e.preventDefault();
-                downloadFile(msg);
+                downloadFile({ ...msg, fileData, fileName });
               }}
             >
               <File size={18} />
-              <span className="file-name">{msg.fileName || 'Fichier'}</span>
+              <span className="file-name">{fileName || 'Fichier'}</span>
               <Download size={15} />
             </a>
           </div>
         )}
 
-        {msg.contact && (
+        {contact && (
           <div className="msg-contact">
             <Phone size={15} />
             <div className="contact-details">
-              <span className="contact-name">{msg.contact.name || 'Contact'}</span>
-              {msg.contact.phone && <span className="contact-tel">{msg.contact.phone}</span>}
+              <span className="contact-name">{contact.name || 'Contact'}</span>
+              {contact.phone && <span className="contact-tel">{contact.phone}</span>}
             </div>
           </div>
         )}
@@ -120,7 +162,7 @@ export const MessageBubble = memo(function MessageBubble({ msg, isMine, showSend
         </div>
       </div>
 
-      {viewer && (
+      {viewer && imageData && (
         <div
           className="fixed inset-0 z-[9999] bg-black/85 flex items-center justify-center p-4 cursor-zoom-out"
           onClick={() => setViewer(false)}
@@ -129,7 +171,7 @@ export const MessageBubble = memo(function MessageBubble({ msg, isMine, showSend
           aria-label="Image en plein écran"
         >
           <img
-            src={msg.imageData}
+            src={imageData}
             alt=""
             className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -151,10 +193,10 @@ export const MessageBubble = memo(function MessageBubble({ msg, isMine, showSend
 export function messagePreview(msg: MessageData | null): string {
   if (!msg) return '';
   if (msg.deleted) return 'Message supprimé';
-  if (msg.imageData) return '📷 Photo';
-  if (msg.audioData) return '🎵 Message vocal';
-  if (msg.fileData) return `📎 ${msg.fileName || 'Fichier'}`;
-  if (msg.contact) return `📇 ${msg.contact.name || 'Contact'}`;
+  if (msg.type === 'image') return '📷 Photo';
+  if (msg.type === 'audio') return '🎵 Message vocal';
+  if (msg.type === 'file') return `📎 ${msg.fileName || 'Fichier'}`;
+  if (msg.type === 'contact') return `📇 Contact`;
   if (msg.text) return msg.text.replace(/\n/g, ' ');
   return '';
 }
