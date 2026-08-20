@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-const TOKEN_RE = /((?<=^|\s)@[a-z0-9_]{1,50}|#[\p{L}\p{N}_]+|https?:\/\/[^\s<]+[^\s<.,;:!?)\]}>'"])/gu;
+const TOKEN_RE = /((?<=^|\s)@[a-z0-9_]{1,50}|#[\p{L}\p{N}_]+|https?:\/\/[^\s<]+[^\s<.,;:!?)\]}>'"])/giu;
 
 interface PostTextProps {
   text: string;
@@ -44,7 +44,7 @@ export default function PostText({ text }: PostTextProps) {
             </Link>
           );
         }
-        if (part.length > 1 && part.startsWith('@')) {
+        if (part.length > 1 && /^@[a-z0-9_]{1,50}$/i.test(part)) {
           mentionCount += 1;
           const handle = part.slice(1);
           return (

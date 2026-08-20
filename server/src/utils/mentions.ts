@@ -1,6 +1,6 @@
 import { getOne, query } from '../config/database.js';
 
-const MENTION_RE = /(^|\s)@([a-z0-9_]{1,50})/g;
+const MENTION_RE = /(^|\s)@([a-z0-9_]{1,50})/gi;
 const MAX_MENTIONS = 20;
 
 export function extractMentionHandles(text: string): string[] {
@@ -16,7 +16,7 @@ export function extractMentionHandles(text: string): string[] {
 }
 
 async function resolveUid(handle: string): Promise<string | null> {
-  const wouaffId = handle.startsWith('@') ? handle : `@${handle}`;
+  const wouaffId = handle.startsWith('@') ? `@${handle.slice(1).toLowerCase()}` : `@${handle.toLowerCase()}`;
   const row = await getOne<{ uid: string }>('SELECT uid FROM wouaff_id_index WHERE wouaffId = ?', [wouaffId]);
   return row?.uid || null;
 }
