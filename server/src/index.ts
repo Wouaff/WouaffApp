@@ -40,7 +40,6 @@ import statusRouter from './routes/status.js';
 import storiesRouter from './routes/stories.js';
 import trendsRouter from './routes/trends.js';
 import videosRouter from './routes/videos.js';
-import { archiveOldCalls, initColdStorage, isColdStorageEnabled } from './services/coldStorage.js';
 import { startQueueWorker } from './services/queue.js';
 import { registerQueueHandlers, setQueueIo } from './services/queueHandlers.js';
 import { cleanExpiredEphemeralMessages, getMaintenanceMode } from './services/rtdb.js';
@@ -233,14 +232,6 @@ runMigrations()
     registerQueueHandlers();
     startQueueWorker();
 
-    /* Init cold storage (GCS) */
-    await initColdStorage();
-    if (isColdStorageEnabled()) {
-      await archiveOldCalls();
-      setInterval(() => {
-        archiveOldCalls().catch(() => {});
-      }, 21600000); /* every 6h */
-    }
     /* Start ephemeral messages cleanup every 30 seconds */
     setInterval(async () => {
       try {

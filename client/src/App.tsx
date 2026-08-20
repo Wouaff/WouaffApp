@@ -1,4 +1,3 @@
-import { IonApp } from '@ionic/react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import BannedScreen from './components/Common/BannedScreen';
@@ -10,7 +9,9 @@ import MobileLayout from './components/Layout/MobileLayout';
 import { useAuth } from './hooks/useAuth';
 import { useIsMobile } from './hooks/useIsMobile';
 import { ThemeProvider } from './hooks/useTheme';
-import MobileShell from './mobile/MobileShell';
+
+const IonicApp = lazy(() => import('./mobile/IonicApp'));
+const MobileShell = lazy(() => import('./mobile/MobileShell'));
 
 const LoginPage = lazy(() => import('./components/Auth/LoginPage'));
 const MobileLoginPage = lazy(() => import('./components/Auth/MobileLoginPage'));
@@ -169,6 +170,32 @@ function SeoTitle() {
 
 function AppRoutes() {
   const isMobile = useIsMobile();
+  const [ionicReady, setIonicReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!isMobile) {
+      setIonicReady(true);
+      return;
+    }
+    import('./mobile/ionic')
+      .catch(() => {})
+      .then(() => {
+        if (active) setIonicReady(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isMobile]);
+
+  if (isMobile && !ionicReady) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="spinner" />
+      </div>
+    );
+  }
+  const mobile = isMobile;
   return (
     <>
       <SeoTitle />
@@ -176,10 +203,10 @@ function AppRoutes() {
         <Route
           path="/auth"
           element={
-            isMobile ? (
-              <IonApp className="mobile-shell mobile-login">
+            mobile ? (
+              <IonicApp className="mobile-shell mobile-login">
                 <MobileLoginPage />
-              </IonApp>
+              </IonicApp>
             ) : (
               <LoginPage />
             )
@@ -188,11 +215,11 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route path="/" element={<HomeRoot isMobile={isMobile} />} />
+        <Route path="/" element={<HomeRoot isMobile={mobile} />} />
         <Route
           path="/notifications"
           element={
-            isMobile ? (
+            mobile ? (
               <MobileAppShell>
                 <NotificationsMobile />
               </MobileAppShell>
@@ -206,7 +233,7 @@ function AppRoutes() {
         <Route
           path="/messages"
           element={
-            isMobile ? (
+            mobile ? (
               <MobileAppShell>
                 <MessagesPage />
               </MobileAppShell>
@@ -220,7 +247,7 @@ function AppRoutes() {
         <Route
           path="/hashtag/:tag"
           element={
-            isMobile ? (
+            mobile ? (
               <MobileAppShell>
                 <TagPage />
               </MobileAppShell>
@@ -234,7 +261,7 @@ function AppRoutes() {
         <Route
           path="/settings"
           element={
-            isMobile ? (
+            mobile ? (
               <MobileProtected>
                 <SettingsPage />
               </MobileProtected>
@@ -252,7 +279,7 @@ function AppRoutes() {
         <Route
           path="/communities"
           element={
-            isMobile ? (
+            mobile ? (
               <MobileProtected>
                 <CommunitiesPage />
               </MobileProtected>
@@ -270,7 +297,7 @@ function AppRoutes() {
         <Route
           path="/discover"
           element={
-            isMobile ? (
+            mobile ? (
               <MobileProtected>
                 <DiscoverCommunitiesPage />
               </MobileProtected>
@@ -288,7 +315,7 @@ function AppRoutes() {
         <Route
           path="/c/:name"
           element={
-            isMobile ? (
+            mobile ? (
               <MobileProtected>
                 <CommunityPage />
               </MobileProtected>
@@ -306,7 +333,7 @@ function AppRoutes() {
         <Route
           path="/c/:name/p/:postId"
           element={
-            isMobile ? (
+            mobile ? (
               <MobileProtected>
                 <CommunityPage />
               </MobileProtected>
@@ -325,7 +352,7 @@ function AppRoutes() {
         <Route
           path="/search"
           element={
-            isMobile ? (
+            mobile ? (
               <MobileAppShell>
                 <SearchPage />
               </MobileAppShell>
@@ -346,7 +373,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        <Route path="/*" element={<CatchAll isMobile={isMobile} />} />
+        <Route path="/*" element={<CatchAll isMobile={mobile} />} />
       </Routes>
     </>
   );

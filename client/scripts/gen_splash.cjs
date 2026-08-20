@@ -1,6 +1,6 @@
 /* Génère dist/splash.html — écran de démarrage affiché par electron/main.cjs. */
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const distDir = path.join(__dirname, '..', 'dist');
 const html = `<!doctype html>

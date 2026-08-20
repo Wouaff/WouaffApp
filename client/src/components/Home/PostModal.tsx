@@ -1,7 +1,5 @@
-import { IonModal } from '@ionic/react';
 import { Flag, Heart, MessageCircle, Repeat2, Reply, Share2, Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useBadges } from '../../hooks/useBadges';
 import { useCap } from '../../hooks/useCap';
@@ -28,6 +26,8 @@ import PostText from './PostText';
 import ReactionPicker, { topReactions } from './Reactions';
 import ReportPostModal from './ReportPostModal';
 import SharePostModal from './SharePostModal';
+
+const IonicModal = lazy(() => import('@ionic/react').then((m) => ({ default: m.IonModal })));
 
 interface PostModalProps {
   post: SocialPost;
@@ -227,310 +227,316 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
     post.reposted ? 'text-online' : 'text-[var(--text-muted)] hover:text-online hover:bg-online/10'
   }`;
 
-  return (
-    <IonModal
-      isOpen
-      backdropDismiss
-      onDidDismiss={onClose}
-      className={isMobile ? 'post-modal-mobile' : 'post-modal-desktop'}
-      style={
-        isMobile
-          ? undefined
-          : ({
-              '--width': 'min(640px, 100vw)',
-              '--height': 'min(82vh, 760px)',
-            } as CSSProperties)
-      }
-    >
-      <div className="flex flex-col w-full h-full overflow-hidden bg-[var(--bg-card)]">
-        <div className="flex items-center gap-4 px-4 h-14 border-b border-[var(--border)] flex-shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-primary)] border-none bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
-          >
-            <X size={18} />
-          </button>
-          <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">Post</span>
-        </div>
-
-        <div
-          className="post-modal-post px-4 pt-4 pb-2 flex gap-3"
-          style={{ flexShrink: 1, minHeight: 0, maxHeight: '40vh', overflowY: 'auto' }}
+  const postContent = (
+    <div className="flex flex-col w-full h-full overflow-hidden bg-[var(--bg-card)]">
+      <div className="flex items-center gap-4 px-4 h-14 border-b border-[var(--border)] flex-shrink-0">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Fermer"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-primary)] border-none bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
         >
-          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
-            {post.avatar ? (
-              <img src={post.avatar} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <span>{initial}</span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="font-bold text-[var(--text-primary)] text-[15px]">{post.pseudo}</span>
-              <BadgeIcons ids={post.ownedBadges} defs={badgeDefs} size={16} />
-              <span className="text-[var(--text-muted)] text-[15px]">·</span>
-              <span className="text-[var(--text-muted)] text-[15px]">{post.handle}</span>
-              <span className="text-[var(--text-muted)] text-[15px]">·</span>
-              <span className="text-[var(--text-muted)] text-[15px]">{formatTime(post.time)}</span>
-            </div>
-            {post.text && (
-              <p className="m-0 mt-1 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
-                <PostText text={post.text} />
-              </p>
-            )}
-            <PostEmbeds text={post.text} />
-            {post.poll && <Poll poll={post.poll} onVote={(option) => onVote(post.id, option)} />}
-            {post.image && (
-              <img
-                src={post.image}
-                alt="Post"
-                className="mt-2 rounded-2xl border border-[var(--border)] max-h-[480px] w-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-            )}
-            {post.audio && (
-              <div className="mt-2 max-w-[425px]">
-                <VoiceMessage audioData={post.audio} duration={post.audioDuration} />
-              </div>
-            )}
-          </div>
-        </div>
+          <X size={18} />
+        </button>
+        <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">Post</span>
+      </div>
 
-        <div className="flex items-center justify-between px-4 py-1.5 border-b border-[var(--border)] max-w-[400px] flex-shrink-0">
-          <button type="button" className={actionBtn} aria-label={`Commenter (${post.comments})`}>
-            <MessageCircle size={17} />
-            <span>{post.comments}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onRepost(post.id)}
-            className={actionBtnReposted}
-            aria-label={`Repartager (${post.reposts})`}
-          >
-            <Repeat2 size={17} />
-            <span>{post.reposts}</span>
-          </button>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setReactionOpen((o) => !o)}
-              className={actionBtnLiked}
-              aria-label={`Réagir (${post.likes})`}
-            >
-              {post.myReaction ? (
-                <span className="text-[17px] leading-none">{post.myReaction}</span>
-              ) : (
-                <Heart size={17} />
-              )}
-              <span>{post.likes}</span>
-            </button>
-            {reactionOpen && (
-              <ReactionPicker
-                onClose={() => setReactionOpen(false)}
-                onSelect={(type) => {
-                  onReact(post.id, type);
-                  setReactionOpen(false);
-                }}
-              />
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => setShareOpen(true)}
-            className={actionBtn}
-            aria-label="Partager ce post"
-            title="Partager"
-          >
-            <Share2 size={17} />
-          </button>
-          {!isOwn && (
-            <button
-              type="button"
-              onClick={() => setReportOpen(true)}
-              className={`${actionBtn} hover:text-red-500 hover:bg-red-500/10`}
-              aria-label="Signaler ce post"
-              title="Signaler"
-            >
-              <Flag size={17} />
-            </button>
-          )}
-        </div>
-
-        {summary.length > 0 && (
-          <div className="flex items-center justify-end px-4 py-1 border-b border-[var(--border)]">
-            <button
-              type="button"
-              onClick={() => setReactionOpen(true)}
-              className="flex items-center gap-1 rounded-full border-none bg-transparent cursor-pointer px-1 py-0.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
-              aria-label={`${post.likes} réaction(s)`}
-              title={`${post.likes} réaction(s)`}
-            >
-              <span className="flex items-center">
-                {summary.map((r, i) => (
-                  <span
-                    // biome-ignore lint/suspicious/noArrayIndexKey: ordre du résumé de réactions
-                    key={i}
-                    className="w-5 h-5 rounded-full bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-center text-[11px] -ml-1 first:ml-0"
-                  >
-                    {r.type}
-                  </span>
-                ))}
-              </span>
-              <span className="text-[13px] font-semibold">{post.likes}</span>
-            </button>
-          </div>
-        )}
-
-        <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
-          {loading ? (
-            <div className="py-10 flex flex-col items-center gap-3">
-              <div className="spinner" />
-              <p className="m-0 text-sm text-[var(--text-muted)]">Chargement des commentaires...</p>
-            </div>
-          ) : comments.length === 0 ? (
-            <div className="py-10 text-center">
-              <p className="m-0 text-[var(--text-secondary)]">
-                Aucun commentaire pour le moment. Sois le premier à répondre !
-              </p>
-            </div>
+      <div
+        className="post-modal-post px-4 pt-4 pb-2 flex gap-3"
+        style={{ flexShrink: 1, minHeight: 0, maxHeight: '40vh', overflowY: 'auto' }}
+      >
+        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
+          {post.avatar ? (
+            <img src={post.avatar} alt="" className="w-full h-full object-cover" />
           ) : (
-            <ul className="list-none m-0 p-0">
-              {comments.map((c) => (
-                <li key={c.id} className="flex gap-3 py-3 border-b border-[var(--border)] last:border-b-0">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
-                    {c.avatar ? (
-                      <img src={c.avatar} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <span>{(c.pseudo || '?')[0]?.toUpperCase() || '?'}</span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <span className="font-bold text-[var(--text-primary)] text-[14px]">{c.pseudo || 'Inconnu'}</span>
-                      {(c.ownedBadges || [])
-                        .map((id) => badgeDefs[id])
-                        .filter((b): b is { name?: string; icon?: string } => !!b && !!b.icon)
-                        .map((b) => (
-                          <img
-                            key={b.icon}
-                            src={b.icon}
-                            alt={b.name || 'Badge'}
-                            title={b.name || 'Badge'}
-                            className="w-[15px] h-[15px] rounded-full flex-shrink-0 object-cover"
-                          />
-                        ))}
-                      <span className="text-[var(--text-muted)] text-[13px]">·</span>
-                      <span className="text-[var(--text-muted)] text-[13px]">{formatTime(c.createdAt)}</span>
-                      <div className="ml-auto flex items-center gap-0.5">
-                        <button
-                          type="button"
-                          onClick={() => toggleCommentLike(c.id)}
-                          aria-label={`J'aime ce commentaire (${c.likes})`}
-                          title="J'aime"
-                          className={`flex items-center gap-1 text-[12px] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 transition-colors ${
-                            c.liked ? 'text-red-500' : 'text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10'
-                          }`}
-                        >
-                          <Heart size={13} fill={c.liked ? 'currentColor' : 'none'} />
-                          {c.likes > 0 && <span>{c.likes}</span>}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => startReply(c)}
-                          aria-label={`Répondre à ${c.pseudo || 'ce commentaire'}`}
-                          title="Répondre"
-                          className="flex items-center gap-1 text-[12px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 hover:text-brand hover:bg-[var(--brand-glow)] transition-colors"
-                        >
-                          <Reply size={13} />
-                          <span className="hidden sm:inline">Répondre</span>
-                        </button>
-                        {c.uid === user?.uid && (
-                          <button
-                            type="button"
-                            onClick={() => removeComment(c.id)}
-                            aria-label="Supprimer le commentaire"
-                            className="flex items-center gap-1 text-[12px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <p className="m-0 mt-0.5 text-[14px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
-                      <PostText text={c.text} />
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <span>{initial}</span>
           )}
         </div>
-
-        {replyTo && (
-          <div className="flex items-center gap-2 px-4 pt-2.5">
-            <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-3 py-1.5">
-              <Reply size={12} className="text-brand" />
-              <span>
-                Réponse à{' '}
-                <span className="font-bold text-brand">{replyTo.handle || replyTo.pseudo || 'commentaire'}</span>
-              </span>
-              <button
-                type="button"
-                onClick={clearReply}
-                aria-label="Annuler la réponse"
-                className="ml-1 flex items-center justify-center w-4 h-4 rounded-full border-none bg-transparent cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                <X size={12} />
-              </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="font-bold text-[var(--text-primary)] text-[15px]">{post.pseudo}</span>
+            <BadgeIcons ids={post.ownedBadges} defs={badgeDefs} size={16} />
+            <span className="text-[var(--text-muted)] text-[15px]">·</span>
+            <span className="text-[var(--text-muted)] text-[15px]">{post.handle}</span>
+            <span className="text-[var(--text-muted)] text-[15px]">·</span>
+            <span className="text-[var(--text-muted)] text-[15px]">{formatTime(post.time)}</span>
+          </div>
+          {post.text && (
+            <p className="m-0 mt-1 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
+              <PostText text={post.text} />
+            </p>
+          )}
+          <PostEmbeds text={post.text} />
+          {post.poll && <Poll poll={post.poll} onVote={(option) => onVote(post.id, option)} />}
+          {post.image && (
+            <img
+              src={post.image}
+              alt="Post"
+              className="mt-2 rounded-2xl border border-[var(--border)] max-h-[480px] w-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+          )}
+          {post.audio && (
+            <div className="mt-2 max-w-[425px]">
+              <VoiceMessage audioData={post.audio} duration={post.audioDuration} />
             </div>
-          </div>
-        )}
-
-        {cap.required && <div className="px-4 pt-2.5 flex justify-center">{cap.widget}</div>}
-
-        <div className="flex items-center gap-2 px-4 py-3 border-t border-[var(--border)] flex-shrink-0">
-          <div className="relative flex-1 min-w-0">
-            <input
-              ref={commentInputRef}
-              type="text"
-              value={text}
-              onChange={(e) => {
-                const value = e.target.value;
-                setText(value);
-                mention.handleChange(value, e.target.selectionStart ?? value.length);
-              }}
-              onKeyDown={(e) => {
-                if (mention.handleKeyDown(e)) return;
-                if (e.key === 'Enter') submitComment();
-              }}
-              placeholder="Répondre..."
-              maxLength={280}
-              aria-label="Répondre au post"
-              className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
-            />
-            <MentionSuggestions
-              open={mention.open}
-              query={mention.query}
-              results={mention.results}
-              activeIndex={mention.activeIndex}
-              onSelect={mention.selectActive}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={submitComment}
-            disabled={!text.trim() || sending}
-            className="bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-white font-bold text-sm rounded-full px-4 py-2 border-none cursor-pointer"
-          >
-            Répondre
-          </button>
+          )}
         </div>
       </div>
+
+      <div className="flex items-center justify-between px-4 py-1.5 border-b border-[var(--border)] max-w-[400px] flex-shrink-0">
+        <button type="button" className={actionBtn} aria-label={`Commenter (${post.comments})`}>
+          <MessageCircle size={17} />
+          <span>{post.comments}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onRepost(post.id)}
+          className={actionBtnReposted}
+          aria-label={`Repartager (${post.reposts})`}
+        >
+          <Repeat2 size={17} />
+          <span>{post.reposts}</span>
+        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setReactionOpen((o) => !o)}
+            className={actionBtnLiked}
+            aria-label={`Réagir (${post.likes})`}
+          >
+            {post.myReaction ? (
+              <span className="text-[17px] leading-none">{post.myReaction}</span>
+            ) : (
+              <Heart size={17} />
+            )}
+            <span>{post.likes}</span>
+          </button>
+          {reactionOpen && (
+            <ReactionPicker
+              onClose={() => setReactionOpen(false)}
+              onSelect={(type) => {
+                onReact(post.id, type);
+                setReactionOpen(false);
+              }}
+            />
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setShareOpen(true)}
+          className={actionBtn}
+          aria-label="Partager ce post"
+          title="Partager"
+        >
+          <Share2 size={17} />
+        </button>
+        {!isOwn && (
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            className={`${actionBtn} hover:text-red-500 hover:bg-red-500/10`}
+            aria-label="Signaler ce post"
+            title="Signaler"
+          >
+            <Flag size={17} />
+          </button>
+        )}
+      </div>
+
+      {summary.length > 0 && (
+        <div className="flex items-center justify-end px-4 py-1 border-b border-[var(--border)]">
+          <button
+            type="button"
+            onClick={() => setReactionOpen(true)}
+            className="flex items-center gap-1 rounded-full border-none bg-transparent cursor-pointer px-1 py-0.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
+            aria-label={`${post.likes} réaction(s)`}
+            title={`${post.likes} réaction(s)`}
+          >
+            <span className="flex items-center">
+              {summary.map((r, i) => (
+                <span
+                  // biome-ignore lint/suspicious/noArrayIndexKey: ordre du résumé de réactions
+                  key={i}
+                  className="w-5 h-5 rounded-full bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-center text-[11px] -ml-1 first:ml-0"
+                >
+                  {r.type}
+                </span>
+              ))}
+            </span>
+            <span className="text-[13px] font-semibold">{post.likes}</span>
+          </button>
+        </div>
+      )}
+
+      <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
+        {loading ? (
+          <div className="py-10 flex flex-col items-center gap-3">
+            <div className="spinner" />
+            <p className="m-0 text-sm text-[var(--text-muted)]">Chargement des commentaires...</p>
+          </div>
+        ) : comments.length === 0 ? (
+          <div className="py-10 text-center">
+            <p className="m-0 text-[var(--text-secondary)]">
+              Aucun commentaire pour le moment. Sois le premier à répondre !
+            </p>
+          </div>
+        ) : (
+          <ul className="list-none m-0 p-0">
+            {comments.map((c) => (
+              <li key={c.id} className="flex gap-3 py-3 border-b border-[var(--border)] last:border-b-0">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
+                  {c.avatar ? (
+                    <img src={c.avatar} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{(c.pseudo || '?')[0]?.toUpperCase() || '?'}</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="font-bold text-[var(--text-primary)] text-[14px]">{c.pseudo || 'Inconnu'}</span>
+                    {(c.ownedBadges || [])
+                      .map((id) => badgeDefs[id])
+                      .filter((b): b is { name?: string; icon?: string } => !!b && !!b.icon)
+                      .map((b) => (
+                        <img
+                          key={b.icon}
+                          src={b.icon}
+                          alt={b.name || 'Badge'}
+                          title={b.name || 'Badge'}
+                          className="w-[15px] h-[15px] rounded-full flex-shrink-0 object-cover"
+                        />
+                      ))}
+                    <span className="text-[var(--text-muted)] text-[13px]">·</span>
+                    <span className="text-[var(--text-muted)] text-[13px]">{formatTime(c.createdAt)}</span>
+                    <div className="ml-auto flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleCommentLike(c.id)}
+                        aria-label={`J'aime ce commentaire (${c.likes})`}
+                        title="J'aime"
+                        className={`flex items-center gap-1 text-[12px] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 transition-colors ${
+                          c.liked ? 'text-red-500' : 'text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10'
+                        }`}
+                      >
+                        <Heart size={13} fill={c.liked ? 'currentColor' : 'none'} />
+                        {c.likes > 0 && <span>{c.likes}</span>}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => startReply(c)}
+                        aria-label={`Répondre à ${c.pseudo || 'ce commentaire'}`}
+                        title="Répondre"
+                        className="flex items-center gap-1 text-[12px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 hover:text-brand hover:bg-[var(--brand-glow)] transition-colors"
+                      >
+                        <Reply size={13} />
+                        <span className="hidden sm:inline">Répondre</span>
+                      </button>
+                      {c.uid === user?.uid && (
+                        <button
+                          type="button"
+                          onClick={() => removeComment(c.id)}
+                          aria-label="Supprimer le commentaire"
+                          className="flex items-center gap-1 text-[12px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="m-0 mt-0.5 text-[14px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
+                    <PostText text={c.text} />
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {replyTo && (
+        <div className="flex items-center gap-2 px-4 pt-2.5">
+          <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-3 py-1.5">
+            <Reply size={12} className="text-brand" />
+            <span>
+              Réponse à{' '}
+              <span className="font-bold text-brand">{replyTo.handle || replyTo.pseudo || 'commentaire'}</span>
+            </span>
+            <button
+              type="button"
+              onClick={clearReply}
+              aria-label="Annuler la réponse"
+              className="ml-1 flex items-center justify-center w-4 h-4 rounded-full border-none bg-transparent cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {cap.required && <div className="px-4 pt-2.5 flex justify-center">{cap.widget}</div>}
+
+      <div className="flex items-center gap-2 px-4 py-3 border-t border-[var(--border)] flex-shrink-0">
+        <div className="relative flex-1 min-w-0">
+          <input
+            ref={commentInputRef}
+            type="text"
+            value={text}
+            onChange={(e) => {
+              const value = e.target.value;
+              setText(value);
+              mention.handleChange(value, e.target.selectionStart ?? value.length);
+            }}
+            onKeyDown={(e) => {
+              if (mention.handleKeyDown(e)) return;
+              if (e.key === 'Enter') submitComment();
+            }}
+            placeholder="Répondre..."
+            maxLength={280}
+            aria-label="Répondre au post"
+            className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
+          />
+          <MentionSuggestions
+            open={mention.open}
+            query={mention.query}
+            results={mention.results}
+            activeIndex={mention.activeIndex}
+            onSelect={mention.selectActive}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={submitComment}
+          disabled={!text.trim() || sending}
+          className="bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-white font-bold text-sm rounded-full px-4 py-2 border-none cursor-pointer"
+        >
+          Répondre
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {isMobile ? (
+        <Suspense fallback={null}>
+          <IonicModal isOpen backdropDismiss onDidDismiss={onClose} className="post-modal-mobile">
+            {postContent}
+          </IonicModal>
+        </Suspense>
+      ) : (
+        <div
+          className="modal-overlay active post-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
+        >
+          <div className="post-modal-card">{postContent}</div>
+        </div>
+      )}
       {reportOpen && <ReportPostModal postId={post.id} onClose={() => setReportOpen(false)} />}
       {shareOpen && <SharePostModal post={post} onClose={() => setShareOpen(false)} />}
-    </IonModal>
+    </>
   );
 }

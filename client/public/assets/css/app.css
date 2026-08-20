@@ -11814,3 +11814,13 @@ ion-modal.post-modal-mobile {
     max-height: 28vh;
   }
 }
+
+/* PostModal desktop (sans Ionic) : carte centrée, mêmes dimensions qu'IonModal */
+.modal-overlay.post-modal-overlay .post-modal-card {
+  width: min(640px, 100vw);
+  height: min(82vh, 760px);
+  border-radius: 16px;
+  background: var(--bg-card);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}

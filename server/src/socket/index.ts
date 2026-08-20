@@ -4,7 +4,6 @@ import { parseCookie } from 'cookie';
 import { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
 import { isIpBannedCached } from '../middleware/auth.js';
-import { isColdStorageEnabled, saveCallRecord } from '../services/coldStorage.js';
 import { chatId, getReverseContactUids, isUserBanned, setUserOffline, setUserOnline } from '../services/rtdb.js';
 
 interface AuthenticatedSocket {
@@ -160,9 +159,6 @@ export function setupSocket(httpServer: HTTPServer): Server {
           'INSERT INTO calls (id, callerUid, calleeUid, startTime, endTime, duration, status) VALUES (?,?,?,?,?,?,?)',
           [callId, caller, callee, startTime, endTime, dur, 'completed'],
         );
-        if (isColdStorageEnabled()) {
-          saveCallRecord(callId, caller, callee, startTime, endTime, dur, 'completed');
-        }
       } catch {}
     });
 
