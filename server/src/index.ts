@@ -45,6 +45,7 @@ import { startQueueWorker } from './services/queue.js';
 import { registerQueueHandlers, setQueueIo } from './services/queueHandlers.js';
 import { cleanExpiredEphemeralMessages, getMaintenanceMode } from './services/rtdb.js';
 import { buildSeo, defaultSeo, seoMetaTags } from './services/seo.js';
+import { buildSitemap, robotsTxt } from './services/sitemap.js';
 import { setupSocket } from './socket/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -143,6 +144,24 @@ app.use('/downloads', express.static(downloadsDir));
 /* Uploaded videos & thumbnails */
 const uploadsDir = resolve(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadsDir));
+
+/* Sitemap XML dynamique (posts, profils, communautés, hashtags) */
+app.get('/sitemap.xml', async (_req, res) => {
+  try {
+    const xml = await buildSitemap();
+    res.set('Cache-Control', `public, max-age=${Math.floor((5 * 60 * 1000) / 1000)}`);
+    res.type('application/xml');
+    res.send(xml);
+  } catch {
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+/* Robots.txt pointant vers le sitemap */
+app.get('/robots.txt', (_req, res) => {
+  res.type('text/plain');
+  res.send(robotsTxt());
+});
 
 /* SEO & embeds sociaux : injection serveur des meta OG/Twitter selon l'URL */
 let indexHtmlCache: string | null = null;
