@@ -6178,7 +6178,7 @@ body {
 }
 /* Modal de signalement : ancrée en haut, sous l'en-tête mobile, pour que
    le bouton de confirmation reste visible au-dessus de la tab bar */
-@media (max-width: 520px) {
+@media (max-width: 768px) {
   .report-modal-overlay {
     align-items: flex-start;
     padding: calc(52px + env(safe-area-inset-top, 0px)) 0 0;

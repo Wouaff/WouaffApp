@@ -1,5 +1,6 @@
 import { Flag, Loader2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { posts as postsAPI } from '../../services/api';
 import { showToast } from '../Common/Toast';
 
@@ -49,7 +50,7 @@ export default function ReportPostModal({ postId, onClose }: ReportPostModalProp
     }
   };
 
-  return (
+  return createPortal(
     <div
       className="modal-overlay active report-modal-overlay"
       onClick={(e) => {
@@ -129,6 +130,7 @@ export default function ReportPostModal({ postId, onClose }: ReportPostModalProp
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
