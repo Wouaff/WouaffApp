@@ -2,7 +2,6 @@ import { IonApp } from '@ionic/react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import BannedScreen from './components/Common/BannedScreen';
-import ConnectionLostOverlay from './components/Common/ConnectionLostOverlay';
 import EmailVerificationBanner from './components/Common/EmailVerificationBanner';
 import OpenSourceBanner from './components/Common/OpenSourceBanner';
 import PwaInstallPrompt from './components/Common/PwaInstallPrompt';
@@ -368,7 +367,6 @@ export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <ThemeProvider>
-        <ConnectionLostOverlay />
         <OpenSourceBanner />
         <PwaInstallPrompt />
         <DiscordPresenceTracker />
