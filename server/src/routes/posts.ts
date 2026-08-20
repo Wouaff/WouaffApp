@@ -748,30 +748,53 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
     [req.params.id, limit, offset],
   );
   const enriched: PostComment[] = [];
+  const authorUids = [...new Set(rows.map((r) => (r as unknown as Record<string, unknown>).uid as string))];
+  const commentIds = rows.map((r) => (r as unknown as Record<string, unknown>).id as number);
+
+  const placeholders = (arr: unknown[]) => arr.map(() => '?').join(',');
+
+  const [allBadges, allStaff, likedSet] = await Promise.all([
+    authorUids.length > 0
+      ? query<Array<{ uid: string; badgeId: string }>>(
+          `SELECT uid, badgeId FROM user_badges WHERE uid IN (${placeholders(authorUids)}) ORDER BY uid, sortOrder ASC`,
+          authorUids,
+        )
+      : Promise.resolve([]),
+    authorUids.length > 0
+      ? query<Array<{ uid: string }>>(
+          `SELECT uid FROM staff WHERE uid IN (${placeholders(authorUids)})`,
+          authorUids,
+        )
+      : Promise.resolve([]),
+    authReq.uid && commentIds.length > 0
+      ? query<Array<{ commentId: number }>>(
+          `SELECT commentId FROM comment_likes WHERE commentId IN (${placeholders(commentIds)}) AND uid = ?`,
+          [...commentIds, authReq.uid],
+        )
+      : Promise.resolve([]),
+  ]);
+
+  const badgesByUid = new Map<string, string[]>();
+  for (const b of allBadges) {
+    const arr = badgesByUid.get(b.uid);
+    if (arr) arr.push(b.badgeId);
+    else badgesByUid.set(b.uid, [b.badgeId]);
+  }
+  const staffSet = new Set(allStaff.map((s) => s.uid));
+  const likedCommentIds = new Set(likedSet.map((l) => l.commentId));
+
   for (const row of rows) {
     const rowRecord = row as unknown as Record<string, unknown>;
     const authorUid = rowRecord.uid as string;
-    const [badgeRows, staff, likedRow] = await Promise.all([
-      query<Array<{ badgeId: string }>>('SELECT badgeId FROM user_badges WHERE uid = ? ORDER BY sortOrder ASC', [
-        authorUid,
-      ]),
-      getOne<{ uid: string }>('SELECT uid FROM staff WHERE uid = ?', [authorUid]),
-      authReq.uid
-        ? getOne<{ uid: string }>('SELECT uid FROM comment_likes WHERE commentId = ? AND uid = ?', [
-            row.id,
-            authReq.uid,
-          ])
-        : Promise.resolve(undefined),
-    ]);
     enriched.push({
       ...row,
       pseudo: (rowRecord.pseudo as string) || 'Inconnu',
       avatar: rowRecord.avatar as string,
       handle: toCommentHandle(rowRecord.wouaffId as string, rowRecord.pseudo as string),
-      ownedBadges: badgeRows.map((b) => b.badgeId),
-      verified: !!staff,
+      ownedBadges: badgesByUid.get(authorUid) || [],
+      verified: staffSet.has(authorUid),
       likes: (rowRecord.likesCount as number) || 0,
-      liked: !!likedRow,
+      liked: likedCommentIds.has(rowRecord.id as number),
     });
   }
   res.json(enriched);

@@ -220,21 +220,42 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
     [req.params.id, limit, offset],
   );
   const enriched: VideoComment[] = [];
+  const authorUids = [...new Set(rows.map((r) => (r as unknown as Record<string, unknown>).uid as string))];
+
+  const placeholders = (arr: unknown[]) => arr.map(() => '?').join(',');
+
+  const [allBadges, allStaff] = await Promise.all([
+    authorUids.length > 0
+      ? query<Array<{ uid: string; badgeId: string }>>(
+          `SELECT uid, badgeId FROM user_badges WHERE uid IN (${placeholders(authorUids)}) ORDER BY uid, sortOrder ASC`,
+          authorUids,
+        )
+      : Promise.resolve([]),
+    authorUids.length > 0
+      ? query<Array<{ uid: string }>>(
+          `SELECT uid FROM staff WHERE uid IN (${placeholders(authorUids)})`,
+          authorUids,
+        )
+      : Promise.resolve([]),
+  ]);
+
+  const badgesByUid = new Map<string, string[]>();
+  for (const b of allBadges) {
+    const arr = badgesByUid.get(b.uid);
+    if (arr) arr.push(b.badgeId);
+    else badgesByUid.set(b.uid, [b.badgeId]);
+  }
+  const staffSet = new Set(allStaff.map((s) => s.uid));
+
   for (const row of rows) {
     const rowRecord = row as unknown as Record<string, unknown>;
     const authorUid = rowRecord.uid as string;
-    const [badgeRows, staff] = await Promise.all([
-      query<Array<{ badgeId: string }>>('SELECT badgeId FROM user_badges WHERE uid = ? ORDER BY sortOrder ASC', [
-        authorUid,
-      ]),
-      getOne<{ uid: string }>('SELECT uid FROM staff WHERE uid = ?', [authorUid]),
-    ]);
     enriched.push({
       ...row,
       pseudo: (rowRecord.pseudo as string) || 'Inconnu',
       avatar: rowRecord.avatar as string,
-      ownedBadges: badgeRows.map((b) => b.badgeId),
-      verified: !!staff,
+      ownedBadges: badgesByUid.get(authorUid) || [],
+      verified: staffSet.has(authorUid),
     });
   }
   res.json(enriched);
