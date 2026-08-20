@@ -57,8 +57,8 @@ export default function ReportPostModal({ postId, onClose }: ReportPostModalProp
         if (e.target === e.currentTarget && !sending) onClose();
       }}
     >
-      <div className="w-full max-w-[420px] rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
-        <div className="flex items-center gap-4 px-4 h-14 border-b border-[var(--border)]">
+      <div className="flex flex-col w-full max-w-[420px] max-h-[85dvh] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
+        <div className="flex items-center gap-4 px-4 h-14 border-b border-[var(--border)] flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -71,7 +71,7 @@ export default function ReportPostModal({ postId, onClose }: ReportPostModalProp
           <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">Signaler le post</span>
         </div>
 
-        <div className="px-5 py-4">
+        <div className="flex-1 overflow-y-auto min-h-0 px-5 py-4">
           <p className="m-0 mb-3 text-sm text-[var(--text-secondary)]">Pourquoi signalez-vous ce post ?</p>
           <div className="flex flex-col gap-2">
             {REPORT_REASONS.map((r) => (
@@ -109,7 +109,7 @@ export default function ReportPostModal({ postId, onClose }: ReportPostModalProp
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-[var(--border)]">
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-[var(--border)] flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
