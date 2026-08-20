@@ -246,7 +246,10 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">Post</span>
         </div>
 
-        <div className="post-modal-post px-4 pt-4 pb-2 flex gap-3 flex-shrink-0">
+        <div
+          className="post-modal-post px-4 pt-4 pb-2 flex gap-3"
+          style={{ flexShrink: 1, minHeight: 0, maxHeight: '40vh', overflowY: 'auto' }}
+        >
           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
             {post.avatar ? (
               <img src={post.avatar} alt="" className="w-full h-full object-cover" />
