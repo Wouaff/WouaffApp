@@ -761,10 +761,7 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
         )
       : Promise.resolve([]),
     authorUids.length > 0
-      ? query<Array<{ uid: string }>>(
-          `SELECT uid FROM staff WHERE uid IN (${placeholders(authorUids)})`,
-          authorUids,
-        )
+      ? query<Array<{ uid: string }>>(`SELECT uid FROM staff WHERE uid IN (${placeholders(authorUids)})`, authorUids)
       : Promise.resolve([]),
     authReq.uid && commentIds.length > 0
       ? query<Array<{ commentId: number }>>(

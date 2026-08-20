@@ -46,7 +46,13 @@ export const MessageBubble = memo(function MessageBubble({
           ? await messagesApi.blobGroup(convId, msg.msgKey as string)
           : await messagesApi.blob(convId, msg.msgKey as string);
         if (cancelled) return;
-        const d = data as { imageData?: string; fileData?: string; fileName?: string; audioData?: string; contactData?: string };
+        const d = data as {
+          imageData?: string;
+          fileData?: string;
+          fileName?: string;
+          audioData?: string;
+          contactData?: string;
+        };
         setBlob({
           imageData: d.imageData || undefined,
           fileData: d.fileData || undefined,

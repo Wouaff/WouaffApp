@@ -276,11 +276,23 @@ export async function getMessages(
 export async function getMessageBlob(
   convId: string,
   msgKey: string,
-): Promise<{ imageData?: string; fileData?: string; fileName?: string; audioData?: string; contactData?: string } | null> {
-  const row = await getOne<{ imageData?: string; fileData?: string; fileName?: string; audioData?: string; contactData?: string }>(
-    'SELECT imageData, fileData, fileName, audioData, contactData FROM messages WHERE convId=? AND msgKey=?',
-    [convId, msgKey],
-  );
+): Promise<{
+  imageData?: string;
+  fileData?: string;
+  fileName?: string;
+  audioData?: string;
+  contactData?: string;
+} | null> {
+  const row = await getOne<{
+    imageData?: string;
+    fileData?: string;
+    fileName?: string;
+    audioData?: string;
+    contactData?: string;
+  }>('SELECT imageData, fileData, fileName, audioData, contactData FROM messages WHERE convId=? AND msgKey=?', [
+    convId,
+    msgKey,
+  ]);
   return row || null;
 }
 
