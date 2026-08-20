@@ -1,3 +1,4 @@
+import '../admin.css';
 import AdminApp, { AdminProviders } from './admin/AdminApp';
 
 export default function AdminPage() {
