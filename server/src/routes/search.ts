@@ -35,20 +35,55 @@ router.get('/users', async (req: Request, res: Response) => {
 router.get('/mentions', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const raw = ((req.query.q as string) || '').trim().replace(/^@/, '').toLowerCase();
-  if (!raw) {
-    res.json({ results: [] });
-    return;
-  }
   const limit = Math.min(15, Math.max(1, parseInt(req.query.limit as string, 10) || 10));
-  const pattern = `%${raw}%`;
-  const rows = await query<Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>>(
-    `SELECT uid, pseudo, avatar, wouaffId FROM users
-     WHERE (wouaffId LIKE ? OR REPLACE(COALESCE(wouaffId, ''), '@', '') LIKE ? OR pseudo LIKE ?)
-       AND uid != ?
-     ORDER BY lastSeen DESC
-     LIMIT ?`,
-    [pattern, pattern, pattern, authReq.uid!, limit],
-  );
+
+  let rows: Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>;
+  if (!raw) {
+    /* @ seul — personnes avec qui on a eu des interactions récentes (notifications,
+       abonnements, mentions reçues/émises), triées par proximité puis récence */
+    rows = await query<Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>>(
+      `SELECT u.uid, u.pseudo, u.avatar, u.wouaffId
+       FROM users u
+       JOIN (
+         SELECT actorUid AS otherUid, createdAt AS ts, 10 AS wt FROM notifications WHERE uid = ?
+         UNION ALL
+         SELECT followedUid, createdAt, 4 FROM follows WHERE followerUid = ?
+         UNION ALL
+         SELECT followerUid, createdAt, 3 FROM follows WHERE followedUid = ?
+         UNION ALL
+         SELECT p.uid, pm.createdAt, 5 FROM post_mentions pm JOIN posts p ON p.id = pm.postId WHERE pm.uid = ?
+         UNION ALL
+         SELECT pm.uid, pm.createdAt, 2 FROM post_mentions pm WHERE pm.postId IN (SELECT id FROM posts WHERE uid = ?)
+       ) x ON x.otherUid = u.uid
+       WHERE u.uid != ?
+         AND u.uid NOT IN (SELECT blockedUid FROM blocks WHERE uid = ?)
+         AND u.uid NOT IN (SELECT uid FROM blocks WHERE blockedUid = ?)
+       GROUP BY u.uid
+       ORDER BY SUM(x.wt) DESC, MAX(x.ts) DESC, u.lastSeen DESC
+       LIMIT ?`,
+      [
+        authReq.uid!,
+        authReq.uid!,
+        authReq.uid!,
+        authReq.uid!,
+        authReq.uid!,
+        authReq.uid!,
+        authReq.uid!,
+        authReq.uid!,
+        limit,
+      ],
+    );
+  } else {
+    const pattern = `%${raw}%`;
+    rows = await query<Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>>(
+      `SELECT uid, pseudo, avatar, wouaffId FROM users
+       WHERE (wouaffId LIKE ? OR REPLACE(COALESCE(wouaffId, ''), '@', '') LIKE ? OR pseudo LIKE ?)
+         AND uid != ?
+       ORDER BY lastSeen DESC
+       LIMIT ?`,
+      [pattern, pattern, pattern, authReq.uid!, limit],
+    );
+  }
   const results = rows.map((r) => ({
     uid: r.uid,
     pseudo: r.pseudo || 'Utilisateur',
