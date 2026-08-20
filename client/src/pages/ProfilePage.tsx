@@ -1,4 +1,4 @@
-import { BadgeCheck, ChevronLeft, MessageSquare, UserPlus } from 'lucide-react';
+import { ChevronLeft, MessageSquare, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import FollowModal from '../components/Home/FollowModal';
@@ -368,7 +368,6 @@ export default function ProfilePage() {
           <div className="px-4 pt-2 pb-3">
             <div className="flex items-center gap-1.5">
               <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">{pseudo}</h1>
-              {data.verified && <BadgeCheck size={20} className="text-brand" aria-label="Compte vérifié" />}
               {validBadges.map((b) => (
                 <img
                   key={b.icon}

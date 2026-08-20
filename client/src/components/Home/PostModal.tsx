@@ -1,5 +1,5 @@
 import { IonModal } from '@ionic/react';
-import { BadgeCheck, Flag, Heart, MessageCircle, Repeat2, Reply, Share2, Trash2, X } from 'lucide-react';
+import { Flag, Heart, MessageCircle, Repeat2, Reply, Share2, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useBadges } from '../../hooks/useBadges';
@@ -257,9 +257,6 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1 flex-wrap">
               <span className="font-bold text-[var(--text-primary)] text-[15px]">{post.pseudo}</span>
-              {post.verified && (
-                <BadgeCheck size={17} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />
-              )}
               <BadgeIcons ids={post.ownedBadges} defs={badgeDefs} size={16} />
               <span className="text-[var(--text-muted)] text-[15px]">·</span>
               <span className="text-[var(--text-muted)] text-[15px]">{post.handle}</span>
@@ -401,9 +398,6 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1 flex-wrap">
                       <span className="font-bold text-[var(--text-primary)] text-[14px]">{c.pseudo || 'Inconnu'}</span>
-                      {c.verified && (
-                        <BadgeCheck size={15} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />
-                      )}
                       {(c.ownedBadges || [])
                         .map((id) => badgeDefs[id])
                         .filter((b): b is { name?: string; icon?: string } => !!b && !!b.icon)

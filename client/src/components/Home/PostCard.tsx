@@ -1,4 +1,4 @@
-import { BadgeCheck, Flag, Heart, MessageCircle, Repeat2, Share2 } from 'lucide-react';
+import { Flag, Heart, MessageCircle, Repeat2, Share2 } from 'lucide-react';
 import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -116,7 +116,6 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             ) : (
               <span className="font-bold text-[var(--text-primary)] text-[15px]">{post.pseudo}</span>
             )}
-            {post.verified && <BadgeCheck size={17} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />}
             <BadgeIcons ids={post.ownedBadges} defs={badgeDefs} size={16} />
             <span className="text-[var(--text-muted)] text-[15px]">·</span>
             <span className="text-[var(--text-muted)] text-[15px]">{formatTime(post.time)}</span>

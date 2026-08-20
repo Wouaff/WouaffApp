@@ -1,4 +1,4 @@
-import { BadgeCheck, Check, Link2, Loader2, Share2, X } from 'lucide-react';
+import { Check, Link2, Loader2, Share2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { SocialPost } from '../../types';
 import { showToast } from '../Common/Toast';
@@ -101,9 +101,6 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1 flex-wrap">
                 <span className="font-bold text-[var(--text-primary)] text-[14px]">{post.pseudo}</span>
-                {post.verified && (
-                  <BadgeCheck size={15} className="text-brand flex-shrink-0" aria-label="Compte vérifié" />
-                )}
                 <span className="text-[var(--text-muted)] text-[13px]">· {formatTime(post.time)}</span>
               </div>
               {post.text && (
