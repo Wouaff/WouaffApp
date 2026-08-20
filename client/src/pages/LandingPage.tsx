@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DmcaBadge from '../components/Common/DmcaBadge';
 
 const DISCORD_URL = 'https://dsc.gg/wouaff';
 const GITHUB_URL = 'https://github.com/Wouaff/WouaffApp';
@@ -795,6 +796,9 @@ export default function LandingPage() {
             <p className="text-[13px] text-[var(--text-muted)]">
               © 2026 Wouaff. Pas de revente de données. Pas de pub.
             </p>
+            <div className="mt-5 flex justify-center">
+              <DmcaBadge />
+            </div>
           </div>
         </div>
       </footer>

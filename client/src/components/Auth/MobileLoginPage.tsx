@@ -12,6 +12,7 @@ import {
   type TwoFactorMethods,
   twoFactor as twoFactorAPI,
 } from '../../services/security';
+import DmcaBadge from '../Common/DmcaBadge';
 
 function validateEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -523,6 +524,9 @@ export default function MobileLoginPage() {
 
           <div className="mt-auto pt-8 text-center text-[12px] text-[var(--text-muted)]">
             🇫🇷 Hébergé en France · Zéro log · RGPD &amp; lois européennes
+          </div>
+          <div className="flex justify-center pt-4">
+            <DmcaBadge />
           </div>
         </div>
       </IonContent>

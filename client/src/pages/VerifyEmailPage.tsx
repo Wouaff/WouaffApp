@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import DmcaBadge from '../components/Common/DmcaBadge';
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
@@ -93,7 +94,7 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-dvh bg-[var(--bg-page)] p-4">
+    <div className="flex flex-col items-center justify-center min-h-dvh bg-[var(--bg-page)] p-4">
       <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
         <div className="text-center mb-2">
           <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-12 h-12 mb-2 inline-block" />
@@ -176,6 +177,9 @@ export default function VerifyEmailPage() {
             </>
           )}
         </div>
+      </div>
+      <div className="mt-6 flex justify-center">
+        <DmcaBadge />
       </div>
     </div>
   );

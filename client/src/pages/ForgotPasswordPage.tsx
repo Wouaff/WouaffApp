@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import DmcaBadge from '../components/Common/DmcaBadge';
 import { useCap } from '../hooks/useCap';
 
 export default function ForgotPasswordPage() {
@@ -40,7 +41,7 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="flex items-center justify-center min-h-dvh bg-[var(--bg-page)] p-4">
+      <div className="flex flex-col items-center justify-center min-h-dvh bg-[var(--bg-page)] p-4">
         <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
           <div className="text-center mb-2">
             <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-12 h-12 mb-2 inline-block" />
@@ -57,12 +58,15 @@ export default function ForgotPasswordPage() {
             </Link>
           </div>
         </div>
+        <div className="mt-6 flex justify-center">
+          <DmcaBadge />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-center min-h-dvh bg-[var(--bg-page)] p-4">
+    <div className="flex flex-col items-center justify-center min-h-dvh bg-[var(--bg-page)] p-4">
       <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-lg p-8 max-w-md w-full">
         <div className="text-center mb-2">
           <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-12 h-12 mb-2 inline-block" />
@@ -109,6 +113,9 @@ export default function ForgotPasswordPage() {
             Retour à la connexion
           </Link>
         </div>
+      </div>
+      <div className="mt-6 flex justify-center">
+        <DmcaBadge />
       </div>
     </div>
   );

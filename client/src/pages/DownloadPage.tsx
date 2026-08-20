@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DmcaBadge from '../components/Common/DmcaBadge';
 
 const VERSION = '1.0.0';
 const DOWNLOADS: Array<{ platform: string; label: string; arch: string; url: string; icon: string }> = [
@@ -84,6 +85,10 @@ export default function DownloadPage() {
         <button className="dl-back-btn" onClick={() => navigate('/')}>
           Retour à l'accueil
         </button>
+      </div>
+
+      <div className="flex justify-center pb-6">
+        <DmcaBadge />
       </div>
     </div>
   );
