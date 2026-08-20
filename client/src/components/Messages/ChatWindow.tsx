@@ -206,7 +206,7 @@ export const ChatWindow = memo(function ChatWindow({
           const avatarUrl = mine ? myAvatar : recvAvatar;
           const initial = senderLabel(msg.from)[0]?.toUpperCase() || '?';
           const avatarEl = (
-            <div className={`msg-avatar ${mine ? 'msg-avatar-mine' : ''}`}>
+            <div className={`msg-avatar flex-shrink-0 ${mine ? 'msg-avatar-mine' : ''}`}>
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -225,7 +225,7 @@ export const ChatWindow = memo(function ChatWindow({
             <div key={key} className={`msg-wrapper ${mine ? 'sent' : 'recv'}`}>
               {!mine && avatarEl}
               {mine ? (
-                <div className="msg-row">
+                <div className="msg-row flex items-end gap-2 min-w-0">
                   <MessageBubble
                     msg={msg}
                     isMine={mine}
