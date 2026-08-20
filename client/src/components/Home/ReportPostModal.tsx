@@ -51,13 +51,13 @@ export default function ReportPostModal({ postId, onClose }: ReportPostModalProp
 
   return (
     <div
-      className="modal-overlay active"
+      className="modal-overlay active report-modal-overlay"
       onClick={(e) => {
         e.stopPropagation();
         if (e.target === e.currentTarget && !sending) onClose();
       }}
     >
-      <div className="flex flex-col w-full max-w-[420px] max-h-[85dvh] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
+      <div className="report-modal-card flex flex-col w-full max-w-[420px] max-h-[85dvh] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
         <div className="flex items-center gap-4 px-4 h-14 border-b border-[var(--border)] flex-shrink-0">
           <button
             type="button"

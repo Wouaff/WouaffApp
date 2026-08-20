@@ -6176,6 +6176,19 @@ body {
     padding: 28px 24px calc(24px + var(--safe-bottom));
   }
 }
+/* Modal de signalement : ancrée en haut, sous l'en-tête mobile, pour que
+   le bouton de confirmation reste visible au-dessus de la tab bar */
+@media (max-width: 520px) {
+  .report-modal-overlay {
+    align-items: flex-start;
+    padding: calc(52px + env(safe-area-inset-top, 0px)) 0 0;
+  }
+  .report-modal-overlay .report-modal-card {
+    max-width: 100%;
+    max-height: calc(100dvh - 52px - env(safe-area-inset-top, 0px) - var(--mobile-tab-h, 56px));
+    border-radius: 0 0 1rem 1rem;
+  }
+}
 @keyframes drawerUp {
   from {
     transform: translateY(100%);
