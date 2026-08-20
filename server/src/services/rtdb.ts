@@ -13,6 +13,52 @@ function msgKey(): string {
 
 /* ── Conversations ── */
 
+function buildConvEntry(row: Record<string, unknown>): Record<string, unknown> {
+  const profile: Record<string, unknown> = {};
+  for (const k of [
+    'pseudo',
+    'avatar',
+    'status',
+    'lastSeen',
+    'bio',
+    'wouaffId',
+    'social_links',
+    'createdAt',
+    'banner',
+  ]) {
+    if (row[k] !== undefined) profile[k] = row[k];
+  }
+  let lastMsg: Record<string, unknown> | null = null;
+  if (row.msgKey) {
+    lastMsg = {
+      msgKey: row.msgKey,
+      text: row.text,
+      fromUid: row.fromUid,
+      time: row.time,
+      deleted: row.deleted,
+      edited: row.edited,
+      encrypted: row.encrypted,
+      imageData: row.imageData,
+      fileData: row.fileData,
+      fileName: row.fileName,
+      audioData: row.audioData,
+      duration: row.duration,
+      contactData: row.contactData,
+      replyTo: row.replyTo,
+      messageTheme: row.messageTheme,
+      forwardedFrom: row.forwardedFrom,
+      ephemeralDuration: row.ephemeralDuration,
+      reactions: row.reactions,
+      type: row.type,
+      pendingFrom: row.pendingFrom,
+      senderName: row.senderName,
+      seen: row.seen,
+      from: row.fromUid,
+    };
+  }
+  return { profile, lastMsg, lastTime: (lastMsg?.time as number) || 0, type: 'dm' };
+}
+
 export async function getConversationsForUser(uid: string): Promise<Record<string, unknown>> {
   const rows = await query<Array<Record<string, unknown>>>(
     `SELECT c.contactUid,
@@ -34,52 +80,53 @@ export async function getConversationsForUser(uid: string): Promise<Record<strin
     [uid],
   );
   const result: Record<string, unknown> = {};
+  const contactUids = new Set<string>();
   for (const row of rows) {
     const contactUid = row.contactUid as string;
-    const profile: Record<string, unknown> = {};
-    for (const k of [
-      'pseudo',
-      'avatar',
-      'status',
-      'lastSeen',
-      'bio',
-      'wouaffId',
-      'social_links',
-      'createdAt',
-      'banner',
-    ]) {
-      if (row[k] !== undefined) profile[k] = row[k];
-    }
-    let lastMsg: Record<string, unknown> | null = null;
-    if (row.msgKey) {
-      lastMsg = {
-        msgKey: row.msgKey,
-        text: row.text,
-        fromUid: row.fromUid,
-        time: row.time,
-        deleted: row.deleted,
-        edited: row.edited,
-        encrypted: row.encrypted,
-        imageData: row.imageData,
-        fileData: row.fileData,
-        fileName: row.fileName,
-        audioData: row.audioData,
-        duration: row.duration,
-        contactData: row.contactData,
-        replyTo: row.replyTo,
-        messageTheme: row.messageTheme,
-        forwardedFrom: row.forwardedFrom,
-        ephemeralDuration: row.ephemeralDuration,
-        reactions: row.reactions,
-        type: row.type,
-        pendingFrom: row.pendingFrom,
-        senderName: row.senderName,
-        seen: row.seen,
-        from: row.fromUid,
-      };
-    }
-    result[contactUid] = { profile, lastMsg, lastTime: (lastMsg?.time as number) || 0, type: 'dm' };
+    contactUids.add(contactUid);
+    result[contactUid] = buildConvEntry(row);
   }
+
+  /* Conversations DM avec des personnes qui ne sont pas (encore) des contacts :
+     le fil doit rester dans la liste dès qu'un message a été échangé. */
+  const convRows = await query<Array<{ convId: string }>>(
+    `SELECT DISTINCT m.convId
+     FROM messages m
+     WHERE m.fromUid = ? OR INSTR(CONCAT('_', m.convId, '_'), CONCAT('_', ?, '_')) > 0`,
+    [uid, uid],
+  );
+  const extraUids = convRows
+    .map(({ convId }) => {
+      const parts = convId.split('_');
+      const other = parts[0] === uid ? parts[1] : parts[0];
+      return other && other !== uid && !contactUids.has(other) ? other : null;
+    })
+    .filter((x): x is string => x !== null);
+  if (extraUids.length > 0) {
+    const peers = await query<Array<Record<string, unknown>>>(
+      `SELECT p.uid AS peerUid,
+              p.pseudo, p.avatar, p.status, p.lastSeen, p.bio, p.wouaffId,
+              p.social_links, p.createdAt, p.banner,
+              m.msgKey, m.text, m.fromUid, m.time, m.deleted, m.edited,
+              m.encrypted, m.imageData, m.fileData, m.fileName,
+              m.audioData, m.duration, m.contactData, m.replyTo, m.messageTheme,
+              m.forwardedFrom, m.ephemeralDuration, m.reactions, m.type,
+              m.pendingFrom, m.senderName, m.seen
+       FROM users p
+       LEFT JOIN messages m ON m.msgKey = (
+         SELECT m2.msgKey FROM messages m2
+         WHERE m2.convId = CONCAT(LEAST(p.uid, ?), '_', GREATEST(p.uid, ?))
+         ORDER BY m2.time DESC LIMIT 1
+       )
+       WHERE p.uid IN (${extraUids.map(() => '?').join(',')})`,
+      [uid, uid, ...extraUids],
+    );
+    for (const row of peers) {
+      const peerUid = row.peerUid as string;
+      result[peerUid] = buildConvEntry(row);
+    }
+  }
+
   return result;
 }
 
