@@ -140,6 +140,83 @@ async function toCommunity(row: Record<string, unknown>, uid?: string): Promise<
   };
 }
 
+function enrichRules(raw: unknown): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw as string);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((r) => (typeof r === 'string' ? r.trim().slice(0, MAX_RULE_LENGTH) : ''))
+      .filter(Boolean)
+      .slice(0, MAX_RULES);
+  } catch {
+    return [];
+  }
+}
+
+async function enrichCommunities(rows: Array<Record<string, unknown>>, uid?: string): Promise<Community[]> {
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.id as string);
+
+  const ph = ids.map(() => '?').join(',');
+
+  const needMemberCount = rows.some((r) => r.memberCount === undefined);
+  const needPostCount = rows.some((r) => r.postCount === undefined);
+
+  const [memberCounts, postCounts, subscriptions, roles] = await Promise.all([
+    needMemberCount
+      ? query<Array<{ communityId: string; c: number }>>(
+          `SELECT communityId, COUNT(*) AS c FROM community_members WHERE communityId IN (${ph}) GROUP BY communityId`,
+          ids,
+        )
+      : Promise.resolve([]),
+    needPostCount
+      ? query<Array<{ communityId: string; c: number }>>(
+          `SELECT communityId, COUNT(*) AS c FROM community_posts WHERE communityId IN (${ph}) AND deletedAt IS NULL GROUP BY communityId`,
+          ids,
+        )
+      : Promise.resolve([]),
+    uid
+      ? query<Array<{ communityId: string }>>(
+          `SELECT communityId FROM subscriptions WHERE userId = ? AND communityId IN (${ph})`,
+          [uid, ...ids],
+        )
+      : Promise.resolve([]),
+    uid
+      ? query<Array<{ communityId: string; role: string }>>(
+          `SELECT communityId, role FROM community_members WHERE userId = ? AND communityId IN (${ph})`,
+          [uid, ...ids],
+        )
+      : Promise.resolve([]),
+  ]);
+
+  const memberCountMap = new Map(memberCounts.map((r) => [r.communityId, r.c]));
+  const postCountMap = new Map(postCounts.map((r) => [r.communityId, r.c]));
+  const subSet = new Set(subscriptions.map((s) => s.communityId));
+  const roleMap = new Map(roles.map((r) => [r.communityId, r.role]));
+
+  return rows.map((row) => {
+    const id = row.id as string;
+    return {
+      id,
+      name: row.name as string,
+      displayName: (row.displayName as string) || null,
+      description: (row.description as string) || null,
+      category: (row.category as string) || 'Autre',
+      rules: enrichRules(row.rules),
+      avatar: (row.avatar as string) || null,
+      banner: (row.banner as string) || null,
+      creatorId: row.creatorId as string,
+      isPrivate: (row.isPrivate as number) === 1,
+      createdAt: row.createdAt as number,
+      memberCount: row.memberCount !== undefined ? (row.memberCount as number) : (memberCountMap.get(id) ?? 0),
+      postCount: row.postCount !== undefined ? (row.postCount as number) : (postCountMap.get(id) ?? 0),
+      isSubscribed: subSet.has(id),
+      myRole: (roleMap.get(id) as CommunityRole) || null,
+    };
+  });
+}
+
 const COMMUNITY_POST_SELECT = `SELECT p.id, p.communityId, p.authorId, p.title, p.content, p.type,
         p.upvotes, p.downvotes, p.commentCount, p.isPinned, p.createdAt,
         (p.upvotes - p.downvotes) AS score,
@@ -242,10 +319,11 @@ router.get('/', async (req: Request, res: Response) => {
   );
   const groups: Array<{ category: string; items: Community[] }> = [];
   const byCategory = new Map<string, Community[]>();
-  for (const row of rows) {
-    const cat = (row.category as string) || 'Autre';
+  const enriched = await enrichCommunities(rows, authReq.uid);
+  for (const community of enriched) {
+    const cat = community.category || 'Autre';
     if (!byCategory.has(cat)) byCategory.set(cat, []);
-    byCategory.get(cat)!.push(await toCommunity(row, authReq.uid));
+    byCategory.get(cat)!.push(community);
   }
   for (const category of COMMUNITY_CATEGORIES) {
     const items = (byCategory.get(category) || []).slice(0, limit);
@@ -269,8 +347,7 @@ router.get('/mine', async (req: Request, res: Response) => {
      ORDER BY s.createdAt DESC`,
     [authReq.uid!],
   );
-  const items: Community[] = [];
-  for (const row of rows) items.push(await toCommunity(row, authReq.uid));
+  const items = await enrichCommunities(rows, authReq.uid);
   res.json(items);
 });
 
@@ -290,8 +367,7 @@ router.get('/search', async (req: Request, res: Response) => {
      LIMIT ?`,
     [`%${q}%`, `%${q}%`, `%${q}%`, limit],
   );
-  const items: Community[] = [];
-  for (const row of rows) items.push(await toCommunity(row, authReq.uid));
+  const items = await enrichCommunities(rows, authReq.uid);
   res.json(items);
 });
 
@@ -317,8 +393,7 @@ router.get('/discover', async (req: Request, res: Response) => {
      LIMIT ?`,
     [...params, limit],
   );
-  const items: Community[] = [];
-  for (const row of rows) items.push(await toCommunity(row, authReq.uid));
+  const items = await enrichCommunities(rows, authReq.uid);
   res.json(items);
 });
 
