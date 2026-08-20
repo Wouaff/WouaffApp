@@ -22,7 +22,6 @@ const DiscoverCommunitiesPage = lazy(() => import('./pages/DiscoverCommunitiesPa
 const HomePage = lazy(() => import('./pages/HomePage'));
 const DownloadPage = lazy(() => import('./pages/DownloadPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
-const FeedPage = lazy(() => import('./pages/FeedPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const MaintenancePage = lazy(() => import('./pages/MaintenancePage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
@@ -36,7 +35,6 @@ const TagPage = lazy(() => import('./pages/TagPage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 
 const HomeMobile = lazy(() => import('./mobile/pages/HomeMobile'));
-const FeedMobile = lazy(() => import('./mobile/pages/FeedMobile'));
 const NotificationsMobile = lazy(() => import('./mobile/pages/NotificationsMobile'));
 
 import { offAccountBanned, onAccountBanned } from './services/socket';
@@ -161,7 +159,6 @@ function SeoTitle() {
     const titles: Record<string, string> = {
       '/': 'Wouaff — ton fil, pas leur algo',
       '/messages': 'Messages — Wouaff',
-      '/feed': 'Feed — Wouaff',
       '/settings': 'Paramètres — Wouaff',
       '/admin': 'Administration — Wouaff',
     };
@@ -247,24 +244,6 @@ function AppRoutes() {
                 <MaintenanceGuard>
                   <MobileLayout>
                     <SettingsPage />
-                  </MobileLayout>
-                </MaintenanceGuard>
-              </ProtectedRoute>
-            )
-          }
-        />
-        <Route
-          path="/feed"
-          element={
-            isMobile ? (
-              <MobileProtected>
-                <FeedMobile />
-              </MobileProtected>
-            ) : (
-              <ProtectedRoute>
-                <MaintenanceGuard>
-                  <MobileLayout>
-                    <FeedPage />
                   </MobileLayout>
                 </MaintenanceGuard>
               </ProtectedRoute>

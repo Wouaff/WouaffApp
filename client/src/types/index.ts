@@ -128,24 +128,6 @@ export interface CallerInfo {
   avatar?: string;
 }
 
-export interface VideoData {
-  id: string;
-  uid: string;
-  videoPath: string;
-  thumbnailPath?: string;
-  caption?: string;
-  duration?: number;
-  location?: { lat: number; lng: number; name?: string } | null;
-  likesCount: number;
-  commentsCount: number;
-  createdAt: number;
-  liked?: boolean;
-  pseudo?: string;
-  avatar?: string;
-  wouaffId?: string;
-  ownedBadges?: string[];
-}
-
 export interface VideoComment {
   id: number;
   videoId: string;

@@ -181,7 +181,6 @@ const NOINDEX_PATHS = [
   /^\/messages/,
   /^\/hashtag\//,
   /^\/settings/,
-  /^\/feed/,
   /^\/communities/,
   /^\/discover/,
   /^\/c\//,

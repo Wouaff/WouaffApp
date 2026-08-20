@@ -46,16 +46,3 @@ export function MobileSkeleton({ count = 4 }: { count?: number }) {
     </div>
   );
 }
-
-export function VideoGridSkeleton({ count = 6 }: { count?: number }) {
-  return (
-    <div className="grid grid-cols-2 gap-3 px-4 pt-3">
-      {Array.from({ length: count }).map((_, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: tuiles de skeleton statiques
-        <div key={i} className="mobile-skeleton-video">
-          <IonSkeletonText animated style={{ width: '100%', height: '100%' }} />
-        </div>
-      ))}
-    </div>
-  );
-}
