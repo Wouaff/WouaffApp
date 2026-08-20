@@ -38,6 +38,26 @@ async function requireGroupMember(req: Request, res: Response): Promise<boolean>
   return false;
 }
 
+/* Vérifie que l'uid est l'auteur du message (table + colonne id passées en littéraux sûrs). */
+async function isMessageOwner(
+  table: 'messages' | 'group_messages',
+  idCol: 'convId' | 'gid',
+  id: string,
+  msgKey: string,
+  uid: string,
+): Promise<boolean> {
+  const row = await getOne<{ fromUid: string }>(`SELECT fromUid FROM ${table} WHERE ${idCol}=? AND msgKey=?`, [
+    id,
+    msgKey,
+  ]);
+  return !!row && row.fromUid === uid;
+}
+
+async function isGroupAdmin(gid: string, uid: string): Promise<boolean> {
+  const row = await getOne<{ role: string }>('SELECT role FROM group_members WHERE gid=? AND uid=?', [gid, uid]);
+  return !!row && (row.role === 'owner' || row.role === 'admin');
+}
+
 /* GET /messages/:uid — messages d'une conversation DM */
 router.get('/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -108,6 +128,10 @@ router.post('/group/:gid', async (req: Request, res: Response) => {
 router.delete('/:uid/:msgKey', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
+  if (!(await isMessageOwner('messages', 'convId', cid, req.params.msgKey, authReq.uid!))) {
+    res.status(403).json({ error: 'Vous ne pouvez pas supprimer ce message' });
+    return;
+  }
   await updateMessage(cid, req.params.msgKey, {
     text: '',
     deleted: true,
@@ -131,6 +155,13 @@ router.delete('/:uid/:msgKey', async (req: Request, res: Response) => {
 /* DELETE /messages/group/:gid/:msgKey — supprimer un message groupe */
 router.delete('/group/:gid/:msgKey', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
+  const authReq = req as AuthRequest;
+  const isAuthor = await isMessageOwner('group_messages', 'gid', req.params.gid, req.params.msgKey, authReq.uid!);
+  const isAdmin = await isGroupAdmin(req.params.gid, authReq.uid!);
+  if (!isAuthor && !isAdmin) {
+    res.status(403).json({ error: 'Vous ne pouvez pas supprimer ce message' });
+    return;
+  }
   await updateGroupMessage(req.params.gid, req.params.msgKey, {
     text: '',
     deleted: true,
@@ -161,6 +192,10 @@ router.delete('/group/:gid/:msgKey', async (req: Request, res: Response) => {
 router.patch('/:uid/:msgKey', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
+  if (!(await isMessageOwner('messages', 'convId', cid, req.params.msgKey, authReq.uid!))) {
+    res.status(403).json({ error: 'Vous ne pouvez pas modifier ce message' });
+    return;
+  }
   await updateMessage(cid, req.params.msgKey, req.body);
   const io = req.app.get('io');
   if (io) io.to(`dm:${cid}`).emit('message:updated', { convId: cid, key: req.params.msgKey, data: req.body });
@@ -170,6 +205,11 @@ router.patch('/:uid/:msgKey', async (req: Request, res: Response) => {
 /* PATCH /messages/group/:gid/:msgKey */
 router.patch('/group/:gid/:msgKey', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
+  const authReq = req as AuthRequest;
+  if (!(await isMessageOwner('group_messages', 'gid', req.params.gid, req.params.msgKey, authReq.uid!))) {
+    res.status(403).json({ error: 'Vous ne pouvez pas modifier ce message' });
+    return;
+  }
   await updateGroupMessage(req.params.gid, req.params.msgKey, req.body);
   const io = req.app.get('io');
   if (io)
