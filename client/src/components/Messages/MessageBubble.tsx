@@ -45,6 +45,17 @@ export const MessageBubble = memo(function MessageBubble({ msg, isMine, showSend
             src={msg.imageData}
             alt=""
             className="msg-image"
+            style={{
+              display: 'block',
+              marginTop: 4,
+              maxWidth: '100%',
+              maxHeight: 'min(340px, 40vh)',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+              borderRadius: 12,
+              cursor: 'zoom-in',
+            }}
             onClick={(e) => {
               e.stopPropagation();
               setViewer(true);
