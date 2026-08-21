@@ -16,6 +16,7 @@ const TYPE_META: Record<NotificationItem['type'], { icon: string; color: string 
   follow: { icon: personAdd, color: 'var(--brand)' },
   community_reply: { icon: chatbubble, color: 'var(--brand)' },
   community_mention: { icon: personAdd, color: 'var(--brand)' },
+  mention: { icon: personAdd, color: 'var(--brand)' },
 };
 
 function timeAgo(ts: number): string {
@@ -143,6 +144,8 @@ export default function NotificationsMobile() {
                     {n.type === 'like' && 'a aimé votre post'}
                     {n.type === 'repost' && 'a repartagé votre post'}
                     {n.type === 'comment' && 'a commenté votre post'}
+                    {n.type === 'community_mention' && 'vous a mentionné'}
+                    {n.type === 'mention' && 'vous a mentionné'}
                   </p>
                   {n.postText && <p className="m-0 text-[12px] text-[var(--text-muted)] truncate">{n.postText}</p>}
                   <p className="m-0 text-[11px] text-[var(--text-muted)]">{timeAgo(n.createdAt)}</p>

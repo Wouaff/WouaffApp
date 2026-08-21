@@ -233,7 +233,14 @@ export interface FeedItem {
   repost?: RepostInfo;
 }
 
-export type NotificationType = 'follow' | 'like' | 'repost' | 'comment' | 'community_reply' | 'community_mention';
+export type NotificationType =
+  | 'follow'
+  | 'like'
+  | 'repost'
+  | 'comment'
+  | 'community_reply'
+  | 'community_mention'
+  | 'mention';
 
 export interface NotificationItem {
   id: number;

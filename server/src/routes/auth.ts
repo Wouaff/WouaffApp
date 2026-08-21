@@ -10,6 +10,7 @@ import { genCode, getLastEmailError, sendVerificationEmail } from '../services/e
 import { enqueueJob } from '../services/queue.js';
 import { getStaffRole, isStaff, isUserBanned } from '../services/rtdb.js';
 import { createLoginChallenge, get2FAStatus } from '../services/twoFA.js';
+import { createWelcomePost } from '../services/welcomePost.js';
 import type { AuthRequest } from '../types/index.js';
 
 const router: Router = Router();
@@ -76,6 +77,10 @@ router.post('/register', verifyCaptcha, async (req: Request, res: Response) => {
 
     /* Notifier l'inscription sur Discord (via la file, sans bloquer l'inscription) */
     enqueueNewUserAlert({ pseudo: finalPseudo, wouaffId, uid }).catch(() => {});
+
+    /* Publier un post de bienvenue automatique */
+    const io = req.app.get('io');
+    createWelcomePost(io || null, uid, finalPseudo).catch(() => {});
 
     const { sessionId } = await createSession(uid, {
       ip: req.ip,

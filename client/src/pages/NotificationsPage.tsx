@@ -40,6 +40,8 @@ function notifTitle(item: NotificationItem): string {
       return `${item.actorPseudo} a répondu à votre post de communauté`;
     case 'community_mention':
       return `${item.actorPseudo} vous a mentionné`;
+    case 'mention':
+      return `${item.actorPseudo} vous a mentionné`;
     default:
       return 'Nouvelle notification';
   }
@@ -58,6 +60,8 @@ function notifVerb(item: NotificationItem): string {
     case 'community_reply':
       return 'a répondu à votre post';
     case 'community_mention':
+      return 'vous a mentionné';
+    case 'mention':
       return 'vous a mentionné';
     default:
       return '';
@@ -82,6 +86,7 @@ const TYPE_ICONS: Record<NotificationItem['type'], { Icon: typeof Bell; cls: str
   follow: { Icon: UserPlus, cls: 'text-brand bg-[var(--brand-glow)]' },
   community_reply: { Icon: MessageCircle, cls: 'text-brand bg-[var(--brand-glow)]' },
   community_mention: { Icon: AtSign, cls: 'text-brand bg-[var(--brand-glow)]' },
+  mention: { Icon: AtSign, cls: 'text-brand bg-[var(--brand-glow)]' },
 };
 
 export default function NotificationsPage() {
