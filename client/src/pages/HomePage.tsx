@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { showToast, default as Toast } from '../components/Common/Toast';
+import BuyMeACoffee from '../components/Home/BuyMeACoffee';
 import ComposeBox from '../components/Home/ComposeBox';
 import LeftNav from '../components/Home/LeftNav';
 import OnboardingController from '../components/Home/OnboardingController';
@@ -346,6 +347,7 @@ export default function HomePage() {
 
         <div className="w-full max-w-[600px] mx-auto">
           <ComposeBox onPost={handlePost} />
+          <BuyMeACoffee />
 
           {loading ? (
             <div className="py-16 px-6 flex flex-col items-center gap-3">
