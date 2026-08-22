@@ -1,4 +1,4 @@
-Wouaff License — Version 1.0
+Wouaff License — Version 2.0
 
 Copyright (c) 2026 Wouaff
 
@@ -10,17 +10,15 @@ to the original project (the "Wouaff" application).
 The following restrictions apply:
 
 1. The name "Wouaff" and the application branding (logo, icons, visual identity)
-   must not be changed, removed, or replaced in any distributed copy of the
-   Software.
+   is owned by Wouaff.
 
-2. Redistribution of the Software under a different name or brand is
-   prohibited.
+2. In any fork/redistribution this license must apply using the version used at the date of the fork/redistribution.
 
-3. The Software may not be used to create, distribute, or operate a competing
-   service under a different name.
+3. The source code of the fork/redistribution must stay available to all.
 
-4. All distributed copies must retain this license notice and the original
-   copyright notice.
+4. All copyright, patent, trademark, and attribution notices from the original software must be retained in all forks and redistributions.
+
+Failure to comply with any of these restrictions will result in the immediate and automatic termination of this license.
 
 This license does not grant permission to use the name "Wouaff" or any
 contributor names for endorsing derived products without written consent.
