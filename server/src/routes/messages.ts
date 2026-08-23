@@ -97,8 +97,24 @@ router.post('/:uid', async (req: Request, res: Response) => {
   }
 
   const cid = chatId(authReq.uid!, targetUid);
+  const b = req.body as Record<string, unknown>;
   const msg: MessageData = {
-    ...req.body,
+    text: b.text as string | undefined,
+    type: b.type as string | undefined,
+    encrypted: b.encrypted as boolean | undefined,
+    ct: b.ct as string | undefined,
+    iv: b.iv as string | undefined,
+    imageData: b.imageData as string | undefined,
+    fileData: b.fileData as string | undefined,
+    fileName: b.fileName as string | undefined,
+    audioData: b.audioData as string | undefined,
+    duration: b.duration as number | undefined,
+    contact: b.contact as Record<string, string> | undefined,
+    html: b.html as string | undefined,
+    replyTo: b.replyTo as string | undefined,
+    messageTheme: b.messageTheme as string | undefined,
+    forwardedFrom: b.forwardedFrom as string | undefined,
+    ephemeralDuration: b.ephemeralDuration as number | undefined,
     from: authReq.uid!,
     time: Date.now(),
   };
@@ -119,8 +135,24 @@ router.post('/:uid', async (req: Request, res: Response) => {
 router.post('/group/:gid', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
   const authReq = req as AuthRequest;
+  const b = req.body as Record<string, unknown>;
   const msg: MessageData = {
-    ...req.body,
+    text: b.text as string | undefined,
+    type: b.type as string | undefined,
+    encrypted: b.encrypted as boolean | undefined,
+    ct: b.ct as string | undefined,
+    iv: b.iv as string | undefined,
+    imageData: b.imageData as string | undefined,
+    fileData: b.fileData as string | undefined,
+    fileName: b.fileName as string | undefined,
+    audioData: b.audioData as string | undefined,
+    duration: b.duration as number | undefined,
+    contact: b.contact as Record<string, string> | undefined,
+    html: b.html as string | undefined,
+    replyTo: b.replyTo as string | undefined,
+    messageTheme: b.messageTheme as string | undefined,
+    forwardedFrom: b.forwardedFrom as string | undefined,
+    ephemeralDuration: b.ephemeralDuration as number | undefined,
     from: authReq.uid!,
     time: Date.now(),
   };
@@ -203,9 +235,24 @@ router.patch('/:uid/:msgKey', async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Vous ne pouvez pas modifier ce message' });
     return;
   }
-  await updateMessage(cid, req.params.msgKey, req.body);
+  const { text, edited, reactions, pinned, type, encrypted, ct, iv, fileName, duration, replyTo, messageTheme } =
+    req.body as Record<string, unknown>;
+  const patch: Record<string, unknown> = {};
+  if (text !== undefined) patch.text = text;
+  if (edited !== undefined) patch.edited = edited;
+  if (reactions !== undefined) patch.reactions = reactions;
+  if (pinned !== undefined) patch.pinned = pinned;
+  if (type !== undefined) patch.type = type;
+  if (encrypted !== undefined) patch.encrypted = encrypted;
+  if (ct !== undefined) patch.ct = ct;
+  if (iv !== undefined) patch.iv = iv;
+  if (fileName !== undefined) patch.fileName = fileName;
+  if (duration !== undefined) patch.duration = duration;
+  if (replyTo !== undefined) patch.replyTo = replyTo;
+  if (messageTheme !== undefined) patch.messageTheme = messageTheme;
+  await updateMessage(cid, req.params.msgKey, patch);
   const io = req.app.get('io');
-  if (io) io.to(`dm:${cid}`).emit('message:updated', { convId: cid, key: req.params.msgKey, data: req.body });
+  if (io) io.to(`dm:${cid}`).emit('message:updated', { convId: cid, key: req.params.msgKey, data: patch });
   res.json({ success: true });
 });
 
@@ -217,13 +264,28 @@ router.patch('/group/:gid/:msgKey', async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Vous ne pouvez pas modifier ce message' });
     return;
   }
-  await updateGroupMessage(req.params.gid, req.params.msgKey, req.body);
+  const { text, edited, reactions, pinned, type, encrypted, ct, iv, fileName, duration, replyTo, messageTheme } =
+    req.body as Record<string, unknown>;
+  const patch: Record<string, unknown> = {};
+  if (text !== undefined) patch.text = text;
+  if (edited !== undefined) patch.edited = edited;
+  if (reactions !== undefined) patch.reactions = reactions;
+  if (pinned !== undefined) patch.pinned = pinned;
+  if (type !== undefined) patch.type = type;
+  if (encrypted !== undefined) patch.encrypted = encrypted;
+  if (ct !== undefined) patch.ct = ct;
+  if (iv !== undefined) patch.iv = iv;
+  if (fileName !== undefined) patch.fileName = fileName;
+  if (duration !== undefined) patch.duration = duration;
+  if (replyTo !== undefined) patch.replyTo = replyTo;
+  if (messageTheme !== undefined) patch.messageTheme = messageTheme;
+  await updateGroupMessage(req.params.gid, req.params.msgKey, patch);
   const io = req.app.get('io');
   if (io)
     io.to(`group:${req.params.gid}`).emit('message:updated', {
       convId: req.params.gid,
       key: req.params.msgKey,
-      data: req.body,
+      data: patch,
       isGroup: true,
     });
   res.json({ success: true });

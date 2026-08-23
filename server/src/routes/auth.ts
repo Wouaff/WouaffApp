@@ -6,7 +6,7 @@ import { getOne, query } from '../config/database.js';
 import { createSession, verifyToken } from '../middleware/auth.js';
 import { verifyCaptcha } from '../middleware/captcha.js';
 import { enqueueNewUserAlert } from '../services/discordWebhook.js';
-import { genCode, getLastEmailError, sendVerificationEmail } from '../services/email.js';
+import { genCode, sendVerificationEmail } from '../services/email.js';
 import { enqueueJob } from '../services/queue.js';
 import { getStaffRole, isStaff, isUserBanned } from '../services/rtdb.js';
 import { createLoginChallenge, get2FAStatus } from '../services/twoFA.js';
@@ -24,9 +24,11 @@ function genToken(): string {
 }
 
 function setSessionCookie(res: Response, sessionId: string): void {
+  const isProd = process.env.NODE_ENV === 'production' || !!process.env.APP_URL;
   res.cookie('session_id', sessionId, {
     httpOnly: true,
     sameSite: 'lax',
+    secure: isProd,
     maxAge: 30 * 24 * 60 * 60 * 1000,
     path: '/',
   });
@@ -282,7 +284,7 @@ router.post('/send-verification', verifyToken, async (req: Request, res: Respons
     const sent = await sendVerificationEmail(profile.email, code);
     if (!sent) {
       res.status(500).json({
-        error: `Impossible d'envoyer l'email (SMTP). Détail : ${getLastEmailError() || 'inconnu'}`,
+        error: "Impossible d'envoyer l'email. Réessayez plus tard.",
       });
       return;
     }

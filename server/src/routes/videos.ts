@@ -9,7 +9,26 @@ import { getProfile } from '../services/rtdb.js';
 import type { AuthRequest, VideoComment, VideoData } from '../types/index.js';
 import { fetchBadgesMap } from '../utils/badges.js';
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
+const ALLOWED_VIDEO_TYPES = new Set([
+  'video/mp4',
+  'video/webm',
+  'video/ogg',
+  'video/quicktime',
+  'video/x-msvideo',
+  'video/x-matroska',
+]);
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_VIDEO_TYPES.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Type de fichier non supporté. Seules les vidéos sont acceptées.'));
+    }
+  },
+});
 
 const router: Router = Router();
 router.use(verifyToken);

@@ -54,7 +54,21 @@ app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
 /* Middleware */
-app.use(cors({ origin: true, credentials: true }));
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.APP_URL || 'https://wouaff.app')
+  .split(',')
+  .map((o) => o.trim());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
+    credentials: true,
+  }),
+);
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -79,6 +93,14 @@ app.use('/api/communities', rateLimit({ windowMs: 60000, max: 120 }));
 app.use('/api/trends', rateLimit({ windowMs: 60000, max: 30 }));
 app.use('/api/gifs', rateLimit({ windowMs: 60000, max: 60 }));
 app.use('/api/link-preview', rateLimit({ windowMs: 60000, max: 20 }));
+app.use('/api/admin/bootstrap', rateLimit({ windowMs: 60000, max: 3 }));
+app.use('/api/auth/2fa/verify', rateLimit({ windowMs: 60000, max: 10 }));
+app.use('/api/auth/verify-email', rateLimit({ windowMs: 60000, max: 10 }));
+app.use('/api/notifications', rateLimit({ windowMs: 60000, max: 60 }));
+app.use('/api/groups', rateLimit({ windowMs: 60000, max: 60 }));
+app.use('/api/profiles', rateLimit({ windowMs: 60000, max: 60 }));
+app.use('/api/stories', rateLimit({ windowMs: 60000, max: 30 }));
+app.use('/api/blocks', rateLimit({ windowMs: 60000, max: 30 }));
 
 /* Public maintenance status (accessible even during maintenance) */
 app.get('/api/maintenance', (_req, res) => {

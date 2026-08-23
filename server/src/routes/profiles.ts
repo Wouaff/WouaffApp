@@ -1,7 +1,8 @@
+import bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import type { Server } from 'socket.io';
-import { query } from '../config/database.js';
+import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
 import { resolveMusicLink } from '../services/musicOembed.js';
 import { enqueueJob } from '../services/queue.js';
@@ -100,12 +101,19 @@ router.put('/me', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Le pseudo ne peut pas contenir de majuscules' });
     return;
   }
-  await updateProfile(authReq.uid!, req.body);
+  const { pseudo, bio, avatar, banner, social_links } = req.body as Record<string, unknown>;
+  const patch: Record<string, unknown> = {};
+  if (pseudo !== undefined) patch.pseudo = pseudo;
+  if (bio !== undefined) patch.bio = bio;
+  if (avatar !== undefined) patch.avatar = avatar;
+  if (banner !== undefined) patch.banner = banner;
+  if (social_links !== undefined) patch.social_links = social_links;
+  await updateProfile(authReq.uid!, patch);
   const io: Server = req.app.get('io');
   if (io) {
     const contactUids = await getReverseContactUids(authReq.uid!);
     for (const cu of contactUids) {
-      io.to(`user:${cu}`).emit('profile:updated', { uid: authReq.uid!, ...req.body });
+      io.to(`user:${cu}`).emit('profile:updated', { uid: authReq.uid!, ...patch });
     }
   }
   res.json({ success: true });
@@ -146,6 +154,18 @@ router.delete('/me/music', async (req: Request, res: Response) => {
 /* DELETE /profiles/me — supprimer mon compte */
 router.delete('/me', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
+  const { password } = req.body as { password?: string };
+  if (!password) {
+    res.status(400).json({ error: 'Mot de passe requis pour supprimer le compte' });
+    return;
+  }
+  const user = await getOne<{ passwordHash: string | null }>('SELECT passwordHash FROM users WHERE uid=?', [
+    authReq.uid!,
+  ]);
+  if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+    res.status(403).json({ error: 'Mot de passe incorrect' });
+    return;
+  }
   await deleteUserProfile(authReq.uid!);
   const io: Server = req.app.get('io');
   if (io) {

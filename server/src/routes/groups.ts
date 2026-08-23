@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import type { Server } from 'socket.io';
@@ -54,7 +55,7 @@ router.post('/', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Nom requis' });
     return;
   }
-  const inviteId = Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+  const inviteId = randomUUID();
   const groupMembers: Record<string, { role: string; joinedAt: number }> = {
     [authReq.uid!]: { role: 'owner', joinedAt: Date.now() },
   };
@@ -120,10 +121,15 @@ router.put('/:gid', async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Action réservée aux admins' });
     return;
   }
-  await updateGroup(req.params.gid, req.body);
+  const { name, description, icon } = req.body as { name?: string; description?: string; icon?: string };
+  const patch: Record<string, unknown> = {};
+  if (name !== undefined) patch.name = name;
+  if (description !== undefined) patch.description = description;
+  if (icon !== undefined) patch.icon = icon;
+  await updateGroup(req.params.gid, patch);
   const io: Server = req.app.get('io');
   if (io) {
-    emitToGroup(io, req.params.gid, 'group:updated', { gid: req.params.gid, ...req.body });
+    emitToGroup(io, req.params.gid, 'group:updated', { gid: req.params.gid, ...patch });
   }
   res.json({ success: true });
 });
@@ -267,7 +273,7 @@ router.post('/:gid/invite', async (req: Request, res: Response) => {
   }
   const oldInv = await getGroupInviteByGroup(req.params.gid);
   if (oldInv?.inviteId) await removeGroupInvite(oldInv.inviteId as string);
-  const newInviteId = Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+  const newInviteId = randomUUID();
   await createGroupInvite(newInviteId, req.params.gid);
   res.json({ inviteId: newInviteId });
 });
