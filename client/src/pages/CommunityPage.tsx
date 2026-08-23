@@ -1,7 +1,8 @@
-import { ArrowLeft, ChevronDown, Lock, PenSquare, Plus, Users } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Lock, PenSquare, Plus, Settings, Users } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { showToast } from '../components/Common/Toast';
+import CommunityEditModal from '../components/Home/CommunityEditModal';
 import CommunityPostCard from '../components/Home/CommunityPostCard';
 import CommunityPostModal from '../components/Home/CommunityPostModal';
 import { communities as communitiesAPI } from '../services/api';
@@ -23,6 +24,7 @@ export default function CommunityPage() {
   const [hasMore, setHasMore] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
   const [showRules, setShowRules] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -260,6 +262,16 @@ export default function CommunityPage() {
                 <span>{community?.postCount ?? 0} posts</span>
               </div>
             </div>
+            {community?.myRole === 'admin' && (
+              <button
+                type="button"
+                onClick={() => setShowEdit(true)}
+                aria-label="Modifier la communauté"
+                className="w-9 h-9 rounded-full flex items-center justify-center border border-[var(--border)] bg-transparent cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                <Settings size={16} />
+              </button>
+            )}
             <button
               type="button"
               onClick={toggleSubscribe}
@@ -388,6 +400,16 @@ export default function CommunityPage() {
         </main>
       </div>
 
+      {showEdit && community && (
+        <CommunityEditModal
+          community={community}
+          onClose={() => setShowEdit(false)}
+          onUpdated={(updated) => {
+            setCommunity(updated);
+            setShowEdit(false);
+          }}
+        />
+      )}
       {showComposer && community && (
         <Composer community={community} onPosted={handlePosted} onClose={() => setShowComposer(false)} />
       )}

@@ -1,23 +1,14 @@
-import { Camera, Lock, Plus, Trash2, X } from 'lucide-react';
+import { Camera, Lock, Trash2, X } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { communities as communitiesAPI } from '../../services/api';
 import type { Community } from '../../types';
 import { compressImage } from '../../utils/audio';
 import { showToast } from '../Common/Toast';
 
-interface CommunityCreateModalProps {
+interface CommunityEditModalProps {
+  community: Community;
   onClose: () => void;
-  onCreated?: (community: Community) => void;
-}
-
-function slugify(raw: string): string {
-  return raw
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
+  onUpdated?: (community: Community) => void;
 }
 
 const CATEGORIES = [
@@ -33,20 +24,18 @@ const CATEGORIES = [
   'Autre',
 ];
 
-export default function CommunityCreateModal({ onClose, onCreated }: CommunityCreateModalProps) {
-  const navigate = useNavigate();
-  const [name, setName] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Actu FR');
-  const [rules, setRules] = useState<string[]>(['', '', '']);
-  const [isPrivate, setIsPrivate] = useState(false);
+export default function CommunityEditModal({ community, onClose, onUpdated }: CommunityEditModalProps) {
+  const [displayName, setDisplayName] = useState(community.displayName || '');
+  const [description, setDescription] = useState(community.description || '');
+  const [category, setCategory] = useState(community.category || 'Autre');
+  const [rules, setRules] = useState<string[]>(community.rules.length > 0 ? community.rules : ['']);
+  const [isPrivate, setIsPrivate] = useState(community.isPrivate);
+  const [avatar, setAvatar] = useState(community.avatar || '');
+  const [banner, setBanner] = useState(community.banner || '');
   const [sending, setSending] = useState(false);
-  const [avatar, setAvatar] = useState('');
-  const [imageLoading, setImageLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const slug = slugify(name);
+  const [imageLoading, setImageLoading] = useState<'avatar' | 'banner' | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const setRule = (index: number, value: string) => {
     setRules((prev) => prev.map((r, i) => (i === index ? value : r)));
@@ -60,7 +49,7 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
     setRules((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const pickAvatar = async (file: File) => {
+  const pickImage = async (file: File, kind: 'avatar' | 'banner') => {
     if (!file.type.startsWith('image/')) {
       showToast('Le fichier sélectionné doit être une image.', 'error');
       return;
@@ -69,24 +58,25 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
       showToast('Image trop volumineuse (5 Mo maximum).', 'error');
       return;
     }
-    setImageLoading(true);
+    setImageLoading(kind);
     const reader = new FileReader();
     reader.onload = async (e) => {
       if (!e.target?.result) {
-        setImageLoading(false);
+        setImageLoading(null);
         return;
       }
       try {
-        const compressed = await compressImage(e.target.result as string, 600, 0.78);
-        setAvatar(compressed);
+        const compressed = await compressImage(e.target.result as string, kind === 'avatar' ? 600 : 1200, 0.78);
+        if (kind === 'avatar') setAvatar(compressed);
+        else setBanner(compressed);
       } catch {
         showToast("Impossible de traiter l'image.", 'error');
       } finally {
-        setImageLoading(false);
+        setImageLoading(null);
       }
     };
     reader.onerror = () => {
-      setImageLoading(false);
+      setImageLoading(null);
       showToast("Impossible de lire l'image.", 'error');
     };
     reader.readAsDataURL(file);
@@ -94,31 +84,22 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
 
   const submit = async () => {
     const cleanRules = rules.map((r) => r.trim()).filter(Boolean);
-    if (!slug || slug.length < 2 || slug.length > 50) {
-      showToast('Nom invalide (2 à 50 caractères : lettres minuscules, chiffres, _)', 'error');
-      return;
-    }
-    if (!description.trim() && cleanRules.length === 0) {
-      showToast('Ajoute une description ou au moins une règle', 'error');
-      return;
-    }
     setSending(true);
     try {
-      const community = await communitiesAPI.create({
-        name: slug,
-        displayName: displayName.trim() || slug,
+      const updated = await communitiesAPI.update(community.name, {
+        displayName: displayName.trim() || community.name,
         description: description.trim(),
         category,
         rules: cleanRules,
-        avatar: avatar || undefined,
+        avatar,
+        banner,
         isPrivate,
       });
-      showToast(`Communauté c/${slug} créée 🎉`, 'success');
-      onCreated?.(community);
+      showToast('Communauté mise à jour', 'success');
+      onUpdated?.(updated);
       onClose();
-      navigate(`/c/${community.name}`);
     } catch (err) {
-      showToast((err as Error).message || 'Erreur lors de la création', 'error');
+      showToast((err as Error).message || 'Erreur lors de la mise à jour', 'error');
     } finally {
       setSending(false);
     }
@@ -141,16 +122,57 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
           >
             <X size={18} />
           </button>
-          <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">Créer une communauté</span>
+          <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">Modifier c/{community.name}</span>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4 min-h-0">
+          {/* Banner */}
+          <div>
+            {/* biome-ignore lint/a11y/noLabelWithoutControl: input caché, interaction via le div role="button" */}
+            <label className="block text-[13px] font-bold text-[var(--text-secondary)] mb-1.5">Bannière</label>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => bannerInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') bannerInputRef.current?.click();
+              }}
+              className="relative w-full h-24 rounded-xl overflow-hidden bg-[var(--bg-input)] border border-[var(--border)] cursor-pointer group flex items-center justify-center"
+            >
+              {banner ? (
+                <img src={banner} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[13px] text-[var(--text-muted)]">Ajouter une bannière</span>
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera size={18} className="text-white" />
+              </div>
+              {imageLoading === 'banner' && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <div className="spinner" />
+                </div>
+              )}
+            </div>
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) pickImage(file, 'banner');
+                e.target.value = '';
+              }}
+            />
+          </div>
+
+          {/* Avatar */}
           <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => avatarInputRef.current?.click()}
               className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-xl overflow-hidden cursor-pointer border-none flex-shrink-0 group"
-              aria-label="Ajouter une photo de profil"
+              aria-label="Changer la photo de profil"
             >
               {avatar ? (
                 <img src={avatar} alt="" className="w-full h-full object-cover" />
@@ -160,53 +182,36 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <Camera size={18} className="text-white" />
               </div>
+              {imageLoading === 'avatar' && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <div className="spinner" />
+                </div>
+              )}
             </button>
             <input
-              ref={fileInputRef}
+              ref={avatarInputRef}
               type="file"
               accept="image/*"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) pickAvatar(file);
+                if (file) pickImage(file, 'avatar');
                 e.target.value = '';
               }}
             />
             <div className="text-[13px] text-[var(--text-secondary)]">
               <div className="font-bold text-[var(--text-primary)]">Photo de profil</div>
-              <div className="text-[12px] text-[var(--text-muted)]">Optionnel — 5 Mo max</div>
+              <div className="text-[12px] text-[var(--text-muted)]">Clique pour changer</div>
             </div>
-            {imageLoading && <div className="spinner" />}
           </div>
 
+          {/* Display Name */}
           <div>
-            <label htmlFor="cc-name" className="block text-[13px] font-bold text-[var(--text-secondary)] mb-1.5">
-              Nom de la communauté
-            </label>
-            <div className="flex items-center gap-1.5 bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3 focus-within:border-[var(--brand)] transition-colors">
-              <span className="text-[var(--text-muted)] font-semibold">c/</span>
-              <input
-                id="cc-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="france, tech_fr, humour..."
-                maxLength={50}
-                aria-label="Nom de la communauté"
-                className="flex-1 bg-transparent border-none outline-none py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] font-sans"
-              />
-            </div>
-            <p className="m-0 mt-1 text-[12px] text-[var(--text-muted)]">
-              URL : /c/{slug || '...'} — lettres minuscules, chiffres et _ uniquement.
-            </p>
-          </div>
-
-          <div>
-            <label htmlFor="cc-display" className="block text-[13px] font-bold text-[var(--text-secondary)] mb-1.5">
+            <label htmlFor="ce-display" className="block text-[13px] font-bold text-[var(--text-secondary)] mb-1.5">
               Nom d'affichage
             </label>
             <input
-              id="cc-display"
+              id="ce-display"
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -217,12 +222,13 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
             />
           </div>
 
+          {/* Description */}
           <div>
-            <label htmlFor="cc-desc" className="block text-[13px] font-bold text-[var(--text-secondary)] mb-1.5">
+            <label htmlFor="ce-desc" className="block text-[13px] font-bold text-[var(--text-secondary)] mb-1.5">
               Description
             </label>
             <textarea
-              id="cc-desc"
+              id="ce-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="De quoi parle ta communauté ?"
@@ -233,12 +239,13 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
             />
           </div>
 
+          {/* Category */}
           <div>
-            <label htmlFor="cc-cat" className="block text-[13px] font-bold text-[var(--text-secondary)] mb-1.5">
+            <label htmlFor="ce-cat" className="block text-[13px] font-bold text-[var(--text-secondary)] mb-1.5">
               Catégorie
             </label>
             <select
-              id="cc-cat"
+              id="ce-cat"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               aria-label="Catégorie"
@@ -252,12 +259,13 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
             </select>
           </div>
 
+          {/* Rules */}
           <div>
-            {/* biome-ignore lint/a11y/noLabelWithoutControl: étiquette de groupe pour la liste de règles */}
+            {/* biome-ignore lint/a11y/noLabelWithoutControl: étiquette de groupe */}
             <label className="block text-[13px] font-bold text-[var(--text-secondary)] mb-1.5">Règles</label>
             <div className="flex flex-col gap-2">
               {rules.map((rule, index) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: liste de règles éditables, la position est l'identifiant
+                // biome-ignore lint/suspicious/noArrayIndexKey: liste de règles éditables
                 <div key={index} className="flex items-center gap-2">
                   <span className="text-[12px] font-bold text-[var(--text-muted)] w-5 text-right flex-shrink-0">
                     {index + 1}.
@@ -287,19 +295,20 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
                 type="button"
                 onClick={addRule}
                 disabled={rules.length >= 10}
-                className="self-start flex items-center gap-1.5 text-[13px] font-bold text-brand rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:bg-[var(--brand-glow)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="self-start text-[13px] font-bold text-brand rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:bg-[var(--brand-glow)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Plus size={15} /> Ajouter une règle
+                + Ajouter une règle
               </button>
             </div>
           </div>
 
+          {/* Private toggle */}
           <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-[var(--border)] px-3 py-2.5">
             <Lock size={18} className="text-[var(--text-muted)] flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="text-[14px] font-bold text-[var(--text-primary)]">Communauté privée</div>
               <div className="text-[12px] text-[var(--text-secondary)]">
-                Le contenu n'est visible que par les membres (abonnés).
+                Le contenu n'est visible que par les membres.
               </div>
             </div>
             <input
@@ -323,10 +332,10 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
           <button
             type="button"
             onClick={submit}
-            disabled={sending || !slug}
+            disabled={sending}
             className="ml-auto bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
           >
-            {sending ? 'Création...' : 'Créer la communauté'}
+            {sending ? 'Enregistrement...' : 'Enregistrer'}
           </button>
         </div>
       </div>

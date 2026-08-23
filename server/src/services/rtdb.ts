@@ -1410,6 +1410,25 @@ export async function deleteUserProfile(uid: string): Promise<void> {
   await query('DELETE FROM users WHERE uid=?', [uid]);
 }
 
+export async function purgeUnverifiedAccounts(): Promise<{ deleted: number }> {
+  const rows = await query<Array<{ uid: string }>>('SELECT uid FROM users WHERE emailVerified = 0');
+  if (rows.length === 0) return { deleted: 0 };
+  const uids = rows.map((r) => r.uid);
+  const ph = uids.map(() => '?').join(',');
+  await query(`DELETE FROM wouaff_id_index WHERE wouaffId IN (SELECT wouaffId FROM users WHERE emailVerified = 0)`, []);
+  await query(`DELETE FROM contacts WHERE uid IN (${ph}) OR contactUid IN (${ph})`, [...uids, ...uids]);
+  await query(`DELETE FROM user_badges WHERE uid IN (${ph})`, uids);
+  await query(`DELETE FROM group_members WHERE uid IN (${ph})`, uids);
+  await query(`DELETE FROM messages WHERE fromUid IN (${ph})`, uids);
+  await query(`DELETE FROM group_messages WHERE fromUid IN (${ph})`, uids);
+  await query(`DELETE FROM fcm_tokens WHERE uid IN (${ph})`, uids);
+  await query(`DELETE FROM deleted_convs WHERE uid IN (${ph})`, uids);
+  await query(`DELETE FROM stories WHERE uid IN (${ph})`, uids);
+  await query(`DELETE FROM sessions WHERE uid IN (${ph})`, uids);
+  await query(`DELETE FROM users WHERE emailVerified = 0`, []);
+  return { deleted: uids.length };
+}
+
 /* ── Contact Requests ── */
 
 export async function sendContactRequest(fromUid: string, toUid: string): Promise<void> {

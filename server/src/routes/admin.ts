@@ -45,6 +45,7 @@ import {
   resetUserWouaffId,
   seedBadges,
   setGroupMemberRole,
+  purgeUnverifiedAccounts,
   setMaintenanceMode,
   setStaff,
   setStaffRole,
@@ -625,6 +626,14 @@ router.post('/maintenance', async (req: Request, res: Response) => {
     message,
   );
   res.json({ success: true });
+});
+
+/* POST /admin/purge-unverified — supprimer tous les comptes sans email vérifié (owner) */
+router.post('/purge-unverified', async (req: Request, res: Response) => {
+  if (!(await requireRole(req, res, 'owner'))) return;
+  const result = await purgeUnverifiedAccounts();
+  await logAdminAction((req as AuthRequest).uid!, 'purge_unverified', 'system', undefined, `${result.deleted} comptes`);
+  res.json(result);
 });
 
 export default router;
