@@ -1401,6 +1401,7 @@ export async function deleteUserProfile(uid: string): Promise<void> {
   const row = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM users WHERE uid=?', [uid]);
   if (row?.wouaffId) await query('DELETE FROM wouaff_id_index WHERE wouaffId=?', [row.wouaffId]);
   await query('DELETE FROM contacts WHERE uid=? OR contactUid=?', [uid, uid]);
+  await query('DELETE FROM follows WHERE followerUid=? OR followedUid=?', [uid, uid]);
   await query('DELETE FROM user_badges WHERE uid=?', [uid]);
   await query('DELETE FROM group_members WHERE uid=?', [uid]);
   await query('DELETE FROM messages WHERE fromUid=?', [uid]);
@@ -1418,6 +1419,7 @@ export async function purgeUnverifiedAccounts(): Promise<{ deleted: number }> {
   const ph = uids.map(() => '?').join(',');
   await query(`DELETE FROM wouaff_id_index WHERE wouaffId IN (SELECT wouaffId FROM users WHERE emailVerified = 0)`, []);
   await query(`DELETE FROM contacts WHERE uid IN (${ph}) OR contactUid IN (${ph})`, [...uids, ...uids]);
+  await query(`DELETE FROM follows WHERE followerUid IN (${ph}) OR followedUid IN (${ph})`, [...uids, ...uids]);
   await query(`DELETE FROM user_badges WHERE uid IN (${ph})`, uids);
   await query(`DELETE FROM group_members WHERE uid IN (${ph})`, uids);
   await query(`DELETE FROM messages WHERE fromUid IN (${ph})`, uids);
