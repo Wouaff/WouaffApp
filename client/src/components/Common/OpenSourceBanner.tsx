@@ -23,6 +23,7 @@ export default function OpenSourceBanner() {
       <div
         className="bg-[var(--bg-card)] rounded-2xl p-6 max-w-[400px] w-[90%] border border-[var(--border)] shadow-[0_8px_32px_rgba(0,0,0,.4)]"
         role="dialog"
+        aria-label="Annonce open source WouaffApp"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold mb-3">🎉 WouaffApp est maintenant open source !</h2>

@@ -1,0 +1,27 @@
+# Wouaff
+
+Wouaff est un réseau social français open source, sans publicité, dont les données sont hébergées en France.
+
+## À propos
+
+Wouaff propose des posts, vidéos, communautés, et messages privés chiffrés de bout en bout. Le code source est disponible sur GitHub.
+
+- Site : https://wouaff.app
+- Code source : https://github.com/Wouaff/WouaffApp
+- Contact : contact@wouaff.app
+
+## Pages principales
+
+- [Accueil](https://wouaff.app/)
+- [Communautés](https://wouaff.app/communities)
+- [Download](https://wouaff.app/download)
+- [Authentification](https://wouaff.app/auth)
+
+## API
+
+Le serveur expose une API REST sur `/api/`. Les endpoints principaux :
+
+- `GET /api/posts` — fil d'actualité
+- `GET /api/communities` — liste des communautés
+- `GET /api/search` — recherche
+- `GET /api/public/profile/:wouaffId` — profil public
