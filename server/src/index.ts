@@ -40,6 +40,7 @@ import statusRouter from './routes/status.js';
 import storiesRouter from './routes/stories.js';
 import trendsRouter from './routes/trends.js';
 import videosRouter from './routes/videos.js';
+import { INDEXNOW_KEY, indexNowKeyFileContent } from './services/indexnow.js';
 import { startQueueWorker } from './services/queue.js';
 import { registerQueueHandlers, setQueueIo } from './services/queueHandlers.js';
 import { cleanExpiredEphemeralMessages, getMaintenanceMode } from './services/rtdb.js';
@@ -183,6 +184,14 @@ app.get('/robots.txt', (_req, res) => {
   res.type('text/plain');
   res.send(robotsTxt());
 });
+
+/* IndexNow key file verification */
+if (INDEXNOW_KEY) {
+  app.get(`/${INDEXNOW_KEY}.txt`, (_req, res) => {
+    res.type('text/plain');
+    res.send(indexNowKeyFileContent());
+  });
+}
 
 /* SEO & embeds sociaux : injection serveur des meta OG/Twitter selon l'URL */
 let indexHtmlCache: string | null = null;

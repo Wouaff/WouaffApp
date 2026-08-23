@@ -4,6 +4,7 @@ import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
+import { notifyIndexNow } from '../services/indexnow.js';
 import { resolveMusicLink } from '../services/musicOembed.js';
 import { enqueueJob } from '../services/queue.js';
 import {
@@ -116,6 +117,8 @@ router.put('/me', async (req: Request, res: Response) => {
       io.to(`user:${cu}`).emit('profile:updated', { uid: authReq.uid!, ...patch });
     }
   }
+  const profileRow = await getOne<{ wouaffId: string }>('SELECT wouaffId FROM users WHERE uid = ?', [authReq.uid!]);
+  if (profileRow?.wouaffId) notifyIndexNow(`/@${profileRow.wouaffId.replace(/^@/, '')}`);
   res.json({ success: true });
 });
 

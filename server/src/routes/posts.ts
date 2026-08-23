@@ -5,6 +5,7 @@ import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
 import { verifyCaptchaIfNewAccount } from '../middleware/captcha.js';
+import { notifyIndexNow } from '../services/indexnow.js';
 import { enqueueJob } from '../services/queue.js';
 import { getProfile, reportPost } from '../services/rtdb.js';
 import type { AuthRequest, PostComment, PostData, PostFeedItem, PostPoll, PostReaction } from '../types/index.js';
@@ -293,6 +294,7 @@ router.post('/', verifyCaptchaIfNewAccount, async (req: Request, res: Response) 
     };
     const io: Server = req.app.get('io');
     if (io) io.emit('post:new', post);
+    notifyIndexNow(`/post/${id}`);
     res.json(post);
   } catch (err) {
     res.status(400).json({ error: (err as { message?: string }).message });
@@ -458,6 +460,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
   const io: Server = req.app.get('io');
   if (io) io.emit('post:deleted', { postId: req.params.id });
+  notifyIndexNow(`/post/${req.params.id}`);
   res.json({ success: true });
 });
 

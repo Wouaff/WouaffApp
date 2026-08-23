@@ -4,6 +4,7 @@ import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
+import { notifyIndexNow } from '../services/indexnow.js';
 import { enqueueJob } from '../services/queue.js';
 import type {
   AuthRequest,
@@ -534,6 +535,7 @@ router.post('/', async (req: Request, res: Response) => {
   );
   const io: Server = req.app.get('io');
   if (io) io.emit('community:created', community);
+  notifyIndexNow(`/c/${slug}`);
   res.json(community);
 });
 
@@ -591,6 +593,7 @@ router.put('/:name', async (req: Request, res: Response) => {
   const io: Server = req.app.get('io');
   if (io) io.to(`community:${id}`).emit('community:updated', { communityId: id });
   const updated = await getCommunityRow(req.params.name.toLowerCase());
+  notifyIndexNow(`/c/${req.params.name}`);
   res.json(await toCommunity(updated!, authReq.uid));
 });
 
