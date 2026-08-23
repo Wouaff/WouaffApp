@@ -4,7 +4,8 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
 import { createSession, verifyToken } from '../middleware/auth.js';
-import { verifyCaptcha } from '../middleware/captcha.js';
+import { verifyCaptcha, verifyCaptchaStrict } from '../middleware/captcha.js';
+import { rateLimitByKey } from '../middleware/rateLimitByKey.js';
 import { enqueueNewUserAlert } from '../services/discordWebhook.js';
 import { genCode, sendVerificationEmail } from '../services/email.js';
 import { enqueueJob } from '../services/queue.js';
@@ -12,6 +13,7 @@ import { getStaffRole, isStaff, isUserBanned } from '../services/rtdb.js';
 import { createLoginChallenge, get2FAStatus } from '../services/twoFA.js';
 import { createWelcomePost } from '../services/welcomePost.js';
 import type { AuthRequest } from '../types/index.js';
+import { isValidEmail } from '../utils/emailValidation.js';
 
 const router: Router = Router();
 
@@ -34,16 +36,38 @@ function setSessionCookie(res: Response, sessionId: string): void {
   });
 }
 
+/* Rate limit par email : 3 inscriptions max par email dans la fenêtre */
+const registerEmailLimit = rateLimitByKey({
+  windowMs: 3600000,
+  max: 3,
+  keyFn: (req) => {
+    const email = (((req.body as Record<string, unknown>)?.email as string) || '').toLowerCase().trim();
+    return email ? `reg:${email}` : '';
+  },
+  message: "Trop d'inscriptions avec cet email, réessayez plus tard.",
+});
+
 /* POST /auth/register */
-router.post('/register', verifyCaptcha, async (req: Request, res: Response) => {
+router.post('/register', verifyCaptchaStrict, registerEmailLimit, async (req: Request, res: Response) => {
   try {
+    /* Honeypot : si rempli par un bot, on fait semblant de marcher mais on rejette */
+    const honeypot = (req.body as Record<string, unknown>).website as string | undefined;
+    if (honeypot) {
+      res.status(201).json({ uid: 'fake', pseudo: 'bot', wouaffId: '@fake', emailVerified: false });
+      return;
+    }
+
     const { email, password, pseudo } = req.body as { email?: string; password?: string; pseudo?: string };
     if (!email || !password) {
       res.status(400).json({ error: 'Email et mot de passe requis' });
       return;
     }
-    if (password.length < 6) {
-      res.status(400).json({ error: 'Mot de passe trop court (6 caractères minimum)' });
+    if (!isValidEmail(email)) {
+      res.status(400).json({ error: 'Adresse email invalide ou non autorisée' });
+      return;
+    }
+    if (password.length < 8) {
+      res.status(400).json({ error: 'Mot de passe trop court (8 caractères minimum)' });
       return;
     }
     const existing = await getOne<{ uid: string }>('SELECT uid FROM users WHERE email = ?', [email]);
@@ -64,6 +88,23 @@ router.post('/register', verifyCaptcha, async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Pseudo trop court (3 caractères minimum)' });
       return;
     }
+    if (!/^[a-z0-9_]+$/.test(basePseudo)) {
+      res.status(400).json({ error: 'Le pseudo ne peut contenir que des lettres minuscules, chiffres et underscores' });
+      return;
+    }
+
+    /* Vérifier l'unicité du pseudo avant INSERT (évite l'overwrite de l'index) */
+    const pseudoTaken = await getOne<{ uid: string }>('SELECT uid FROM wouaff_id_index WHERE wouaffId = ?', [
+      `@${basePseudo}`,
+    ]);
+    if (pseudoTaken) {
+      res.status(409).json({ error: 'Ce pseudo est déjà pris' });
+      return;
+    }
+
+    /* Délai artificiel pour ralentir les scripts (500ms) */
+    await new Promise((r) => setTimeout(r, 500));
+
     const uid = genUid();
     const finalPseudo = basePseudo;
     const passwordHash = await bcrypt.hash(password, 10);
@@ -72,17 +113,10 @@ router.post('/register', verifyCaptcha, async (req: Request, res: Response) => {
       'INSERT INTO users (uid, pseudo, email, passwordHash, wouaffId, createdAt, emailVerified) VALUES (?,?,?,?,?,?,?)',
       [uid, finalPseudo, email, passwordHash, wouaffId, Date.now(), 0],
     );
-    await query('INSERT INTO wouaff_id_index (wouaffId, uid) VALUES (?,?) ON DUPLICATE KEY UPDATE uid=VALUES(uid)', [
-      wouaffId,
-      uid,
-    ]);
+    await query('INSERT INTO wouaff_id_index (wouaffId, uid) VALUES (?,?)', [wouaffId, uid]);
 
     /* Notifier l'inscription sur Discord (via la file, sans bloquer l'inscription) */
     enqueueNewUserAlert({ pseudo: finalPseudo, wouaffId, uid }).catch(() => {});
-
-    /* Publier un post de bienvenue automatique */
-    const io = req.app.get('io');
-    createWelcomePost(io || null, uid, finalPseudo).catch(() => {});
 
     const { sessionId } = await createSession(uid, {
       ip: req.ip,
@@ -327,6 +361,14 @@ router.post('/verify-email', async (req: Request, res: Response) => {
     }
     await query('UPDATE users SET emailVerified=1 WHERE uid=?', [row.uid]);
     await query('UPDATE email_tokens SET used=1 WHERE id=?', [row.id]);
+
+    /* Créer le post de bienvenue après vérification de l'email */
+    const user = await getOne<{ pseudo: string }>('SELECT pseudo FROM users WHERE uid=?', [row.uid]);
+    if (user?.pseudo) {
+      const io = req.app.get('io');
+      createWelcomePost(io || null, row.uid, user.pseudo).catch(() => {});
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error('Verify-email error:', err);

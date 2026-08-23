@@ -53,6 +53,7 @@ export default function MobileLoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
   const cap = useCap('register');
 
   const [twoFactor, setTwoFactor] = useState<{ loginChallenge: string; methods: TwoFactorMethods } | null>(null);
@@ -122,7 +123,7 @@ export default function MobileLoginPage() {
       setIsLoading(true);
       try {
         if (isRegister) {
-          await register(email, password, pseudo, cap.token);
+          await register(email, password, pseudo, cap.token, honeypot);
         } else {
           const data = await login(email, password);
           if (isPasskeyResult(data)) {
@@ -140,7 +141,7 @@ export default function MobileLoginPage() {
         setIsLoading(false);
       }
     },
-    [email, password, pseudo, confirmPassword, isRegister, pwValid, cap, enter2FA, finishLogin],
+    [email, password, pseudo, confirmPassword, isRegister, pwValid, cap, enter2FA, finishLogin, honeypot],
   );
 
   const handleSendEmail2FA = useCallback(async () => {
@@ -488,6 +489,33 @@ export default function MobileLoginPage() {
               )}
 
               {isRegister && <div className="flex justify-center">{cap.widget}</div>}
+
+              {/* Honeypot anti-bot — invisible pour les humains */}
+              {isRegister && (
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    left: '-9999px',
+                    opacity: 0,
+                    height: 0,
+                    width: 0,
+                    overflow: 'hidden',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <label htmlFor="wouaff-website-mobile">Site web</label>
+                  <input
+                    id="wouaff-website-mobile"
+                    type="text"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                  />
+                </div>
+              )}
 
               {error && (
                 <div

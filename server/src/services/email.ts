@@ -26,18 +26,20 @@ export function getLastEmailError(): string | null {
   return lastError;
 }
 
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+
 export function genCode(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  const values = crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(values, (v) => CODE_CHARS[v % CODE_CHARS.length]).join('');
 }
 
 export async function sendVerificationEmail(to: string, code: string): Promise<boolean> {
-  const link = `${APP_URL}/verify-email?token=${code}`;
   try {
     await transporter.sendMail({
       from: EMAIL_FROM,
       to,
-      subject: `Votre code de vérification : ${code} — Wouaff`,
-      html: `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;background:#f5f5f5;padding:40px 20px}.card{max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,.08)}.logo{text-align:center;font-size:24px;font-weight:700;color:#f97b3b;margin-bottom:20px}h2{text-align:center;color:#1a1a2e;margin:0 0 8px}p{color:#555;line-height:1.6;text-align:center;margin:0 0 24px}.code{display:block;width:fit-content;margin:0 auto 24px;padding:16px 32px;background:#f97b3b;color:#fff;font-size:32px;font-weight:800;letter-spacing:8px;border-radius:12px}.btn{display:inline-block;padding:12px 28px;background:#f97b3b;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px}.btn-wrap{text-align:center}.footer{text-align:center;color:#999;font-size:12px;margin-top:24px}</style></head><body><div class="card"><div class="logo">Wouaff</div><h2>Votre code de vérification</h2><p>Merci de votre inscription ! Saisissez le code ci-dessous pour confirmer votre adresse email.</p><span class="code">${code}</span><div class="btn-wrap"><a class="btn" href="${link}">Ou confirmer en un clic</a></div><div class="footer">Si vous n'avez pas créé de compte, ignorez cet email.</div></div></body></html>`,
+      subject: `Votre code de vérification — Wouaff`,
+      html: `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;background:#f5f5f5;padding:40px 20px}.card{max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,.08)}.logo{text-align:center;font-size:24px;font-weight:700;color:#f97b3b;margin-bottom:20px}h2{text-align:center;color:#1a1a2e;margin:0 0 8px}p{color:#555;line-height:1.6;text-align:center;margin:0 0 24px}.code{display:block;width:fit-content;margin:0 auto 24px;padding:16px 32px;background:#f97b3b;color:#fff;font-size:28px;font-weight:800;letter-spacing:6px;border-radius:12px}.footer{text-align:center;color:#999;font-size:12px;margin-top:24px}</style></head><body><div class="card"><div class="logo">Wouaff</div><h2>Votre code de vérification</h2><p>Merci de votre inscription ! Saisissez le code ci-dessous pour confirmer votre adresse email.</p><span class="code">${code}</span><div class="footer">Si vous n'avez pas créé de compte, ignorez cet email.</div></div></body></html>`,
     });
     lastError = null;
     return true;

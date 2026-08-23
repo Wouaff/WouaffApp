@@ -11,11 +11,12 @@ export async function register(
   password: string,
   pseudo: string,
   capToken?: string,
+  honeypot?: string,
 ): Promise<{ uid: string; pseudo: string; wouaffId: string }> {
   const res = await fetch('/api/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, pseudo, capToken }),
+    body: JSON.stringify({ email, password, pseudo, capToken, website: honeypot || '' }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Erreur lors de l'inscription");

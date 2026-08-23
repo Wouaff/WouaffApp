@@ -33,6 +33,31 @@ export function verifyCaptcha(req: Request, res: Response, next: NextFunction): 
   });
 }
 
+/* Captcha obligatoire pour l'inscription — rejette même si le provider n'est pas configuré */
+export function verifyCaptchaStrict(req: Request, res: Response, next: NextFunction): void {
+  void (async () => {
+    try {
+      if (!isCaptchaEnabled()) {
+        res.status(400).json({ error: 'Service de vérification indisponible' });
+        return;
+      }
+      const token = extractToken(req);
+      if (!token) {
+        res.status(400).json({ error: 'CAPTCHA requis' });
+        return;
+      }
+      const ok = await verifyCapToken(token);
+      if (!ok) {
+        res.status(400).json({ error: 'Vérification CAPTCHA échouée' });
+        return;
+      }
+      next();
+    } catch {
+      res.status(503).json({ error: 'Service de vérification indisponible' });
+    }
+  })();
+}
+
 export function verifyCaptchaIfNewAccount(req: Request, res: Response, next: NextFunction): void {
   void (async () => {
     try {
