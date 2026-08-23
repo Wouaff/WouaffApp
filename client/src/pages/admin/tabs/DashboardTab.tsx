@@ -13,7 +13,6 @@ import {
   MessageSquare,
   RefreshCw,
   Repeat2,
-  Save,
   ShieldAlert,
   TrendingUp,
   User,
@@ -33,7 +32,6 @@ import {
   SectionTitle,
   SegTabs,
   StatCard,
-  Textarea,
   useNow,
   useToast,
 } from '../ui';
@@ -111,9 +109,6 @@ export function DashboardTab({ refreshSignal, isOwner }: { refreshSignal: number
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [days, setDays] = useState<'7' | '30'>('7');
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [maintenanceOn, setMaintenanceOn] = useState(false);
-  const [maintenanceMsg, setMaintenanceMsg] = useState('');
-  const [maintenanceBusy, setMaintenanceBusy] = useState(false);
   const [seedBusy, setSeedBusy] = useState(false);
   const [migrateBusy, setMigrateBusy] = useState(false);
 
@@ -134,13 +129,6 @@ export function DashboardTab({ refreshSignal, isOwner }: { refreshSignal: number
   useEffect(() => {
     loadStats();
     loadAnalytics('7');
-    adminApi.maintenance
-      .get()
-      .then((m) => {
-        setMaintenanceOn(m.enabled);
-        setMaintenanceMsg(m.message ?? '');
-      })
-      .catch(() => {});
     /* Auto-refresh des stats toutes les 60s */
     const id = setInterval(loadStats, 60000);
     return () => clearInterval(id);
@@ -152,19 +140,6 @@ export function DashboardTab({ refreshSignal, isOwner }: { refreshSignal: number
   }, [refreshSignal, loadStats]);
 
   useNow();
-
-  const toggleMaintenance = async (apply?: boolean) => {
-    setMaintenanceBusy(true);
-    try {
-      const next = apply ? true : !maintenanceOn;
-      await adminApi.maintenance.set(next, maintenanceMsg || undefined);
-      setMaintenanceOn(next);
-      toast(next ? 'Mode maintenance activé' : 'Mode maintenance désactivé', 'success');
-    } catch {
-      toast('Erreur lors du changement d’état', 'error');
-    }
-    setMaintenanceBusy(false);
-  };
 
   const seedBadges = async () => {
     setSeedBusy(true);
@@ -207,16 +182,6 @@ export function DashboardTab({ refreshSignal, isOwner }: { refreshSignal: number
         }
       />
 
-      {maintenanceOn && (
-        <div className="wa-alert wa-alert-danger">
-          <ShieldAlert size={18} />
-          <div className="wa-alert-body">
-            <strong>Maintenance active</strong>
-            <span>{maintenanceMsg || 'Aucun message affiché aux utilisateurs.'}</span>
-          </div>
-        </div>
-      )}
-
       {stats && (
         <div>
           {GROUPS.map((g) => (
@@ -250,36 +215,7 @@ export function DashboardTab({ refreshSignal, isOwner }: { refreshSignal: number
               Migrer wouaffIds
             </Button>
           )}
-          <Button
-            variant={maintenanceOn ? 'danger' : 'secondary'}
-            size="sm"
-            icon={<ShieldAlert size={14} />}
-            onClick={() => toggleMaintenance()}
-            loading={maintenanceBusy}
-          >
-            {maintenanceOn ? 'Désactiver maintenance' : 'Activer maintenance'}
-          </Button>
         </div>
-        {maintenanceOn && (
-          <div style={{ marginTop: 12 }}>
-            <Textarea
-              rows={2}
-              value={maintenanceMsg}
-              onChange={(e) => setMaintenanceMsg(e.target.value)}
-              placeholder="Message optionnel affiché aux utilisateurs…"
-            />
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<Save size={14} />}
-              onClick={() => toggleMaintenance(true)}
-              loading={maintenanceBusy}
-              style={{ marginTop: 8 }}
-            >
-              Appliquer le message
-            </Button>
-          </div>
-        )}
       </Card>
 
       <SectionTitle

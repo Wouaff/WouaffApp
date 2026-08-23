@@ -632,6 +632,7 @@ export const admin = {
     set: (enabled: boolean, message?: string) =>
       request<{ success: boolean }>('POST', '/admin/maintenance', { enabled, message }),
   },
+  purgeUnverified: () => request<{ deleted: number }>('POST', '/admin/purge-unverified'),
 };
 
 /* ── Badges ── */

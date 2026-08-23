@@ -10,6 +10,7 @@ import {
   Menu,
   RefreshCw,
   Search,
+  Settings,
   Shield,
   ShieldCheck,
   User,
@@ -34,11 +35,21 @@ import { type GroupRequest, GroupsTab } from './tabs/GroupsTab';
 import { LogsTab } from './tabs/LogsTab';
 import { ModerationTab } from './tabs/ModerationTab';
 import { ReportsTab } from './tabs/ReportsTab';
+import { SettingsTab } from './tabs/SettingsTab';
 import { StaffTab } from './tabs/StaffTab';
 import { type UserRequest, UsersTab } from './tabs/UsersTab';
 import { Avatar, Button, Chip, ConfirmProvider, Spinner, ToastProvider, useToast } from './ui';
 
-export type TabId = 'dashboard' | 'moderation' | 'groups' | 'reports' | 'users' | 'bans' | 'staff' | 'logs';
+export type TabId =
+  | 'dashboard'
+  | 'moderation'
+  | 'groups'
+  | 'reports'
+  | 'users'
+  | 'bans'
+  | 'staff'
+  | 'logs'
+  | 'settings';
 
 export const TABS: Array<{ id: TabId; label: string; icon: ReactNode }> = [
   { id: 'dashboard', label: 'Tableau de bord', icon: <LayoutDashboard size={18} /> },
@@ -49,6 +60,7 @@ export const TABS: Array<{ id: TabId; label: string; icon: ReactNode }> = [
   { id: 'bans', label: 'Bans', icon: <Ban size={18} /> },
   { id: 'staff', label: 'Staff', icon: <Shield size={18} /> },
   { id: 'logs', label: 'Activité', icon: <Activity size={18} /> },
+  { id: 'settings', label: 'Paramètres', icon: <Settings size={18} /> },
 ];
 
 interface PaletteResult {
@@ -466,6 +478,7 @@ export default function AdminApp() {
           {tab === 'bans' && <BansTab isOwner={isOwner} />}
           {tab === 'staff' && <StaffTab isOwner={isOwner} />}
           {tab === 'logs' && <LogsTab />}
+          {tab === 'settings' && <SettingsTab isOwner={isOwner} />}
         </main>
       </div>
     </div>
