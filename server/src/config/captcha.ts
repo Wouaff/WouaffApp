@@ -1,30 +1,29 @@
 export interface CaptchaConfig {
-  instance: string;
-  siteKey: string;
   secretKey: string;
 }
 
 export function getCaptchaConfig(): CaptchaConfig | null {
-  const instance = (process.env.CAP_INSTANCE || '').trim().replace(/\/+$/, '');
-  const siteKey = (process.env.CAP_SITE_KEY || '').trim();
-  const secretKey = (process.env.CAP_SECRET_KEY || '').trim();
-  if (!instance || !siteKey || !secretKey) return null;
-  return { instance, siteKey, secretKey };
+  const secretKey = (process.env.TURNSTILE_SECRET_KEY || '').trim();
+  if (!secretKey) return null;
+  return { secretKey };
 }
 
 export function isCaptchaEnabled(): boolean {
   return getCaptchaConfig() !== null;
 }
 
-export async function verifyCapToken(token: string): Promise<boolean> {
+export async function verifyTurnstileToken(token: string, ip?: string): Promise<boolean> {
   const cfg = getCaptchaConfig();
   if (!cfg) return true;
-  const url = `${cfg.instance}/${cfg.siteKey}/siteverify`;
   try {
-    const res = await fetch(url, {
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret: cfg.secretKey, response: token }),
+      body: JSON.stringify({
+        secret: cfg.secretKey,
+        response: token,
+        remoteip: ip,
+      }),
     });
     if (!res.ok) return false;
     const data = (await res.json()) as { success?: boolean };

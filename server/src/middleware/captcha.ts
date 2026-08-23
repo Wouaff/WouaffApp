@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { isCaptchaEnabled, verifyCapToken } from '../config/captcha.js';
+import { isCaptchaEnabled, verifyTurnstileToken } from '../config/captcha.js';
 import { getOne } from '../config/database.js';
 import type { AuthRequest } from '../types/index.js';
 
@@ -8,8 +8,18 @@ export const NEW_ACCOUNT_MS = 7 * 24 * 60 * 60 * 1000;
 function extractToken(req: Request): string {
   const body = (req.body || {}) as Record<string, unknown>;
   const raw =
-    typeof body.capToken === 'string' ? body.capToken : typeof body.cap_token === 'string' ? body.cap_token : '';
+    typeof body.capToken === 'string'
+      ? body.capToken
+      : typeof body.cap_token === 'string'
+        ? body.cap_token
+        : typeof body.turnstileToken === 'string'
+          ? body.turnstileToken
+          : '';
   return raw.trim();
+}
+
+function getClientIp(req: Request): string {
+  return (req.ip || req.socket?.remoteAddress || '').replace(/^::ffff:/, '');
 }
 
 async function checkCaptcha(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -19,7 +29,7 @@ async function checkCaptcha(req: Request, res: Response, next: NextFunction): Pr
     res.status(400).json({ error: 'CAPTCHA requis' });
     return;
   }
-  const ok = await verifyCapToken(token);
+  const ok = await verifyTurnstileToken(token, getClientIp(req));
   if (!ok) {
     res.status(400).json({ error: 'Vérification CAPTCHA échouée' });
     return;
@@ -46,7 +56,7 @@ export function verifyCaptchaStrict(req: Request, res: Response, next: NextFunct
         res.status(400).json({ error: 'CAPTCHA requis' });
         return;
       }
-      const ok = await verifyCapToken(token);
+      const ok = await verifyTurnstileToken(token, getClientIp(req));
       if (!ok) {
         res.status(400).json({ error: 'Vérification CAPTCHA échouée' });
         return;

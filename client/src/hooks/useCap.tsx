@@ -4,7 +4,7 @@ import CapWidget from '../components/Common/CapWidget';
 export type CapScope = 'register' | 'forgot' | 'post' | 'comment';
 
 const env = (import.meta as unknown as { env?: Record<string, string> }).env || {};
-const CAP_ENABLED = !!(env.VITE_CAP_API_ENDPOINT || '').trim();
+const TURNSTILE_ENABLED = !!(env.VITE_TURNSTILE_SITE_KEY || '').trim();
 
 export interface UseCapResult {
   required: boolean;
@@ -16,12 +16,12 @@ export interface UseCapResult {
 
 export function useCap(scope: CapScope): UseCapResult {
   const [required, setRequired] = useState(false);
-  const [checking, setChecking] = useState(CAP_ENABLED);
+  const [checking, setChecking] = useState(TURNSTILE_ENABLED);
   const [token, setToken] = useState('');
 
   useEffect(() => {
     let cancelled = false;
-    if (!CAP_ENABLED) {
+    if (!TURNSTILE_ENABLED) {
       setRequired(false);
       setChecking(false);
       return;
