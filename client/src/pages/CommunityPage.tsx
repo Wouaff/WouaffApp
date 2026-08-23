@@ -221,7 +221,11 @@ export default function CommunityPage() {
       <header className="flex-shrink-0 border-b border-[var(--border)] bg-[var(--bg-base)]">
         {community?.banner && (
           <div className="h-24 sm:h-32 overflow-hidden">
-            <img src={community.banner} alt="" className="w-full h-full object-cover" />
+            <img
+              src={community.banner}
+              alt={`Bannière de c/${community.name}`}
+              className="w-full h-full object-cover"
+            />
           </div>
         )}
         <div className="px-4 py-3">
@@ -236,7 +240,11 @@ export default function CommunityPage() {
             </button>
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-lg overflow-hidden">
               {community?.avatar ? (
-                <img src={community?.avatar} alt="" className="w-full h-full object-cover" />
+                <img
+                  src={community?.avatar}
+                  alt={`Avatar de c/${community?.name}`}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <span>{initial}</span>
               )}

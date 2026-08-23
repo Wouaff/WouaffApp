@@ -161,8 +161,21 @@ function SeoTitle() {
       '/messages': 'Messages — Wouaff',
       '/settings': 'Paramètres — Wouaff',
       '/admin': 'Administration — Wouaff',
+      '/communities': 'Communautés — Wouaff',
+      '/discover': 'Découvrir — Wouaff',
+      '/notifications': 'Notifications — Wouaff',
+      '/search': 'Recherche — Wouaff',
+      '/auth': 'Connexion — Wouaff',
+      '/download': 'Télécharger Wouaff — Wouaff',
+      '/forgot-password': 'Mot de passe oublié — Wouaff',
     };
-    const t = titles[loc.pathname];
+    let t = titles[loc.pathname];
+    if (!t) {
+      if (loc.pathname.startsWith('/c/')) t = 'Communauté — Wouaff';
+      else if (loc.pathname.startsWith('/@')) t = 'Profil — Wouaff';
+      else if (loc.pathname.startsWith('/post/')) t = 'Post — Wouaff';
+      else if (loc.pathname.startsWith('/hashtag/')) t = 'Hashtag — Wouaff';
+    }
     if (t) document.title = t;
   }, [loc.pathname]);
   return null;

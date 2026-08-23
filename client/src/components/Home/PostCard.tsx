@@ -87,7 +87,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
           >
             <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
               {post.avatar ? (
-                <img src={post.avatar} alt="" className="w-full h-full object-cover" />
+                <img src={post.avatar} alt={`Avatar de ${post.pseudo}`} className="w-full h-full object-cover" />
               ) : (
                 <span>{initial}</span>
               )}
@@ -96,7 +96,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
         ) : (
           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
             {post.avatar ? (
-              <img src={post.avatar} alt="" className="w-full h-full object-cover" />
+              <img src={post.avatar} alt={`Avatar de ${post.pseudo}`} className="w-full h-full object-cover" />
             ) : (
               <span>{initial}</span>
             )}
@@ -134,7 +134,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
           {post.image && (
             <img
               src={post.image}
-              alt=""
+              alt={`Post de ${post.pseudo}`}
               className="mt-2 rounded-2xl border border-[var(--border)] max-h-[480px] w-full object-cover"
               loading="lazy"
               decoding="async"

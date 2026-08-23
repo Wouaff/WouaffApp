@@ -657,6 +657,23 @@ export default function LandingPage() {
 
         {/* ── FAQ ── */}
         <section className="mx-auto max-w-3xl px-4 py-20 sm:px-6 sm:py-24">
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'FAQPage',
+                mainEntity: FAQ.map((f) => ({
+                  '@type': 'Question',
+                  name: f.q,
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: f.a,
+                  },
+                })),
+              }),
+            }}
+          />
           <h2 className="text-center text-3xl font-black tracking-tight text-white sm:text-[40px]">
             Les questions <span className="text-brand-light">qu’on se pose.</span>
           </h2>

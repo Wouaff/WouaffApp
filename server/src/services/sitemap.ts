@@ -51,13 +51,17 @@ async function loadEntries(): Promise<UrlEntry[]> {
     { loc: `${SITE_URL}/download`, changefreq: 'monthly', priority: '0.5' },
   ];
 
-  const [posts, profiles] = await Promise.all([
+  const [posts, profiles, communities] = await Promise.all([
     query<Array<{ id: string; createdAt: number }>>('SELECT id, createdAt FROM posts ORDER BY createdAt DESC LIMIT ?', [
       POSTS_LIMIT,
     ]),
     query<Array<{ wouaffId: string }>>(
       'SELECT wouaffId FROM users WHERE wouaffId IS NOT NULL AND wouaffId != "" ORDER BY createdAt DESC LIMIT ?',
       [PROFILES_LIMIT],
+    ),
+    query<Array<{ name: string; createdAt: number }>>(
+      'SELECT name, createdAt FROM communities ORDER BY createdAt DESC LIMIT 5000',
+      [],
     ),
   ]);
 
@@ -77,6 +81,15 @@ async function loadEntries(): Promise<UrlEntry[]> {
       loc: `${SITE_URL}/@${encodeURIComponent(handle)}`,
       changefreq: 'weekly',
       priority: '0.6',
+    });
+  }
+
+  for (const community of communities) {
+    entries.push({
+      loc: `${SITE_URL}/c/${community.name}`,
+      lastmod: isoDate(community.createdAt),
+      changefreq: 'weekly',
+      priority: '0.7',
     });
   }
 

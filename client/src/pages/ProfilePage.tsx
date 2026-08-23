@@ -360,7 +360,11 @@ export default function ProfilePage() {
 
           <div className="flex items-start justify-between px-4">
             <div className="w-24 h-24 -mt-12 rounded-full border-4 border-[var(--bg-base)] bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-white font-extrabold text-3xl flex-shrink-0">
-              {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
+              {avatar ? (
+                <img src={avatar} alt={`Avatar de ${pseudo}`} className="w-full h-full object-cover" />
+              ) : (
+                <span>{initial}</span>
+              )}
             </div>
             <div className="mt-3">{actionBtn}</div>
           </div>

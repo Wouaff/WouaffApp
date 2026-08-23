@@ -80,6 +80,23 @@ export async function profileSeo(handle: string, url: string): Promise<SeoData |
   };
 }
 
+export async function communitySeo(name: string, url: string): Promise<SeoData | null> {
+  const row = await getOne<Record<string, unknown>>(
+    'SELECT displayName, description, avatar FROM communities WHERE name = ?',
+    [name],
+  );
+  if (!row) return null;
+  const displayName = (row.displayName as string) || name;
+  const description = strip((row.description as string) || '');
+  return {
+    title: `c/${name} — ${displayName} — Wouaff`,
+    description: description || `Découvrez la communauté c/${name} sur Wouaff.`,
+    image: absoluteImage((row.avatar as string) || null) ?? `${SITE_URL}/assets/logo/logo.png`,
+    url,
+    type: 'website',
+  };
+}
+
 export async function buildSeo(pathname: string, fullUrl: string): Promise<SeoData> {
   const postMatch = pathname.match(/^\/post\/(.+)/);
   if (postMatch) {
@@ -89,6 +106,11 @@ export async function buildSeo(pathname: string, fullUrl: string): Promise<SeoDa
   const profileMatch = pathname.match(/^\/@(.+)/);
   if (profileMatch) {
     const seo = await profileSeo(decodeURIComponent(profileMatch[1]), fullUrl).catch(() => null);
+    if (seo) return seo;
+  }
+  const communityMatch = pathname.match(/^\/c\/([a-z0-9_]+)/);
+  if (communityMatch) {
+    const seo = await communitySeo(communityMatch[1], fullUrl).catch(() => null);
     if (seo) return seo;
   }
   return defaultSeo(fullUrl);
@@ -109,6 +131,7 @@ export function seoMetaTags(seo: SeoData): string {
     <meta property="og:image" content="${esc(image)}" />
     <meta property="og:locale" content="fr_FR" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@wouaff" />
     <meta name="twitter:title" content="${esc(seo.title)}" />
     <meta name="twitter:description" content="${esc(seo.description)}" />
     <meta name="twitter:image" content="${esc(image)}" />
