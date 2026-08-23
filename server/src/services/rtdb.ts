@@ -1009,6 +1009,7 @@ export async function seedBadges(): Promise<{ created: string[]; existed: string
     { id: 'partner', name: 'Partner', icon: '/assets/badges/partner_badge.png' },
     { id: 'dev', name: 'Dev', icon: '/assets/badges/dev.png' },
     { id: 'certif', name: 'Certif', icon: '/assets/badges/certif_badge.png' },
+    { id: 'chef-security', name: 'Chef Security', icon: '/assets/badges/chef-security.png' },
   ];
   const created: string[] = [];
   const existed: string[] = [];
