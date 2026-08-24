@@ -1,4 +1,4 @@
-import { BarChart3, Image, Mic, Smile, Square, X } from 'lucide-react';
+import { BarChart3, Image, Mic, Music, Smile, Square, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useCap } from '../../hooks/useCap';
@@ -14,6 +14,7 @@ import MentionSuggestions from './MentionSuggestions';
 
 const MAX_LENGTH = 280;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_AUDIO_SIZE = 10 * 1024 * 1024;
 const MAX_POLL_OPTIONS = 4;
 const MIN_POLL_OPTIONS = 2;
 
@@ -48,6 +49,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   const [poll, setPoll] = useState<PollDraft | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioFileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
@@ -256,6 +258,34 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) pickImage(file);
+    e.target.value = '';
+  };
+
+  const pickAudio = (file: File) => {
+    if (!file.type.startsWith('audio/')) {
+      showToast('Veuillez sélectionner un fichier audio.', 'error');
+      return;
+    }
+    if (file.size > MAX_AUDIO_SIZE) {
+      showToast('Fichier audio trop volumineux (max 10 Mo).', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (!e.target) return;
+      const dataUrl = e.target.result as string;
+      setAudio(dataUrl);
+      const audioEl = new Audio(dataUrl);
+      audioEl.onloadedmetadata = () => {
+        setAudioDuration(Math.round(audioEl.duration));
+      };
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const onAudioFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) pickAudio(file);
     e.target.value = '';
   };
 
@@ -468,6 +498,14 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             </button>
             <button
               type="button"
+              onClick={() => audioFileInputRef.current?.click()}
+              title="Ajouter un fichier audio"
+              className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-brand hover:bg-[var(--brand-glow)] transition-colors"
+            >
+              <Music size={19} />
+            </button>
+            <button
+              type="button"
               onClick={togglePoll}
               title="Sondage"
               className={`w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer transition-colors ${
@@ -489,6 +527,14 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
               type="file"
               accept="image/*"
               onChange={onFileChange}
+              className="hidden"
+              tabIndex={-1}
+            />
+            <input
+              ref={audioFileInputRef}
+              type="file"
+              accept="audio/*"
+              onChange={onAudioFileChange}
               className="hidden"
               tabIndex={-1}
             />
