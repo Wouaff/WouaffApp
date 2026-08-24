@@ -67,7 +67,7 @@
     }
   },
   "dependencies": {
-    "@ionic/react": "^8.8.17",
+    "@ionic/react": "^9.0.0",
     "@simplewebauthn/browser": "^13.3.0",
     "events": "^3.3.0",
     "lucide-react": "^1.17.0",
