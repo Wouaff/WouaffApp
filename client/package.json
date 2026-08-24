@@ -85,7 +85,7 @@
     "@types/simple-peer": "^9.11.9",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.5.2",
-    "concurrently": "^9.1.0",
+    "concurrently": "^10.0.5",
     "cross-env": "^7.0.3",
     "electron": "^43.3.0",
     "electron-builder": "^25.1.8",
