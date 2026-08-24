@@ -1,4 +1,4 @@
-/* Safe JSON parse — returns fallback instead of throwing */
+/* Safe JSON parse, returns fallback instead of throwing */
 export function safeJsonParse<T>(text: string, fallback: T): T {
   try {
     return JSON.parse(text) as T;
@@ -7,7 +7,7 @@ export function safeJsonParse<T>(text: string, fallback: T): T {
   }
 }
 
-/* Safe JSON stringify — returns fallback instead of throwing */
+/* Safe JSON stringify, returns fallback instead of throwing */
 export function safeJsonStringify(value: unknown, fallback = ''): string {
   try {
     return JSON.stringify(value);

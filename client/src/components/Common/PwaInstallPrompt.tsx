@@ -56,7 +56,7 @@ export default function PwaInstallPrompt() {
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9990] w-[calc(100%-2rem)] max-w-[420px]">
       <div className="flex items-center gap-3 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] p-3 shadow-[0_8px_32px_rgba(0,0,0,.4)]">
-        <img src="/assets/logo/logo.png" alt="" className="w-11 h-11 rounded-xl flex-shrink-0" />
+        <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-11 h-11 rounded-xl flex-shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="m-0 text-[13px] font-bold text-[var(--text-primary)]">Installe Wouaff</p>
           <p className="m-0 text-[12px] text-[var(--text-secondary)] truncate">

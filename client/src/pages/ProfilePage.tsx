@@ -1,4 +1,4 @@
-import { ChevronLeft, MessageSquare, UserPlus } from 'lucide-react';
+import { ChevronLeft, FileText, MessageSquare, UserPlus, UserX } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import FollowModal from '../components/Home/FollowModal';
@@ -79,7 +79,7 @@ export default function ProfilePage() {
       setFollowingCount(json.followingCount);
       setState('profile');
       const handle = String(json.profile.wouaffId || wouaffId).replace(/^@/, '');
-      document.title = `${json.profile.pseudo || 'Utilisateur'} (@${handle}) — Wouaff`;
+      document.title = `${json.profile.pseudo || 'Utilisateur'} (@${handle}), Wouaff`;
     } catch {
       setState('error');
       setErrorMsg('Impossible de charger le profil.');
@@ -260,7 +260,9 @@ export default function ProfilePage() {
         <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
           <div className="h-full flex items-center justify-center px-4">
             <div className="text-center">
-              <div className="text-6xl mb-3">🐺</div>
+              <div className="text-6xl mb-3 text-brand">
+                <UserX size={56} />
+              </div>
               <h1 className="text-2xl font-extrabold m-0 mb-1 text-[var(--text-primary)]">Profil introuvable</h1>
               <p className="m-0 mb-5 text-[var(--text-secondary)]">{errorMsg}</p>
               <Link
@@ -466,8 +468,8 @@ export default function ProfilePage() {
             </div>
           ) : posts.length === 0 ? (
             <div className="py-16 px-6 text-center">
-              <div className="text-4xl mb-3" aria-hidden="true">
-                🐺
+              <div className="text-4xl mb-3 text-brand" aria-hidden="true">
+                <FileText size={36} />
               </div>
               <p className="m-0 text-[var(--text-secondary)]">
                 {data.isMe ? "Vous n'avez pas encore publié de post." : `@${handle} n'a pas encore publié de post.`}

@@ -699,7 +699,7 @@ router.post('/:id/comments', verifyCaptchaIfNewAccount, async (req: Request, res
   res.json(comment);
 });
 
-/* POST /posts/:id/vote — voter à un sondage (un vote par utilisateur, modifiable) */
+/* POST /posts/:id/vote, voter à un sondage (un vote par utilisateur, modifiable) */
 router.post('/:id/vote', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { option } = req.body as { option?: number };

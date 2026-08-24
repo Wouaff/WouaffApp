@@ -240,14 +240,17 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
         </button>
         <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">Post</span>
       </div>
-
       <div
         className="post-modal-post px-4 pt-4 pb-2 flex gap-3"
         style={{ flexShrink: 1, minHeight: 0, maxHeight: '40vh', overflowY: 'auto' }}
       >
         <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
           {post.avatar ? (
-            <img src={post.avatar} alt="" className="w-full h-full object-cover" />
+            <img
+              src={post.avatar}
+              alt={`Avatar de ${post.pseudo || "l'utilisateur"}`}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <span>{initial}</span>
           )}
@@ -284,7 +287,6 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           )}
         </div>
       </div>
-
       <div className="flex items-center justify-between px-4 py-1.5 border-b border-[var(--border)] max-w-[400px] flex-shrink-0">
         <button type="button" className={actionBtn} aria-label={`Commenter (${post.comments})`}>
           <MessageCircle size={17} />
@@ -344,7 +346,6 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           </button>
         )}
       </div>
-
       {summary.length > 0 && (
         <div className="flex items-center justify-end px-4 py-1 border-b border-[var(--border)]">
           <button
@@ -369,7 +370,6 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           </button>
         </div>
       )}
-
       <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
         {loading ? (
           <div className="py-10 flex flex-col items-center gap-3">
@@ -388,7 +388,11 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
               <li key={c.id} className="flex gap-3 py-3 border-b border-[var(--border)] last:border-b-0">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
                   {c.avatar ? (
-                    <img src={c.avatar} alt="" className="w-full h-full object-cover" />
+                    <img
+                      src={c.avatar}
+                      alt={`Avatar de ${c.pseudo || "l'utilisateur"}`}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <span>{(c.pseudo || '?')[0]?.toUpperCase() || '?'}</span>
                   )}
@@ -454,7 +458,6 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           </ul>
         )}
       </div>
-
       {replyTo && (
         <div className="flex items-center gap-2 px-4 pt-2.5">
           <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-3 py-1.5">
@@ -474,9 +477,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           </div>
         </div>
       )}
-
       {cap.required && <div className="px-4 pt-2.5 flex justify-center">{cap.widget}</div>}
-
       <div className="flex items-center gap-2 px-4 py-3 border-t border-[var(--border)] flex-shrink-0">
         <div className="relative flex-1 min-w-0">
           <input
@@ -514,6 +515,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           Répondre
         </button>
       </div>
+      ;
     </div>
   );
 

@@ -13,7 +13,7 @@ import type { AuthRequest } from '../types/index.js';
 const router: Router = Router();
 router.use(verifyToken);
 
-/* POST /notifications/fcm-token — enregistrer un token FCM */
+/* POST /notifications/fcm-token, enregistrer un token FCM */
 router.post('/fcm-token', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { token } = req.body as { token: string };
@@ -25,7 +25,7 @@ router.post('/fcm-token', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* DELETE /notifications/fcm-token — supprimer un token FCM */
+/* DELETE /notifications/fcm-token, supprimer un token FCM */
 router.delete('/fcm-token', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { token } = req.body as { token: string };
@@ -37,7 +37,7 @@ router.delete('/fcm-token', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* GET /notifications — liste des notifications */
+/* GET /notifications, liste des notifications */
 router.get('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
@@ -47,21 +47,21 @@ router.get('/', async (req: Request, res: Response) => {
   res.json({ items, unread });
 });
 
-/* GET /notifications/unread-count — nombre de notifications non lues */
+/* GET /notifications/unread-count, nombre de notifications non lues */
 router.get('/unread-count', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const count = await getUnreadCount(authReq.uid!);
   res.json({ count });
 });
 
-/* POST /notifications/read-all — tout marquer comme lu */
+/* POST /notifications/read-all, tout marquer comme lu */
 router.post('/read-all', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   await markAllNotificationsRead(authReq.uid!);
   res.json({ success: true });
 });
 
-/* POST /notifications/:id/read — marquer une notification comme lue */
+/* POST /notifications/:id/read, marquer une notification comme lue */
 router.post('/:id/read', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const id = parseInt(req.params.id, 10);

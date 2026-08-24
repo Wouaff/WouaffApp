@@ -17,7 +17,7 @@ interface CallRow {
   status: string;
 }
 
-/* GET /calls/history — historique des appels de l'utilisateur connecté */
+/* GET /calls/history, historique des appels de l'utilisateur connecté */
 router.get('/history', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const uid = authReq.uid!;
@@ -33,7 +33,7 @@ router.get('/history', async (req: Request, res: Response) => {
   }
 });
 
-/* GET /calls/:id — détail d'un appel spécifique */
+/* GET /calls/:id, détail d'un appel spécifique */
 router.get('/:id', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { id } = req.params;

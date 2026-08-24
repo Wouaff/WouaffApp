@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import DmcaBadge from '../components/Common/DmcaBadge';
 
 const DISCORD_URL = 'https://dsc.gg/wouaff';
@@ -100,7 +100,7 @@ const WHY_BETTER = [
   'Pas de compte payant pour être visible.',
   'Pas de tracking pour te revendre.',
   'MP chiffrés, pas « privés » en petit et lus en gros.',
-  'Hébergé en France, RGPD pour de vrai — mentions légales en bas, pas dans un PDF de 40 pages.',
+  'Hébergé en France, RGPD pour de vrai, mentions légales en bas, pas dans un PDF de 40 pages.',
   'Tendances France, communauté France, langue France. T’es pas un fuseau de plus sur un datacenter US.',
   'On a 19 ans, on construit ici, le changelog est public. Pas un type qui rachète le réseau un mardi.',
 ];
@@ -120,7 +120,7 @@ const WHO = [
   'T’en as marre de payer pour exister, ou de scroller de la pub.',
   'Tu veux un fil en français, avec des gens d’ici.',
   'Tu veux que tes DM restent tes DM.',
-  'T’as 16–30 ans, t’as un avis, t’as pas besoin d’un discours DSI pour poster.',
+  'T’as 16 à 30 ans, t’as un avis, t’as pas besoin d’un discours DSI pour poster.',
 ];
 
 const WHO_NOT = ['monter une agence d’influence', '« remplacer les GAFAM »', 'scroller des inconnus 4h par jour'];
@@ -139,7 +139,7 @@ const SECURITY = [
   {
     icon: Ban,
     title: 'Zéro pub',
-    body: 'Pas aujourd’hui, pas demain en cachette. Si un jour un truc est payant (custom, stockage, boost de communauté), ce sera écrit — et ça ne sera pas tes données.',
+    body: 'Pas aujourd’hui, pas demain en cachette. Si un jour un truc est payant (custom, stockage, boost de communauté), ce sera écrit, et ça ne sera pas tes données.',
   },
   {
     icon: ShieldCheck,
@@ -177,7 +177,7 @@ const FAQ = [
   },
   {
     q: 'Il y a un algo ?',
-    a: 'Tes abonnements, d’abord. Des tendances France, des suggestions de comptes — pas un For You calibré pour te rendre dingue, pas de pub, pas de visibilité à vendre.',
+    a: 'Tes abonnements, d’abord. Des tendances France, des suggestions de comptes, pas un For You calibré pour te rendre dingue, pas de pub, pas de visibilité à vendre.',
   },
   {
     q: 'C’est vraiment hébergé en France ?',
@@ -348,7 +348,7 @@ export default function LandingPage() {
               Réseau social · Fait en France
             </div>
 
-            <h1 className="mt-8 text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-6xl">
+            <h1 className="mt-8 text-3xl font-black leading-[1.05] tracking-tight text-white sm:text-6xl mobile:text-[30px]">
               Ton fil.{' '}
               <span className="bg-gradient-to-r from-brand to-brand-light bg-clip-text text-transparent">
                 Pas leur algo.
@@ -367,7 +367,7 @@ export default function LandingPage() {
                 onClick={goRegister}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-dark px-8 py-4 text-[16px] font-black text-white border-none cursor-pointer font-sans hover:bg-brand transition-colors sm:w-auto"
               >
-                Rejoindre Wouaff — c’est gratuit
+                Rejoindre Wouaff, c’est gratuit
                 <ArrowRight size={17} />
               </button>
               <button
@@ -383,7 +383,7 @@ export default function LandingPage() {
               Aucune carte bancaire. Aucune pub. On ne revend pas tes posts.
             </p>
 
-            <div className="mt-12 text-[15px] font-black tracking-[0.35em] text-brand/80">T’AS CAPTÉ 🐺</div>
+            <div className="mt-12 text-[15px] font-black tracking-[0.35em] text-brand/80">T’AS CAPTÉ</div>
           </div>
         </section>
 
@@ -420,7 +420,7 @@ export default function LandingPage() {
             Changer de réseau, c’est chiant. On le sait. Rester sur un truc qui te prend pour un inventaire, c’est pire.
           </p>
           <p className="mt-8 text-lg font-black text-white">
-            Wouaff, c’est le même geste — poster, scroller, répondre — sans que tu sois le produit.
+            Wouaff, c’est le même geste, poster, scroller, répondre, sans que tu sois le produit.
           </p>
         </section>
 
@@ -467,13 +467,13 @@ export default function LandingPage() {
               <p>
                 Si tu veux un salon vocal à 21h, c’est pas ici.
                 <br />
-                Si tu veux poster et que tes potes voient le post — <span className="font-black text-white">ici.</span>
+                Si tu veux poster et que tes potes voient le post, <span className="font-black text-white">ici.</span>
               </p>
             </div>
           </div>
         </section>
 
-        {/* ── Produit — 4 blocs ── */}
+        {/* ── Produit, 4 blocs ── */}
         <section id="produit" className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
           <h2 className="text-center text-3xl font-black tracking-tight text-white sm:text-[40px]">
             Le produit. <span className="text-brand-light">Un réseau, en vrai.</span>
@@ -604,7 +604,9 @@ export default function LandingPage() {
                 Sécurité &amp; confidentialité
               </button>
               <span className="text-[var(--text-muted)]">·</span>
-              <span className="text-[var(--text-muted)]">Mentions légales</span>
+              <Link to="/mentions-legales" className="text-brand no-underline hover:text-brand-light transition-colors">
+                Mentions légales
+              </Link>
             </div>
           </div>
         </section>
@@ -738,7 +740,7 @@ export default function LandingPage() {
                 <span className="text-lg font-black text-white">Wouaff</span>
               </div>
               <p className="mt-4 text-[13px] leading-relaxed text-[var(--text-muted)]">
-                Wouaff · ton fil, pas leur algo · Fait en France 🐺
+                Wouaff · ton fil, pas leur algo · Fait en France
               </p>
             </div>
 
@@ -782,17 +784,26 @@ export default function LandingPage() {
                   ['Discord', DISCORD_URL],
                   ['GitHub', GITHUB_URL],
                   ['X', 'https://x.com/wouaff'],
-                  ['Contact', DISCORD_URL],
+                  ['Contact', '/contact'],
                 ].map(([label, href]) => (
                   <li key={String(label)}>
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[14px] text-[var(--text-muted)] no-underline hover:text-white transition-colors"
-                    >
-                      {label}
-                    </a>
+                    {href.startsWith('http') ? (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[14px] text-[var(--text-muted)] no-underline hover:text-white transition-colors"
+                      >
+                        {label}
+                      </a>
+                    ) : (
+                      <Link
+                        to={href}
+                        className="text-[14px] text-[var(--text-muted)] no-underline hover:text-white transition-colors"
+                      >
+                        {label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -801,9 +812,30 @@ export default function LandingPage() {
             <div>
               <div className="text-[13px] font-black uppercase tracking-wider text-[var(--text-muted)]">Légal</div>
               <ul className="mt-4 flex flex-col gap-2.5">
-                <li className="text-[14px] text-[var(--text-muted)]">Mentions légales</li>
-                <li className="text-[14px] text-[var(--text-muted)]">Confidentialité</li>
-                <li className="text-[14px] text-[var(--text-muted)]">CGU</li>
+                <li>
+                  <Link
+                    to="/mentions-legales"
+                    className="text-[14px] text-[var(--text-muted)] no-underline hover:text-white transition-colors"
+                  >
+                    Mentions légales
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/mentions-legales#confidentialite"
+                    className="text-[14px] text-[var(--text-muted)] no-underline hover:text-white transition-colors"
+                  >
+                    Confidentialité
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/mentions-legales#cgu"
+                    className="text-[14px] text-[var(--text-muted)] no-underline hover:text-white transition-colors"
+                  >
+                    CGU
+                  </Link>
+                </li>
                 <li className="text-[14px] text-[var(--text-muted)]">Pas de cookies de tracking</li>
               </ul>
             </div>

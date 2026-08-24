@@ -267,8 +267,8 @@ router.post('/reset-password', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Token et mot de passe requis' });
       return;
     }
-    if (password.length < 6) {
-      res.status(400).json({ error: 'Mot de passe trop court (6 caractères minimum)' });
+    if (password.length < 8) {
+      res.status(400).json({ error: 'Mot de passe trop court (8 caractères minimum)' });
       return;
     }
     const row = await getOne<{ uid: string; id: number }>(

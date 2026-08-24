@@ -1,4 +1,5 @@
-import { ArrowRight, ExternalLink, GitBranch, MessageCircle, Rocket } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { ArrowRight, ExternalLink, Flag, GitBranch, MessageCircle, Rocket, Rss, Users, Wrench } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 const DISCORD_URL = 'https://dsc.gg/wouaff';
@@ -11,27 +12,27 @@ interface WelcomeIntroProps {
 interface Step {
   title: string;
   body: string;
-  emoji: string;
+  icon: LucideIcon;
 }
 
 const STEPS: Step[] = [
   {
-    emoji: '🐺',
+    icon: Rss,
     title: 'Bienvenue dans Wouaff',
     body: 'Le premier réseau social français et souverain. Conçu en France, hébergé en France, pour les Français.',
   },
   {
-    emoji: '🇫🇷',
+    icon: Flag,
     title: 'Un projet souverain',
     body: 'Vos données restent en France. Aucune donnée ne quitte le territoire, politique zéro log, respect total du RGPD et des lois européennes.',
   },
   {
-    emoji: '🔧',
+    icon: Wrench,
     title: 'En cours de développement',
     body: 'Wouaff est encore en développement. Certaines fonctionnalités évoluent chaque jour, et chaque retour compte pour construire quelque chose de grand.',
   },
   {
-    emoji: '🤝',
+    icon: Users,
     title: 'Rejoins l’aventure',
     body: 'Participe à la construction de Wouaff : rejoins la communauté sur Discord pour échanger, et aide-nous à améliorer le projet sur GitHub.',
   },
@@ -90,7 +91,9 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
 
         {isIntro ? (
           <div key={step} className="mt-8 animate-[slideUp_0.5s_ease_both]">
-            <div className="text-5xl mb-4 animate-[pulse_2s_ease-in-out_infinite]">{current!.emoji}</div>
+            <div className="text-5xl mb-4 animate-[pulse_2s_ease-in-out_infinite] text-brand">
+              {current && <current.icon size={52} />}
+            </div>
             <h1 className="text-3xl font-black text-[var(--text-primary)] m-0">{current!.title}</h1>
             <p className="mt-4 text-[15px] leading-relaxed text-[var(--text-secondary)] m-0">{current!.body}</p>
           </div>

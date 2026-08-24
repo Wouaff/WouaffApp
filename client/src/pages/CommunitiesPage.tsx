@@ -227,7 +227,7 @@ export default function CommunitiesPage() {
             >
               <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
                 {c.avatar ? (
-                  <img src={c.avatar} alt="" className="w-full h-full object-cover" />
+                  <img src={c.avatar} alt={`Avatar de c/${c.name}`} className="w-full h-full object-cover" />
                 ) : (
                   <span>{(c.displayName || c.name)[0]?.toUpperCase() || 'r'}</span>
                 )}

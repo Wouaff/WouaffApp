@@ -1,4 +1,4 @@
-import { ChevronLeft, Share2 } from 'lucide-react';
+import { ChevronLeft, FileQuestion, Share2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import LeftNav from '../components/Home/LeftNav';
@@ -149,7 +149,9 @@ export default function PostPage() {
         <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
           <div className="h-full flex items-center justify-center px-4">
             <div className="text-center">
-              <div className="text-6xl mb-3">🐺</div>
+              <div className="text-6xl mb-3 text-brand">
+                <FileQuestion size={56} />
+              </div>
               <h1 className="text-2xl font-extrabold m-0 mb-1 text-[var(--text-primary)]">Post introuvable</h1>
               <p className="m-0 mb-5 text-[var(--text-secondary)]">{errorMsg}</p>
               <Link

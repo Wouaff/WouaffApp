@@ -32,9 +32,18 @@ async function broadcastStatusChange(io: Server, uid: string, status: string) {
   }
 }
 
-export function setupSocket(httpServer: HTTPServer): Server {
+export function setupSocket(httpServer: HTTPServer, allowedOrigins: string[]): Server {
   const io = new Server(httpServer, {
-    cors: { origin: '*', methods: ['GET', 'POST'] },
+    cors: {
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(null, false);
+        }
+      },
+      methods: ['GET', 'POST'],
+    },
     connectionStateRecovery: { maxDisconnectionDuration: 120000 },
   });
 

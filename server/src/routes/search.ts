@@ -8,7 +8,7 @@ import type { AuthRequest } from '../types/index.js';
 const router: Router = Router();
 router.use(verifyToken);
 
-/* GET /search/users?q=@pseudo — rechercher un utilisateur */
+/* GET /search/users?q=@pseudo, rechercher un utilisateur */
 router.get('/users', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const q = ((req.query.q as string) || '').trim().toLowerCase();
@@ -31,7 +31,7 @@ router.get('/users', async (req: Request, res: Response) => {
   res.json({ results });
 });
 
-/* GET /search/mentions?q= — suggestions de mentions @ (léger) */
+/* GET /search/mentions?q=, suggestions de mentions @ (léger) */
 router.get('/mentions', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const raw = ((req.query.q as string) || '').trim().replace(/^@/, '').toLowerCase();
@@ -39,7 +39,7 @@ router.get('/mentions', async (req: Request, res: Response) => {
 
   let rows: Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>;
   if (!raw) {
-    /* @ seul — personnes avec qui on a eu des interactions récentes (notifications,
+    /* @ seul, personnes avec qui on a eu des interactions récentes (notifications,
        abonnements, mentions reçues/émises), triées par proximité puis récence */
     rows = await query<Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>>(
       `SELECT u.uid, u.pseudo, u.avatar, u.wouaffId
@@ -97,7 +97,7 @@ router.get('/mentions', async (req: Request, res: Response) => {
   res.json({ results });
 });
 
-/* GET /search/users/:wouaffId — recherche exacte par @ */
+/* GET /search/users/:wouaffId, recherche exacte par @ */
 router.get('/users/:wouaffId', async (req: Request, res: Response) => {
   let wouaffId = req.params.wouaffId;
   if (!wouaffId.startsWith('@')) wouaffId = `@${wouaffId}`;

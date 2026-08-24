@@ -32,7 +32,7 @@ export default function CommunityCard({ community, onChanged, compact }: Communi
         showToast(`Désabonné de c/${community.name}`);
       } else {
         await communitiesAPI.subscribe(community.name);
-        showToast(`Abonné à c/${community.name} 🎉`);
+        showToast(`Abonné à c/${community.name}`);
       }
       onChanged?.({
         ...community,

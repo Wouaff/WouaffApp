@@ -17,13 +17,13 @@ const SUGGEST_LIMIT = 12;
 const router: Router = Router();
 router.use(verifyToken);
 
-/* GET /onboarding/status — l'onboarding est-il terminé / nécessaire ? */
+/* GET /onboarding/status, l'onboarding est-il terminé / nécessaire ? */
 router.get('/status', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   res.json(await getOnboardingStatus(authReq.uid!));
 });
 
-/* GET /onboarding/suggestions — comptes & communautés à proposer */
+/* GET /onboarding/suggestions, comptes & communautés à proposer */
 router.get('/suggestions', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const [users, communityRows] = await Promise.all([
@@ -41,7 +41,7 @@ router.get('/suggestions', async (req: Request, res: Response) => {
   res.json({ users, communities, minimum: Math.min(MIN_SELECTION, users.length + communities.length) });
 });
 
-/* POST /onboarding/complete — suivre les comptes + s'abonner aux communautés */
+/* POST /onboarding/complete, suivre les comptes + s'abonner aux communautés */
 router.post('/complete', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { followUids, communityNames } = req.body as { followUids?: string[]; communityNames?: string[] };

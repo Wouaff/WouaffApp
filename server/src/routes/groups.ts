@@ -42,7 +42,7 @@ function emitToMembers(io: Server, group: Record<string, unknown>, event: string
 const router: Router = Router();
 router.use(verifyToken);
 
-/* POST /groups — créer un groupe */
+/* POST /groups, créer un groupe */
 router.post('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { name, description, icon, members } = req.body as {
@@ -83,14 +83,14 @@ router.post('/', async (req: Request, res: Response) => {
   res.json({ gid, ...groupData });
 });
 
-/* GET /groups — lister mes groupes */
+/* GET /groups, lister mes groupes */
 router.get('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const groups = await getGroupConversations(authReq.uid!);
   res.json(groups);
 });
 
-/* GET /groups/public — lister les groupes publics */
+/* GET /groups/public, lister les groupes publics */
 router.get('/public', async (req: Request, res: Response) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 100));
   const offset = Math.max(0, parseInt(req.query.offset as string, 10) || 0);
@@ -98,17 +98,31 @@ router.get('/public', async (req: Request, res: Response) => {
   res.json(groups);
 });
 
-/* GET /groups/:gid — infos d'un groupe */
+/* GET /groups/:gid, infos d'un groupe */
 router.get('/:gid', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   const group = await getGroup(req.params.gid);
   if (!group) {
     res.status(404).json({ error: 'Groupe introuvable' });
     return;
   }
-  res.json(group);
+  const members = group.members as Record<string, { role: string }> | undefined;
+  const myRole = members?.[authReq.uid!]?.role;
+  if (group.privacy === 'private' && !myRole) {
+    res.status(403).json({ error: 'Groupe privé' });
+    return;
+  }
+  const safe = { ...group };
+  delete safe.reported;
+  delete safe.reportedBy;
+  delete safe.reportedAt;
+  if (myRole !== 'admin' && myRole !== 'owner') {
+    delete safe.inviteId;
+  }
+  res.json(safe);
 });
 
-/* PUT /groups/:gid — modifier un groupe (admin/owner) */
+/* PUT /groups/:gid, modifier un groupe (admin/owner) */
 router.put('/:gid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const group = await getGroup(req.params.gid);
@@ -134,7 +148,7 @@ router.put('/:gid', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* DELETE /groups/:gid — supprimer un groupe (owner only) */
+/* DELETE /groups/:gid, supprimer un groupe (owner only) */
 router.delete('/:gid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const group = await getGroup(req.params.gid);
@@ -157,7 +171,7 @@ router.delete('/:gid', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* POST /groups/:gid/members — ajouter des membres */
+/* POST /groups/:gid/members, ajouter des membres */
 router.post('/:gid/members', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const group = await getGroup(req.params.gid);
@@ -190,7 +204,7 @@ router.post('/:gid/members', async (req: Request, res: Response) => {
   res.json({ success: true, added: uids.length });
 });
 
-/* DELETE /groups/:gid/members/:uid — exclure/quitter */
+/* DELETE /groups/:gid/members/:uid, exclure/quitter */
 router.delete('/:gid/members/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const targetUid = req.params.uid;
@@ -229,7 +243,7 @@ router.delete('/:gid/members/:uid', async (req: Request, res: Response) => {
   res.json({ success: true, kicked: true });
 });
 
-/* PUT /groups/:gid/members/:uid/role — changer rôle */
+/* PUT /groups/:gid/members/:uid/role, changer rôle */
 router.put('/:gid/members/:uid/role', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const group = await getGroup(req.params.gid);
@@ -258,7 +272,7 @@ router.put('/:gid/members/:uid/role', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* POST /groups/:gid/invite — générer nouveau lien d'invitation */
+/* POST /groups/:gid/invite, générer nouveau lien d'invitation */
 router.post('/:gid/invite', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const group = await getGroup(req.params.gid);
@@ -278,7 +292,7 @@ router.post('/:gid/invite', async (req: Request, res: Response) => {
   res.json({ inviteId: newInviteId });
 });
 
-/* POST /groups/join/:inviteId — rejoindre via invitation */
+/* POST /groups/join/:inviteId, rejoindre via invitation */
 router.post('/join/:inviteId', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const inv = await getGroupInvite(req.params.inviteId);
@@ -317,7 +331,7 @@ router.post('/join/:inviteId', async (req: Request, res: Response) => {
   res.json({ success: true, gid: groupId });
 });
 
-/* POST /groups/:gid/report — signaler un groupe */
+/* POST /groups/:gid/report, signaler un groupe */
 router.post('/:gid/report', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const group = await getGroup(req.params.gid);

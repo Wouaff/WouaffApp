@@ -1,3 +1,5 @@
+import { Coffee } from 'lucide-react';
+
 export default function BuyMeACoffee() {
   return (
     <div className="flex justify-center py-3 border-b border-[var(--border)]">
@@ -12,7 +14,7 @@ export default function BuyMeACoffee() {
           border: '2px solid #000000',
         }}
       >
-        <span className="text-lg">🐺</span>
+        <Coffee size={18} />
         <span>Achetez-moi des croquettes</span>
       </a>
     </div>

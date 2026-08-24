@@ -21,7 +21,7 @@ import type { AuthRequest } from '../types/index.js';
 const router: Router = Router();
 router.use(verifyToken);
 
-/* GET /profiles/me — mon propre profil */
+/* GET /profiles/me, mon propre profil */
 router.get('/me', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const profile = await getProfile(authReq.uid!);
@@ -32,7 +32,7 @@ router.get('/me', async (req: Request, res: Response) => {
   res.json(profile);
 });
 
-/* GET /profiles/suggestions — comptes suggérés aléatoirement */
+/* GET /profiles/suggestions, comptes suggérés aléatoirement */
 router.get('/suggestions', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const limit = Math.min(10, Math.max(1, parseInt(req.query.limit as string, 10) || 3));
@@ -50,14 +50,14 @@ router.get('/:uid', async (req: Request, res: Response) => {
   res.json(profile);
 });
 
-/* GET /profiles/:uid/mutual — amis en commun */
+/* GET /profiles/:uid/mutual, amis en commun */
 router.get('/:uid/mutual', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const mutual = await getMutualContacts(authReq.uid!, req.params.uid);
   res.json(mutual);
 });
 
-/* POST /profiles/:uid/follow — suivre un utilisateur */
+/* POST /profiles/:uid/follow, suivre un utilisateur */
 router.post('/:uid/follow', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   if (authReq.uid === req.params.uid) {
@@ -82,7 +82,7 @@ router.post('/:uid/follow', async (req: Request, res: Response) => {
   res.json({ following: true });
 });
 
-/* DELETE /profiles/:uid/follow — ne plus suivre */
+/* DELETE /profiles/:uid/follow, ne plus suivre */
 router.delete('/:uid/follow', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   await query('DELETE FROM follows WHERE followerUid = ? AND followedUid = ?', [authReq.uid!, req.params.uid]);
@@ -95,7 +95,7 @@ router.get('/:uid/publicKey', async (req: Request, res: Response) => {
   res.json({ publicKey: key });
 });
 
-/* PUT /profiles/me — mettre à jour mon profil */
+/* PUT /profiles/me, mettre à jour mon profil */
 router.put('/me', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   if (typeof req.body.pseudo === 'string' && /[A-Z]/.test(req.body.pseudo)) {
@@ -122,7 +122,7 @@ router.put('/me', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* POST /profiles/me/music — définir la musique affichée sur le profil (lien Spotify/SoundCloud/YT/Tidal/…) */
+/* POST /profiles/me/music, définir la musique affichée sur le profil (lien Spotify/SoundCloud/YT/Tidal/…) */
 router.post('/me/music', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { url } = req.body as { url?: string };
@@ -144,7 +144,7 @@ router.post('/me/music', async (req: Request, res: Response) => {
   res.json({ success: true, music });
 });
 
-/* DELETE /profiles/me/music — retirer la musique du profil */
+/* DELETE /profiles/me/music, retirer la musique du profil */
 router.delete('/me/music', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   await query(
@@ -154,7 +154,7 @@ router.delete('/me/music', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* DELETE /profiles/me — supprimer mon compte */
+/* DELETE /profiles/me, supprimer mon compte */
 router.delete('/me', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { password } = req.body as { password?: string };
@@ -180,7 +180,7 @@ router.delete('/me', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* PUT /profiles/me/publicKey — mettre à jour ma clé publique E2EE */
+/* PUT /profiles/me/publicKey, mettre à jour ma clé publique E2EE */
 router.put('/me/publicKey', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { publicKey } = req.body as { publicKey: Record<string, unknown> };

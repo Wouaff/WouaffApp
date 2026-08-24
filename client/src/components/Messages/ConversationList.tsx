@@ -1,4 +1,4 @@
-import { Plus, Search, Users } from 'lucide-react';
+import { MessageCircle, Plus, Search, Users } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MessageData } from '../../types';
 import { formatTime } from '../../utils/chatHelpers';
@@ -30,7 +30,11 @@ function AvatarRow({ item }: { item: ConvListItem }) {
   return (
     <div className={`conv-avatar${item.type === 'group' ? ' group-avatar' : ''}`}>
       {item.avatar ? (
-        <img src={item.avatar} alt="" onError={(e) => ((e.target as HTMLElement).style.display = 'none')} />
+        <img
+          src={item.avatar}
+          alt={`Avatar de ${item.name}`}
+          onError={(e) => ((e.target as HTMLElement).style.display = 'none')}
+        />
       ) : item.type === 'group' ? (
         <Users size={20} />
       ) : (
@@ -210,7 +214,7 @@ export default function ConversationList({
         {dms.length === 0 && groups.length === 0 && (
           <div className="chat-placeholder">
             <div className="chat-placeholder-content">
-              <span style={{ fontSize: 40 }}>💬</span>
+              <MessageCircle size={40} className="chat-placeholder-icon" />
               <p className="m-0" style={{ fontWeight: 600 }}>
                 Aucune conversation
               </p>

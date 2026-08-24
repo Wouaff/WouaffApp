@@ -24,13 +24,13 @@ import type { AuthRequest } from '../types/index.js';
 const router: Router = Router();
 router.use(verifyToken);
 
-/* GET /contacts/sync-status — à afficher (popup) ou pas ? */
+/* GET /contacts/sync-status, à afficher (popup) ou pas ? */
 router.get('/sync-status', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   res.json(await getContactsSyncStatus(authReq.uid!));
 });
 
-/* POST /contacts/sync — enregistrer mon n° et retrouver mes amis par téléphone */
+/* POST /contacts/sync, enregistrer mon n° et retrouver mes amis par téléphone */
 router.post('/sync', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { phone, contacts } = req.body as { phone?: string; contacts?: string[] };
@@ -56,7 +56,7 @@ router.post('/sync', async (req: Request, res: Response) => {
   res.json({ matches, missing, phone: ownPhone ?? null });
 });
 
-/* GET /contacts — liste des contacts */
+/* GET /contacts, liste des contacts */
 router.get('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const contacts = await getContacts(authReq.uid!);
@@ -68,7 +68,7 @@ router.get('/', async (req: Request, res: Response) => {
   res.json(result);
 });
 
-/* GET /contacts/pending — demandes entrantes + sortantes */
+/* GET /contacts/pending, demandes entrantes + sortantes */
 router.get('/pending', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const [incoming, outgoing] = await Promise.all([getPendingRequests(authReq.uid!), getSentRequests(authReq.uid!)]);
@@ -87,7 +87,7 @@ router.get('/pending', async (req: Request, res: Response) => {
   res.json({ incoming: incomingProfiles, outgoing: outgoingProfiles });
 });
 
-/* POST /contacts — envoyer une demande d'ami par @wouaffId */
+/* POST /contacts, envoyer une demande d'ami par @wouaffId */
 router.post('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   let { wouaffId } = req.body as { wouaffId: string };
@@ -144,7 +144,7 @@ router.post('/', async (req: Request, res: Response) => {
   res.json({ uid: contactUid, profile: targetProfile, requested: true });
 });
 
-/* PUT /contacts/:uid/accept — accepter une demande */
+/* PUT /contacts/:uid/accept, accepter une demande */
 router.put('/:uid/accept', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const ok = await acceptContactRequest(authReq.uid!, req.params.uid);
@@ -162,7 +162,7 @@ router.put('/:uid/accept', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* DELETE /contacts/:uid/reject — refuser une demande */
+/* DELETE /contacts/:uid/reject, refuser une demande */
 router.delete('/:uid/reject', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const ok = await rejectContactRequest(authReq.uid!, req.params.uid);
@@ -177,7 +177,7 @@ router.delete('/:uid/reject', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* DELETE /contacts/:uid — supprimer un contact */
+/* DELETE /contacts/:uid, supprimer un contact */
 router.delete('/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   await removeContact(authReq.uid!, req.params.uid);

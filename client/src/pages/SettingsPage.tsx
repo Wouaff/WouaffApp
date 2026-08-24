@@ -363,7 +363,7 @@ export default function SettingsPage() {
                   <div className="flex items-end justify-between">
                     <div className="w-20 h-20 sm:w-24 sm:h-24 -mt-10 sm:-mt-12 rounded-full bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-white font-extrabold text-2xl flex-shrink-0 shadow-[0_4px_16px_rgba(0,0,0,0.35)]">
                       {avatar ? (
-                        <img src={avatar} alt="" className="w-full h-full object-cover" />
+                        <img src={avatar} alt="Votre avatar" className="w-full h-full object-cover" />
                       ) : (
                         <span>{initial}</span>
                       )}
@@ -376,7 +376,7 @@ export default function SettingsPage() {
                       ].map((s) => (
                         <div key={s.label} className="text-center">
                           <div className="text-[15px] font-extrabold text-[var(--text-primary)] tabular-nums">
-                            {s.value ?? '—'}
+                            {s.value ?? '·'}
                           </div>
                           <div className="text-[11px] text-[var(--text-muted)]">{s.label}</div>
                         </div>
@@ -657,7 +657,7 @@ export default function SettingsPage() {
                       {avatar ? (
                         <img
                           src={avatar}
-                          alt=""
+                          alt="Votre visuel de profil"
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             (e.target as HTMLElement).style.display = 'none';

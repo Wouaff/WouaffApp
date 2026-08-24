@@ -1,4 +1,4 @@
-import { ChevronLeft, TrendingUp } from 'lucide-react';
+import { ChevronLeft, Hash, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import LeftNav from '../components/Home/LeftNav';
@@ -172,8 +172,8 @@ export default function TagPage() {
           </div>
         ) : items.length === 0 ? (
           <div className="py-16 px-6 text-center">
-            <div className="text-4xl mb-3" aria-hidden="true">
-              🐺
+            <div className="text-4xl mb-3 text-brand" aria-hidden="true">
+              <Hash size={36} />
             </div>
             <p className="m-0 text-[var(--text-secondary)]">
               Aucun post avec <span className="text-brand font-bold">#{tag}</span> pour le moment.{' '}

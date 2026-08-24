@@ -140,7 +140,7 @@ export default function CommunityEditModal({ community, onClose, onUpdated }: Co
               className="relative w-full h-24 rounded-xl overflow-hidden bg-[var(--bg-input)] border border-[var(--border)] cursor-pointer group flex items-center justify-center"
             >
               {banner ? (
-                <img src={banner} alt="" className="w-full h-full object-cover" />
+                <img src={banner} alt="Aperçu de la bannière" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-[13px] text-[var(--text-muted)]">Ajouter une bannière</span>
               )}
@@ -175,7 +175,7 @@ export default function CommunityEditModal({ community, onClose, onUpdated }: Co
               aria-label="Changer la photo de profil"
             >
               {avatar ? (
-                <img src={avatar} alt="" className="w-full h-full object-cover" />
+                <img src={avatar} alt="Aperçu de l'avatar" className="w-full h-full object-cover" />
               ) : (
                 <Camera size={22} className="text-white/70" />
               )}

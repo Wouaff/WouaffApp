@@ -91,7 +91,7 @@ export const MessageBubble = memo(function MessageBubble({
         {imageData && (
           <img
             src={imageData}
-            alt=""
+            alt="Visuel envoyé dans le message"
             className="msg-image"
             style={{
               display: 'block',
@@ -178,7 +178,7 @@ export const MessageBubble = memo(function MessageBubble({
         >
           <img
             src={imageData}
-            alt=""
+            alt="Visuel envoyé dans le message"
             className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />

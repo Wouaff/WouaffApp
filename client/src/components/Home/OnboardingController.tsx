@@ -26,7 +26,7 @@ export default function OnboardingController() {
           setShowContacts(!sessionStorage.getItem('wouaff_contacts_dismissed'));
         }
       } catch {
-        /* silencieux — on ne bloque jamais la page */
+        /* silencieux, on ne bloque jamais la page */
       }
     };
     check();

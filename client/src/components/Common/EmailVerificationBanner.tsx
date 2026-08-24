@@ -1,3 +1,4 @@
+import { Lock } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 export default function EmailVerificationBanner({ onVerified }: { onVerified: () => void }) {
@@ -77,7 +78,9 @@ export default function EmailVerificationBanner({ onVerified }: { onVerified: ()
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-[var(--bg-card)] rounded-2xl p-8 max-w-md w-full mx-4 shadow-xl">
         <div className="text-center">
-          <div className="text-5xl mb-4">🔒</div>
+          <div className="mb-4 flex justify-center text-brand">
+            <Lock size={48} />
+          </div>
           <h3 className="text-lg font-bold mb-2">Vérification de votre email</h3>
           <p className="text-text-secondary text-sm mb-6">
             {sent

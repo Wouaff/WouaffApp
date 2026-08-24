@@ -14,7 +14,7 @@ export default function MentionSuggestions({ open, query, results, activeIndex, 
   return (
     <div className="absolute top-full left-0 right-0 z-30 mt-1 max-h-64 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow)]">
       <div className="px-4 py-2 text-[12px] text-[var(--text-muted)] border-b border-[var(--border)]">
-        Mentions — « @{query} »
+        Mentions : « @{query} »
       </div>
       <ul className="list-none m-0 p-0">
         {results.map((user, i) => {
@@ -34,7 +34,11 @@ export default function MentionSuggestions({ open, query, results, activeIndex, 
               >
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-bold text-sm overflow-hidden flex-shrink-0">
                   {user.avatar ? (
-                    <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+                    <img
+                      src={user.avatar}
+                      alt={`Avatar de ${user.pseudo || "l'utilisateur"}`}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <span>{initial}</span>
                   )}

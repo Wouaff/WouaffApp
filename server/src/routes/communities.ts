@@ -305,7 +305,7 @@ router.use(verifyToken);
 
 /* ═══════════ Découvrir / onboarding (routes avant /:name) ═══════════ */
 
-/* GET /communities — découvrir : communautés populaires groupées par catégorie */
+/* GET /communities, découvrir : communautés populaires groupées par catégorie */
 router.get('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const limit = Math.min(FEED_LIMIT, Math.max(1, parseInt(req.query.limit as string, 10) || 30));
@@ -338,7 +338,7 @@ router.get('/', async (req: Request, res: Response) => {
   res.json({ categories: COMMUNITY_CATEGORIES, groups });
 });
 
-/* GET /communities/mine — mes abonnements */
+/* GET /communities/mine, mes abonnements */
 router.get('/mine', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const rows = await query<Array<Record<string, unknown>>>(
@@ -352,7 +352,7 @@ router.get('/mine', async (req: Request, res: Response) => {
   res.json(items);
 });
 
-/* GET /communities/search?q= — recherche par nom */
+/* GET /communities/search?q=, recherche par nom */
 router.get('/search', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const q = ((req.query.q as string) || '').trim().toLowerCase();
@@ -372,7 +372,7 @@ router.get('/search', async (req: Request, res: Response) => {
   res.json(items);
 });
 
-/* GET /communities/discover?category= — liste plate populaire (feed onboarding) */
+/* GET /communities/discover?category=, liste plate populaire (feed onboarding) */
 router.get('/discover', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const category = (req.query.category as string) || '';
@@ -398,7 +398,7 @@ router.get('/discover', async (req: Request, res: Response) => {
   res.json(items);
 });
 
-/* GET /communities/feed — feed principal = agrégation chronologique des posts des communautés abonnées */
+/* GET /communities/feed, feed principal = agrégation chronologique des posts des communautés abonnées */
 router.get('/feed', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const sort = (req.query.sort as CommunitySort) || 'new';
@@ -424,7 +424,7 @@ router.get('/feed', async (req: Request, res: Response) => {
   res.json({ items, hasMore: items.length === limit });
 });
 
-/* POST /communities/onboard — à l'inscription : abonner à ≥ 3 communautés */
+/* POST /communities/onboard, à l'inscription : abonner à ≥ 3 communautés */
 router.post('/onboard', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { names } = req.body as { names?: string[] };
@@ -458,7 +458,7 @@ router.post('/onboard', async (req: Request, res: Response) => {
   res.json({ subscribed: ids.length });
 });
 
-/* GET /communities/post/:id — post isolé (navigation depuis une notification) */
+/* GET /communities/post/:id, post isolé (navigation depuis une notification) */
 router.get('/post/:id', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const post = await getPostByQuery('p.id = ?', [req.params.id], authReq.uid);
@@ -471,7 +471,7 @@ router.get('/post/:id', async (req: Request, res: Response) => {
 
 /* ═══════════ Création d'une communauté ═══════════ */
 
-/* POST /communities — créer une communauté en ~30 secondes */
+/* POST /communities, créer une communauté en ~30 secondes */
 router.post('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { name, displayName, description, category, rules, avatar, banner, isPrivate } = req.body as {
@@ -541,7 +541,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 /* ═══════════ Détail / paramétrage d'une communauté ═══════════ */
 
-/* GET /communities/:name — détail d'une communauté */
+/* GET /communities/:name, détail d'une communauté */
 router.get('/:name', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -552,7 +552,7 @@ router.get('/:name', async (req: Request, res: Response) => {
   res.json(await toCommunity(row, authReq.uid));
 });
 
-/* PUT /communities/:name — modifier (admin uniquement) */
+/* PUT /communities/:name, modifier (admin uniquement) */
 router.put('/:name', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -599,7 +599,7 @@ router.put('/:name', async (req: Request, res: Response) => {
 
 /* ═══════════ Abonnement ═══════════ */
 
-/* POST /communities/:name/subscribe — s'abonner */
+/* POST /communities/:name/subscribe, s'abonner */
 router.post('/:name/subscribe', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -629,7 +629,7 @@ router.post('/:name/subscribe', async (req: Request, res: Response) => {
   res.json({ subscribed: true });
 });
 
-/* POST /communities/:name/unsubscribe — se désabonner (l'admin/modo conserve son rôle) */
+/* POST /communities/:name/unsubscribe, se désabonner (l'admin/modo conserve son rôle) */
 router.post('/:name/unsubscribe', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -650,7 +650,7 @@ router.post('/:name/unsubscribe', async (req: Request, res: Response) => {
 
 /* ═══════════ Membres & rôles ═══════════ */
 
-/* POST /communities/:name/members/:uid/role — nommer/rétrograder un modérateur (admin) */
+/* POST /communities/:name/members/:uid/role, nommer/rétrograder un modérateur (admin) */
 router.post('/:name/members/:uid/role', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -697,7 +697,7 @@ router.post('/:name/members/:uid/role', async (req: Request, res: Response) => {
   res.json({ success: true, role });
 });
 
-/* DELETE /communities/:name/members/:uid — quitter (soi) ou exclure (modérateur) */
+/* DELETE /communities/:name/members/:uid, quitter (soi) ou exclure (modérateur) */
 router.delete('/:name/members/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -734,7 +734,7 @@ router.delete('/:name/members/:uid', async (req: Request, res: Response) => {
 
 /* ═══════════ Bannissements temporaires ═══════════ */
 
-/* POST /communities/:name/bans — bannir temporairement (modérateur) */
+/* POST /communities/:name/bans, bannir temporairement (modérateur) */
 router.post('/:name/bans', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -774,7 +774,7 @@ router.post('/:name/bans', async (req: Request, res: Response) => {
   res.json({ success: true, durationHours: hours });
 });
 
-/* DELETE /communities/:name/bans/:uid — lever un bannissement (modérateur) */
+/* DELETE /communities/:name/bans/:uid, lever un bannissement (modérateur) */
 router.delete('/:name/bans/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -793,7 +793,7 @@ router.delete('/:name/bans/:uid', async (req: Request, res: Response) => {
 
 /* ═══════════ Feed d'une communauté ═══════════ */
 
-/* GET /communities/:name/feed — vue /c/nom avec tri Nouveau / Top (jour, semaine, mois) / Chaud */
+/* GET /communities/:name/feed, vue /c/nom avec tri Nouveau / Top (jour, semaine, mois) / Chaud */
 router.get('/:name/feed', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -826,7 +826,7 @@ router.get('/:name/feed', async (req: Request, res: Response) => {
 
 /* ═══════════ Posts ═══════════ */
 
-/* POST /communities/:name/posts — publier un post dans la communauté */
+/* POST /communities/:name/posts, publier un post dans la communauté */
 router.post('/:name/posts', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -887,7 +887,7 @@ router.post('/:name/posts', async (req: Request, res: Response) => {
   res.json(post);
 });
 
-/* GET /communities/:name/posts/:postId — détail d'un post */
+/* GET /communities/:name/posts/:postId, détail d'un post */
 router.get('/:name/posts/:postId', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -903,7 +903,7 @@ router.get('/:name/posts/:postId', async (req: Request, res: Response) => {
   res.json(post);
 });
 
-/* POST /communities/:name/posts/:postId/vote — upvote / downvote (score = up - down) */
+/* POST /communities/:name/posts/:postId/vote, upvote / downvote (score = up - down) */
 router.post('/:name/posts/:postId/vote', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -988,7 +988,7 @@ router.post('/:name/posts/:postId/vote', async (req: Request, res: Response) => 
   res.json({ vote: voteValue, upvotes: updated?.upvotes ?? 0, downvotes: updated?.downvotes ?? 0 });
 });
 
-/* POST /communities/:name/posts/:postId/pin — épingler / désépingler (modérateur) */
+/* POST /communities/:name/posts/:postId/pin, épingler / désépingler (modérateur) */
 router.post('/:name/posts/:postId/pin', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -1013,7 +1013,7 @@ router.post('/:name/posts/:postId/pin', async (req: Request, res: Response) => {
   res.json({ success: true, pinned: !!pinned });
 });
 
-/* DELETE /communities/:name/posts/:postId — supprimer un post (auteur ou modérateur) */
+/* DELETE /communities/:name/posts/:postId, supprimer un post (auteur ou modérateur) */
 router.delete('/:name/posts/:postId', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -1048,7 +1048,7 @@ router.delete('/:name/posts/:postId', async (req: Request, res: Response) => {
 
 /* ═══════════ Commentaires ═══════════ */
 
-/* GET /communities/:name/posts/:postId/comments — liste des commentaires */
+/* GET /communities/:name/posts/:postId/comments, liste des commentaires */
 router.get('/:name/posts/:postId/comments', async (req: Request, res: Response) => {
   const row = await getCommunityRow(req.params.name.toLowerCase());
   if (!row) {
@@ -1090,7 +1090,7 @@ router.get('/:name/posts/:postId/comments', async (req: Request, res: Response) 
   res.json({ items: comments, hasMore: comments.length === limit });
 });
 
-/* POST /communities/:name/posts/:postId/comments — répondre à un post */
+/* POST /communities/:name/posts/:postId/comments, répondre à un post */
 router.post('/:name/posts/:postId/comments', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
@@ -1157,7 +1157,7 @@ router.post('/:name/posts/:postId/comments', async (req: Request, res: Response)
   res.json(comment);
 });
 
-/* DELETE /communities/:name/posts/:postId/comments/:commentId — supprimer un commentaire */
+/* DELETE /communities/:name/posts/:postId/comments/:commentId, supprimer un commentaire */
 router.delete('/:name/posts/:postId/comments/:commentId', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());

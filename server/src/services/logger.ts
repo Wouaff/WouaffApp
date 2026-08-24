@@ -55,7 +55,7 @@ async function sendToDiscord(embeds: DiscordEmbed[]): Promise<void> {
       await new Promise((r) => setTimeout(r, retryAfter * 1000));
     }
   } catch {
-    /* Silent — avoid recursion */
+    /* Silent, avoid recursion */
   } finally {
     sending = false;
   }

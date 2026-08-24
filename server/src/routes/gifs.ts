@@ -61,13 +61,13 @@ async function fetchGiphy(
   }
 }
 
-/* GET /gifs/trending — GIFs tendance */
+/* GET /gifs/trending, GIFs tendance */
 router.get('/trending', async (_req: Request, res: Response) => {
   const result = await fetchGiphy('gifs/trending', {});
   res.json(result);
 });
 
-/* GET /gifs/search?q= — recherche de GIFs */
+/* GET /gifs/search?q=, recherche de GIFs */
 router.get('/search', async (req: Request, res: Response) => {
   const q = ((req.query.q as string) || '').trim().slice(0, 80);
   if (!q) {

@@ -65,7 +65,7 @@ async function isGroupAdmin(gid: string, uid: string): Promise<boolean> {
   return !!row && (row.role === 'owner' || row.role === 'admin');
 }
 
-/* GET /messages/:uid — messages d'une conversation DM */
+/* GET /messages/:uid, messages d'une conversation DM */
 router.get('/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
@@ -75,7 +75,7 @@ router.get('/:uid', async (req: Request, res: Response) => {
   res.json(result);
 });
 
-/* GET /messages/group/:gid — messages d'un groupe */
+/* GET /messages/group/:gid, messages d'un groupe */
 router.get('/group/:gid', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
   const limit = req.query.limit ? Math.min(Math.max(parseInt(req.query.limit as string, 10) || 50, 1), 100) : undefined;
@@ -84,7 +84,7 @@ router.get('/group/:gid', async (req: Request, res: Response) => {
   res.json(result);
 });
 
-/* POST /messages/:uid — envoyer un message DM */
+/* POST /messages/:uid, envoyer un message DM */
 router.post('/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const targetUid = req.params.uid;
@@ -131,7 +131,7 @@ router.post('/:uid', async (req: Request, res: Response) => {
   res.json({ key, ...msg });
 });
 
-/* POST /messages/group/:gid — envoyer un message groupe */
+/* POST /messages/group/:gid, envoyer un message groupe */
 router.post('/group/:gid', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
   const authReq = req as AuthRequest;
@@ -163,7 +163,7 @@ router.post('/group/:gid', async (req: Request, res: Response) => {
   res.json({ key, ...msg });
 });
 
-/* DELETE /messages/:uid/:msgKey — supprimer un message DM */
+/* DELETE /messages/:uid/:msgKey, supprimer un message DM */
 router.delete('/:uid/:msgKey', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
@@ -191,7 +191,7 @@ router.delete('/:uid/:msgKey', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* DELETE /messages/group/:gid/:msgKey — supprimer un message groupe */
+/* DELETE /messages/group/:gid/:msgKey, supprimer un message groupe */
 router.delete('/group/:gid/:msgKey', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
   const authReq = req as AuthRequest;
@@ -227,7 +227,7 @@ router.delete('/group/:gid/:msgKey', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* PATCH /messages/:uid/:msgKey — éditer/réagir à un message DM */
+/* PATCH /messages/:uid/:msgKey, éditer/réagir à un message DM */
 router.patch('/:uid/:msgKey', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
@@ -291,7 +291,7 @@ router.patch('/group/:gid/:msgKey', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* POST /messages/:uid/seen — marquer des messages comme vus */
+/* POST /messages/:uid/seen, marquer des messages comme vus */
 router.post('/:uid/seen', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
@@ -304,7 +304,7 @@ router.post('/:uid/seen', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* POST /messages/group/:gid/seen — marquer des messages comme vus dans un groupe */
+/* POST /messages/group/:gid/seen, marquer des messages comme vus dans un groupe */
 router.post('/group/:gid/seen', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
   const authReq = req as AuthRequest;
@@ -345,7 +345,7 @@ router.post('/group/:gid/seen', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* GET /messages/search/:uid — rechercher dans une conversation DM */
+/* GET /messages/search/:uid, rechercher dans une conversation DM */
 router.get('/search/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
@@ -358,7 +358,7 @@ router.get('/search/:uid', async (req: Request, res: Response) => {
   res.json({ results });
 });
 
-/* GET /messages/group/search/:gid — rechercher dans un groupe */
+/* GET /messages/group/search/:gid, rechercher dans un groupe */
 router.get('/group/search/:gid', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
   const q = ((req.query.q as string) || '').trim();
@@ -370,7 +370,7 @@ router.get('/group/search/:gid', async (req: Request, res: Response) => {
   res.json({ results });
 });
 
-/* GET /messages/:uid/pinned — messages épinglés DM */
+/* GET /messages/:uid/pinned, messages épinglés DM */
 router.get('/:uid/pinned', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
@@ -391,7 +391,7 @@ router.get('/:uid/pinned', async (req: Request, res: Response) => {
   res.json(result);
 });
 
-/* GET /messages/group/:gid/pinned — messages épinglés groupe */
+/* GET /messages/group/:gid/pinned, messages épinglés groupe */
 router.get('/group/:gid/pinned', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
   const rows = await query<Array<MessageData & { msgKey: string }>>(
@@ -407,10 +407,14 @@ router.get('/group/:gid/pinned', async (req: Request, res: Response) => {
   res.json(result);
 });
 
-/* POST /messages/:uid/:msgKey/pin — épingler/désépingler un message DM */
+/* POST /messages/:uid/:msgKey/pin, épingler/désépingler un message DM */
 router.post('/:uid/:msgKey/pin', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
+  if (!(await isMessageOwner('messages', 'convId', cid, req.params.msgKey, authReq.uid!))) {
+    res.status(403).json({ error: 'Vous ne pouvez pas épingler ce message' });
+    return;
+  }
   const { pinned } = req.body as { pinned: boolean };
   await updateMessage(cid, req.params.msgKey, { pinned } as unknown as Record<string, unknown>);
   const io = req.app.get('io');
@@ -418,9 +422,16 @@ router.post('/:uid/:msgKey/pin', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* POST /messages/group/:gid/:msgKey/pin — épingler/désépingler un message groupe */
+/* POST /messages/group/:gid/:msgKey/pin, épingler/désépingler un message groupe */
 router.post('/group/:gid/:msgKey/pin', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
+  const authReq = req as AuthRequest;
+  const isAuthor = await isMessageOwner('group_messages', 'gid', req.params.gid, req.params.msgKey, authReq.uid!);
+  const isAdmin = await isGroupAdmin(req.params.gid, authReq.uid!);
+  if (!isAuthor && !isAdmin) {
+    res.status(403).json({ error: 'Vous ne pouvez pas épingler ce message' });
+    return;
+  }
   const { pinned } = req.body as { pinned: boolean };
   await updateGroupMessage(req.params.gid, req.params.msgKey, { pinned } as unknown as Record<string, unknown>);
   const io = req.app.get('io');
@@ -434,7 +445,7 @@ router.post('/group/:gid/:msgKey/pin', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* GET /messages/:uid/:msgKey/blob — données blob d'un message DM */
+/* GET /messages/:uid/:msgKey/blob, données blob d'un message DM */
 router.get('/:uid/:msgKey/blob', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
@@ -446,7 +457,7 @@ router.get('/:uid/:msgKey/blob', async (req: Request, res: Response) => {
   res.json(blob);
 });
 
-/* GET /messages/group/:gid/:msgKey/blob — données blob d'un message groupe */
+/* GET /messages/group/:gid/:msgKey/blob, données blob d'un message groupe */
 router.get('/group/:gid/:msgKey/blob', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
   const blob = await getGroupMessageBlob(req.params.gid, req.params.msgKey);
@@ -457,7 +468,7 @@ router.get('/group/:gid/:msgKey/blob', async (req: Request, res: Response) => {
   res.json(blob);
 });
 
-/* POST /messages/:uid/:msgKey/reaction — toggle réaction DM */
+/* POST /messages/:uid/:msgKey/reaction, toggle réaction DM */
 router.post('/:uid/:msgKey/reaction', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const cid = chatId(authReq.uid!, req.params.uid);
@@ -486,7 +497,7 @@ router.post('/:uid/:msgKey/reaction', async (req: Request, res: Response) => {
   res.json({ reactions });
 });
 
-/* POST /messages/group/:gid/:msgKey/reaction — toggle réaction groupe */
+/* POST /messages/group/:gid/:msgKey/reaction, toggle réaction groupe */
 router.post('/group/:gid/:msgKey/reaction', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
   const authReq = req as AuthRequest;

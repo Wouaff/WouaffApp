@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 
-/* Express 4-param error middleware — catches anything thrown or passed via next(err) */
+/* Express 4-param error middleware, catches anything thrown or passed via next(err) */
 export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction): void {
   const e = err as { status?: number; message?: string; stack?: string };
   const status = e?.status || 500;

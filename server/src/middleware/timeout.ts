@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 
-/* Request timeout middleware — returns 503 if a request takes too long */
+/* Request timeout middleware, returns 503 if a request takes too long */
 export function requestTimeout(ms: number) {
   return (_req: Request, res: Response, next: NextFunction): void => {
     const timer = setTimeout(() => {

@@ -91,7 +91,7 @@ export default function ContactsModal({ onDone, onClose }: ContactsModalProps) {
   };
 
   const invite = async (number: string) => {
-    const text = `Rejoins-moi sur Wouaff 🐺 ! ${inviteLink}`;
+    const text = `Rejoins-moi sur Wouaff ! ${inviteLink}`;
     if (typeof navigator.share === 'function') {
       try {
         await navigator.share({ text });
@@ -109,7 +109,7 @@ export default function ContactsModal({ onDone, onClose }: ContactsModalProps) {
       showToast('Invitation envoyée par SMS', 'success');
     } catch {
       try {
-        await navigator.clipboard.writeText(`${text} — ${number}`);
+        await navigator.clipboard.writeText(`${text}, ${number}`);
         showToast('Invitation copiée', 'success');
       } catch {
         showToast('Impossible d’inviter ce contact', 'error');
@@ -231,7 +231,7 @@ export default function ContactsModal({ onDone, onClose }: ContactsModalProps) {
             {matches.length > 0 && (
               <section className="mt-4">
                 <h3 className="m-0 mb-2 text-[13px] font-extrabold text-[var(--text-secondary)] uppercase tracking-wide">
-                  Sur Wouaff — suis-les !
+                  Sur Wouaff, suis-les !
                 </h3>
                 <div className="flex flex-col gap-2">
                   {matches.map((m) => {
@@ -244,7 +244,11 @@ export default function ContactsModal({ onDone, onClose }: ContactsModalProps) {
                       >
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
                           {m.avatar ? (
-                            <img src={m.avatar} alt="" className="w-full h-full object-cover" />
+                            <img
+                              src={m.avatar}
+                              alt={`Avatar de ${m.pseudo || "l'utilisateur"}`}
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
                             <span>{initial}</span>
                           )}
@@ -256,12 +260,11 @@ export default function ContactsModal({ onDone, onClose }: ContactsModalProps) {
                         <button
                           type="button"
                           onClick={() => toggleFollow(m)}
-                          aria-label={isFollowing ? `Ne plus suivre ${m.pseudo}` : `Suivre ${m.pseudo}`}
-                          className={`flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[12px] font-bold border-none cursor-pointer transition-colors ${
+                          aria-label={isFollowing ? `Ne plus suivre ${m.pseudo}` : `Suivre $m.pseudo`}
+                          className={`flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[12px] font-bold border-none cursor-pointer transition-colors $
                             isFollowing
                               ? 'bg-[var(--bg-base)] text-[var(--text-primary)] border border-[var(--border)]'
-                              : 'bg-[var(--text-primary)] text-[var(--bg-base)] hover:opacity-90'
-                          }`}
+                              : 'bg-[var(--text-primary)] text-[var(--bg-base)] hover:opacity-90'`}
                         >
                           {isFollowing ? <Check size={13} /> : <UserPlus size={13} />}
                           {isFollowing ? 'Suivi' : 'Suivre'}
@@ -276,7 +279,7 @@ export default function ContactsModal({ onDone, onClose }: ContactsModalProps) {
             {missing.length > 0 && (
               <section className="mt-5">
                 <h3 className="m-0 mb-2 text-[13px] font-extrabold text-[var(--text-secondary)] uppercase tracking-wide">
-                  Pas encore sur Wouaff — invite-les !
+                  Pas encore sur Wouaff, invite-les !
                 </h3>
                 <div className="flex flex-col gap-2">
                   {missing.slice(0, 20).map((num) => (

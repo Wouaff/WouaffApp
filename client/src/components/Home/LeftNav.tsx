@@ -179,7 +179,7 @@ export default function LeftNav() {
                   handleNav(item.path);
                 }}
                 aria-current={active ? 'page' : undefined}
-                title={item.soon ? `${item.label} — bientôt disponible` : item.label}
+                title={item.soon ? `${item.label}, bientôt disponible` : item.label}
               >
                 <span className="relative flex-shrink-0">
                   <Icon size={24} strokeWidth={active ? 2.4 : 2} />
@@ -302,7 +302,15 @@ export default function LeftNav() {
               title={collapsed ? 'Profil et paramètres' : undefined}
             >
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
-                {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
+                {avatar ? (
+                  <img
+                    src={avatar}
+                    alt={`Avatar de ${user?.pseudo || 'vous'}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>{initial}</span>
+                )}
               </div>
               {!collapsed && (
                 <>

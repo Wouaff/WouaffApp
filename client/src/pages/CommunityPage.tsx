@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronDown, Lock, PenSquare, Plus, Settings, Users } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Lock, PenSquare, Plus, SearchX, Settings, Users } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { showToast } from '../components/Common/Toast';
@@ -179,7 +179,7 @@ export default function CommunityPage() {
     setCommunity((prev) => (prev ? { ...prev, postCount: prev.postCount + 1 } : prev));
     setShowComposer(false);
     setTab('new');
-    showToast('Post publié 🎉', 'success');
+    showToast('Post publié', 'success');
   }, []);
 
   const tabs: Array<{ id: Tab; label: string }> = [
@@ -193,10 +193,10 @@ export default function CommunityPage() {
       <div className="flex h-full items-center justify-center">
         <div className="text-center flex flex-col items-center gap-3 px-6">
           <span
-            className="w-16 h-16 rounded-full bg-[var(--brand-glow)] flex items-center justify-center text-3xl"
+            className="w-16 h-16 rounded-full bg-[var(--brand-glow)] flex items-center justify-center text-3xl text-brand"
             aria-hidden="true"
           >
-            🐺
+            <SearchX size={32} />
           </span>
           <h2 className="m-0 text-[18px] font-extrabold text-[var(--text-primary)]">c/{name} introuvable</h2>
           <p className="m-0 text-[13px] text-[var(--text-secondary)]">

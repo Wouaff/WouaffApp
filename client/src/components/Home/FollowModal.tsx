@@ -124,7 +124,11 @@ export default function FollowModal({ wouaffId, kind, onClose, onChange }: Follo
                   >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
                       {u.avatar ? (
-                        <img src={u.avatar} alt="" className="w-full h-full object-cover" />
+                        <img
+                          src={u.avatar}
+                          alt={`Avatar de ${u.pseudo || "l'utilisateur"}`}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <span>{(u.pseudo || '?')[0]?.toUpperCase() || '?'}</span>
                       )}

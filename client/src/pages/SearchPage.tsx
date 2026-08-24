@@ -136,7 +136,7 @@ export default function SearchPage() {
                       {r.profile?.avatar ? (
                         <img
                           src={r.profile.avatar}
-                          alt=""
+                          alt={`Avatar de ${r.profile.pseudo || "l'utilisateur"}`}
                           className="w-full h-full object-cover"
                           loading="lazy"
                           decoding="async"

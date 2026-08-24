@@ -1,3 +1,4 @@
+import { Inbox } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { showToast, default as Toast } from '../components/Common/Toast';
@@ -216,7 +217,7 @@ export default function HomePage() {
           const item = toPostItem(post);
           return prev.some((i) => i.key === item.key) ? prev : [item, ...prev];
         });
-        showToast('✅ Post publié !');
+        showToast('Post publié !');
       } catch (e) {
         showToast((e as Error).message || 'Erreur lors de la publication', 'error');
       }
@@ -367,8 +368,8 @@ export default function HomePage() {
             </div>
           ) : visibleItems.length === 0 ? (
             <div className="py-16 px-6 text-center">
-              <div className="text-4xl mb-3" aria-hidden="true">
-                🐺
+              <div className="text-4xl mb-3 text-brand" aria-hidden="true">
+                <Inbox size={36} />
               </div>
               <p className="m-0 text-[var(--text-secondary)]">
                 {tab === 'following'

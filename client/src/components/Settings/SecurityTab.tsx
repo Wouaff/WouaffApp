@@ -311,7 +311,7 @@ export default function SecurityTab() {
         </h3>
         <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-4">
           Utilise ces codes à usage unique pour te connecter si tu perds l’accès à ton application et ta boîte mail.{' '}
-          {status?.recoveryCodesGenerated ? 'Tu en possèdes déjà — tu peux les régénérer.' : ''}
+          {status?.recoveryCodesGenerated ? 'Tu en possèdes déjà, tu peux les régénérer.' : ''}
         </p>
         <button
           type="button"

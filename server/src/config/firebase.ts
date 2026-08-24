@@ -1,1 +1,1 @@
-/* Firebase supprimé — voir auth JWT avec jsonwebtoken */
+/* Firebase supprimé, voir auth JWT avec jsonwebtoken */

@@ -43,7 +43,7 @@ export function verifyCaptcha(req: Request, res: Response, next: NextFunction): 
   });
 }
 
-/* Captcha obligatoire pour l'inscription — rejette même si le provider n'est pas configuré */
+/* Captcha obligatoire pour l'inscription, rejette même si le provider n'est pas configuré */
 export function verifyCaptchaStrict(req: Request, res: Response, next: NextFunction): void {
   void (async () => {
     try {

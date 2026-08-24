@@ -36,7 +36,7 @@ function esc(s: string): string {
 
 export function defaultSeo(url: string): SeoData {
   return {
-    title: 'Wouaff — ton fil, pas leur algo',
+    title: 'Wouaff, ton fil, pas leur algo',
     description: 'Posts, vidéos, communautés, MP chiffrés. Zéro pub. Tes données restent en France.',
     image: `${SITE_URL}/assets/logo/logo.png`,
     url,
@@ -55,7 +55,7 @@ export async function postSeo(id: string, url: string): Promise<SeoData | null> 
   const handle = (row.wouaffId as string) ? `@${row.wouaffId}` : '@inconnu';
   const text = strip((row.text as string) || '');
   return {
-    title: `${pseudo} · ${handle} — Wouaff`,
+    title: `${pseudo} · ${handle}, Wouaff`,
     description: text || `Voir le post de ${pseudo} sur Wouaff.`,
     image: absoluteImage((row.image as string) || null) ?? `${SITE_URL}/assets/logo/logo.png`,
     url,
@@ -72,7 +72,7 @@ export async function profileSeo(handle: string, url: string): Promise<SeoData |
   const pseudo = (profile.pseudo as string) || 'Utilisateur';
   const bio = strip((profile.bio as string) || '');
   return {
-    title: `${pseudo} (@${handle}) — Wouaff`,
+    title: `${pseudo} (@${handle}), Wouaff`,
     description: bio || `Découvrez le profil de ${pseudo} sur Wouaff.`,
     image: absoluteImage((profile.avatar as string) || null) ?? `${SITE_URL}/assets/logo/logo.png`,
     url,
@@ -89,7 +89,7 @@ export async function communitySeo(name: string, url: string): Promise<SeoData |
   const displayName = (row.displayName as string) || name;
   const description = strip((row.description as string) || '');
   return {
-    title: `c/${name} — ${displayName} — Wouaff`,
+    title: `c/${name}, ${displayName}, Wouaff`,
     description: description || `Découvrez la communauté c/${name} sur Wouaff.`,
     image: absoluteImage((row.avatar as string) || null) ?? `${SITE_URL}/assets/logo/logo.png`,
     url,

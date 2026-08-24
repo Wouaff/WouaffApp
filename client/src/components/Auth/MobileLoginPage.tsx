@@ -216,7 +216,7 @@ export default function MobileLoginPage() {
             <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-12 h-12 rounded-xl" />
             <div>
               <div className="text-xl font-black text-[var(--text-primary)] leading-tight">Wouaff</div>
-              <div className="text-[13px] text-[var(--text-muted)]">Le réseau social français 🐺</div>
+              <div className="text-[13px] text-[var(--text-muted)]">Le réseau social français</div>
             </div>
           </div>
 
@@ -490,7 +490,7 @@ export default function MobileLoginPage() {
 
               {isRegister && <div className="flex justify-center">{cap.widget}</div>}
 
-              {/* Honeypot anti-bot — invisible pour les humains */}
+              {/* Honeypot anti-bot, invisible pour les humains */}
               {isRegister && (
                 <div
                   aria-hidden="true"

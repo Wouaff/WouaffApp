@@ -71,7 +71,7 @@
 }
 
 /* ══════════════════════════════════════════════════════════
-   IONIC (version mobile web) — aligné sur la marque Wouaff
+   IONIC (version mobile web), aligné sur la marque Wouaff
 ══════════════════════════════════════════════════════════════ */
 :root {
   --ion-color-primary: #f97b3b;
@@ -463,11 +463,11 @@
 }
 
 /* ══════════════════════════════════════════════════════════
-   COMPONENT STYLES — seront progressivement supprimées
+   COMPONENT STYLES, seront progressivement supprimées
    au fur et à mesure de la migration Tailwind
 ══════════════════════════════════════════════════════════ */
 
-/* Increased touch targets for mobile — minimum 44px as per WCAG 2.5.5 */
+/* Increased touch targets for mobile, minimum 44px as per WCAG 2.5.5 */
 .pending-accept-btn,
 .pending-decline-btn {
   min-width: 44px;
@@ -530,7 +530,7 @@
     transform: translateY(10px) scale(0.97);
   }
 }
-/* sr-only utility — ensures screen reader only content is hidden visually but accessible */
+/* sr-only utility, ensures screen reader only content is hidden visually but accessible */
 .sr-only {
   position: absolute;
   width: 1px;

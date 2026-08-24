@@ -403,7 +403,11 @@ export function SegTabs<T extends string>({
 export function Avatar({ src, name, size = 40 }: { src?: string | null; name?: string | null; size?: number }) {
   return (
     <span className="wa-avatar" style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}>
-      {src ? <img src={src} alt="" /> : <span>{(name || '?')[0]?.toUpperCase() || '?'}</span>}
+      {src ? (
+        <img src={src} alt={`Avatar de ${name || 'utilisateur'}`} />
+      ) : (
+        <span>{(name || '?')[0]?.toUpperCase() || '?'}</span>
+      )}
     </span>
   );
 }

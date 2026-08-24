@@ -130,7 +130,7 @@ export default function RightSidebar() {
                     {s.avatar ? (
                       <img
                         src={s.avatar}
-                        alt=""
+                        alt={`Avatar de ${s.pseudo || "l'utilisateur"}`}
                         className="w-full h-full object-cover"
                         loading="lazy"
                         decoding="async"

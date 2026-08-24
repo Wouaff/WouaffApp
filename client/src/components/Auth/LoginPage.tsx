@@ -1,6 +1,6 @@
 import { Check, ChevronLeft, KeyRound, Lock, MapPin, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useCap } from '../../hooks/useCap';
 import { login, register } from '../../services/auth';
@@ -73,6 +73,7 @@ export default function LoginPage() {
   const [twoFAInfo, setTwoFAInfo] = useState('');
   const [sending2FA, setSending2FA] = useState(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const canPasskey = browserSupportsWebAuthn();
 
   useEffect(() => {
@@ -137,6 +138,9 @@ export default function LoginPage() {
       try {
         if (isRegister) {
           await register(email, password, pseudo, cap.token, honeypot);
+          cap.reset();
+          setRegisteredEmail(email);
+          return;
         } else {
           const data = await login(email, password);
           if (isPasskeyResult(data)) {
@@ -235,6 +239,36 @@ export default function LoginPage() {
   const twoFAMethods = twoFactor?.methods;
   const showPasskeyButton = !isRegister && !twoFactor && canPasskey;
 
+  if (registeredEmail) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-[var(--bg-deep)] p-4">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 max-w-md w-full text-center">
+          <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-12 h-12 mx-auto mb-4 rounded-xl" />
+          <h1 className="text-xl font-black text-white m-0">Compte créé, il reste une étape.</h1>
+          <p className="mt-3 text-[15px] leading-relaxed text-[var(--text-muted)]">
+            On a envoyé un code de vérification à <strong className="text-white">{registeredEmail}</strong>. Ouvrez cet
+            email et suivez le lien pour confirmer votre adresse.
+          </p>
+          <div className="mt-6 flex flex-col gap-2">
+            <Link
+              to={`/verify-email`}
+              className="inline-block rounded-full bg-brand px-6 py-3 text-center text-[14px] font-bold text-white no-underline"
+            >
+              J'ai le code, vérifier mon email
+            </Link>
+            <button
+              type="button"
+              onClick={() => setRegisteredEmail(null)}
+              className="rounded-full border border-[var(--border)] bg-transparent px-6 py-3 text-[14px] font-bold text-[var(--text-muted)] cursor-pointer hover:border-[var(--border-light)] transition-colors"
+            >
+              Modifier l'email ou le pseudo
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-dvh bg-[var(--bg-deep)]">
       <div className="hidden lg:flex flex-col justify-between flex-1 relative overflow-hidden p-12 border-r border-[var(--border)]">
@@ -290,7 +324,7 @@ export default function LoginPage() {
           <div className="mb-10 lg:hidden">
             <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-14 h-14 mb-5" />
             <h1 className="text-2xl font-black m-0 text-white">Wouaff</h1>
-            <p className="text-[#8b98a5] text-sm mt-1 m-0">Ton fil, pas leur algo 🐺</p>
+            <p className="text-[#8b98a5] text-sm mt-1 m-0">Ton fil, pas leur algo</p>
           </div>
 
           <div key={isRegister ? 'register' : 'login'} className="w-full animate-[authModeIn_0.28s_ease-out]">
@@ -654,7 +688,7 @@ export default function LoginPage() {
 
                 {isRegister && <div className="mb-5 flex justify-center">{cap.widget}</div>}
 
-                {/* Honeypot anti-bot — invisible pour les humains */}
+                {/* Honeypot anti-bot, invisible pour les humains */}
                 {isRegister && (
                   <div
                     aria-hidden="true"

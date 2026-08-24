@@ -113,7 +113,7 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
         avatar: avatar || undefined,
         isPrivate,
       });
-      showToast(`Communauté c/${slug} créée 🎉`, 'success');
+      showToast(`Communauté c/${slug} créée`, 'success');
       onCreated?.(community);
       onClose();
       navigate(`/c/${community.name}`);
@@ -153,7 +153,7 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
               aria-label="Ajouter une photo de profil"
             >
               {avatar ? (
-                <img src={avatar} alt="" className="w-full h-full object-cover" />
+                <img src={avatar} alt="Aperçu de l'avatar" className="w-full h-full object-cover" />
               ) : (
                 <Camera size={22} className="text-white/70" />
               )}
@@ -174,7 +174,7 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
             />
             <div className="text-[13px] text-[var(--text-secondary)]">
               <div className="font-bold text-[var(--text-primary)]">Photo de profil</div>
-              <div className="text-[12px] text-[var(--text-muted)]">Optionnel — 5 Mo max</div>
+              <div className="text-[12px] text-[var(--text-muted)]">Optionnel, 5 Mo max</div>
             </div>
             {imageLoading && <div className="spinner" />}
           </div>
@@ -197,7 +197,7 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
               />
             </div>
             <p className="m-0 mt-1 text-[12px] text-[var(--text-muted)]">
-              URL : /c/{slug || '...'} — lettres minuscules, chiffres et _ uniquement.
+              URL : /c/{slug || '...'}, lettres minuscules, chiffres et _ uniquement.
             </p>
           </div>
 

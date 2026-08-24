@@ -207,7 +207,7 @@ export function ReportsTab({
                 {r.postImage && (
                   <img
                     src={r.postImage}
-                    alt=""
+                    alt="Visuel du post signalé"
                     className="wa-item-thumb"
                     onError={(e) => {
                       (e.target as HTMLElement).style.display = 'none';

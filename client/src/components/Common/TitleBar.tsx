@@ -16,7 +16,7 @@ export default function TitleBar() {
   return (
     <div id="titlebar" className="flex items-center justify-between h-9 bg-[var(--bg-deep)] select-none shrink-0 px-4">
       <div className="flex items-center gap-2 text-xs font-bold text-text-secondary">
-        <img src="/assets/logo/logo.png" alt="" className="w-4 h-4" />
+        <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-4 h-4" />
         Wouaff
       </div>
       <div className="flex">

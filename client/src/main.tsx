@@ -8,7 +8,7 @@ import { AuthProvider } from './hooks/useAuth';
 import { ThemeProvider } from './hooks/useTheme';
 import { registerNotificationsServiceWorker } from './utils/browserNotifications';
 
-/* Global error handlers — prevent silent crashes */
+/* Global error handlers, prevent silent crashes */
 window.addEventListener('error', (e) => {
   console.error('[GLOBAL ERROR]', e.error?.stack || e.message);
 });
@@ -16,7 +16,7 @@ window.addEventListener('unhandledrejection', (e) => {
   console.error('[UNHANDLED REJECTION]', e.reason?.stack || e.reason);
 });
 
-/* Service worker — clic sur les notifications système */
+/* Service worker, clic sur les notifications système */
 registerNotificationsServiceWorker();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

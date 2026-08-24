@@ -1,4 +1,4 @@
-import { Check, UserPlus, X } from 'lucide-react';
+import { Check, Sparkles, UserPlus, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { OnboardingCommunity, OnboardingUser } from '../../services/api';
 import { onboarding } from '../../services/api';
@@ -68,7 +68,7 @@ export default function OnboardingModal({ onDone, onSkip }: OnboardingModalProps
       const followUids = users.filter((u) => selectedUsers.has(u.uid)).map((u) => u.uid);
       const communityNames = communities.filter((c) => selectedCommunities.has(c.id)).map((c) => c.name);
       await onboarding.complete(followUids, communityNames);
-      showToast('Bienvenue ! Ton fil est prêt 🎉', 'success');
+      showToast('Bienvenue ! Ton fil est prêt', 'success');
       onDone();
     } catch (err) {
       showToast((err as Error).message || "Erreur lors de l'abonnement", 'error');
@@ -98,7 +98,15 @@ export default function OnboardingModal({ onDone, onSkip }: OnboardingModalProps
         }`}
       >
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
-          {u.avatar ? <img src={u.avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
+          {u.avatar ? (
+            <img
+              src={u.avatar}
+              alt={`Avatar de ${u.pseudo || "l'utilisateur"}`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span>{initial}</span>
+          )}
         </div>
         <span className="flex-1 min-w-0">
           <span className="flex items-center gap-1 text-[13px] font-bold text-[var(--text-primary)] truncate">
@@ -111,11 +119,11 @@ export default function OnboardingModal({ onDone, onSkip }: OnboardingModalProps
           </span>
           <span className="block text-[11px] text-[var(--text-muted)] truncate">{u.bio || handle}</span>
         </span>
-        {isSelected && (
-          <span className="w-5 h-5 rounded-full bg-brand flex items-center justify-center flex-shrink-0">
-            <Check size={12} className="text-white" />
-          </span>
-        )}
+        isSelected && (
+        <span className="w-5 h-5 rounded-full bg-brand flex items-center justify-center flex-shrink-0">
+          <Check size={12} className="text-white" />
+        </span>
+        );
       </button>
     );
   };
@@ -136,7 +144,11 @@ export default function OnboardingModal({ onDone, onSkip }: OnboardingModalProps
         }`}
       >
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
-          {c.avatar ? <img src={c.avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
+          {c.avatar ? (
+            <img src={c.avatar} alt={`Avatar de ${c.displayName || c.name}`} className="w-full h-full object-cover" />
+          ) : (
+            <span>{initial}</span>
+          )}
         </div>
         <span className="flex-1 min-w-0">
           <span className="block text-[13px] font-bold text-[var(--text-primary)] truncate">c/{c.name}</span>
@@ -158,10 +170,10 @@ export default function OnboardingModal({ onDone, onSkip }: OnboardingModalProps
       <div className="flex flex-col w-full max-w-[720px] max-h-[92dvh] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
         <div className="flex items-center gap-4 px-6 py-4 border-b border-[var(--border)] flex-shrink-0">
           <div
-            className="w-10 h-10 rounded-xl bg-[var(--brand-glow)] flex items-center justify-center text-xl"
+            className="w-10 h-10 rounded-xl bg-[var(--brand-glow)] flex items-center justify-center text-xl text-brand"
             aria-hidden="true"
           >
-            🐺
+            <Sparkles size={22} />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="m-0 text-[19px] font-extrabold text-[var(--text-primary)]">Bienvenue sur Wouaff !</h2>

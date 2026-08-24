@@ -189,7 +189,11 @@ export function GroupsTab({ request, onClearRequest }: { request: GroupRequest |
         <Card
           title={
             <span className="wa-card-title-inline">
-              {detail.icon ? <img src={detail.icon} alt="" className="wa-card-icon-img" /> : <Users size={16} />}
+              {detail.icon ? (
+                <img src={detail.icon} alt={`Icône du groupe ${detail.name}`} className="wa-card-icon-img" />
+              ) : (
+                <Users size={16} />
+              )}
               {detail.name}
             </span>
           }

@@ -12,7 +12,7 @@ export function setQueueIo(io: Server): void {
 }
 
 export function registerQueueHandlers(): void {
-  /* Emails (vérification / reset) — avec retries en cas de panne SMTP */
+  /* Emails (vérification / reset), avec retries en cas de panne SMTP */
   registerJobHandler('email', async (payload) => {
     const kind = payload.kind as string;
     const to = String(payload.to ?? '');
@@ -23,7 +23,7 @@ export function registerQueueHandlers(): void {
     }
   });
 
-  /* Notifications (like / repost / comment / follow) — INSERT + SELECT + emit découplés de la requête */
+  /* Notifications (like / repost / comment / follow), INSERT + SELECT + emit découplés de la requête */
   registerJobHandler('notification', async (payload) => {
     await createNotification(ioRef, {
       uid: payload.uid as string,
@@ -34,7 +34,7 @@ export function registerQueueHandlers(): void {
     });
   });
 
-  /* Webhooks Discord (nouvelle inscription / alerte SQL) — rate-limit via la file */
+  /* Webhooks Discord (nouvelle inscription / alerte SQL), rate-limit via la file */
   registerJobHandler('webhook', async (payload) => {
     const kind = payload.kind as string;
     if (kind === 'newUser') {

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import BannedScreen from './components/Common/BannedScreen';
+import CookieConsent from './components/Common/CookieConsent';
 import EmailVerificationBanner from './components/Common/EmailVerificationBanner';
 import OpenSourceBanner from './components/Common/OpenSourceBanner';
 import PwaInstallPrompt from './components/Common/PwaInstallPrompt';
@@ -18,14 +19,17 @@ const MobileLoginPage = lazy(() => import('./components/Auth/MobileLoginPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage'));
 const CommunityPage = lazy(() => import('./pages/CommunityPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
 const DiscoverCommunitiesPage = lazy(() => import('./pages/DiscoverCommunitiesPage'));
-const HomePage = lazy(() => import('./pages/HomePage'));
 const DownloadPage = lazy(() => import('./pages/DownloadPage'));
-const LandingPage = lazy(() => import('./pages/LandingPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const HomePage = lazy(() => import('./pages/HomePage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const MaintenancePage = lazy(() => import('./pages/MaintenancePage'));
+const MentionsLegalesPage = lazy(() => import('./pages/MentionsLegalesPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const PostPage = lazy(() => import('./pages/PostPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
@@ -150,33 +154,50 @@ function CatchAll({ isMobile }: { isMobile: boolean }) {
     const page = <PostPage />;
     return isMobile ? <MobileShell>{page}</MobileShell> : page;
   }
-  return <Navigate to="/" replace />;
+  const page = <NotFoundPage />;
+  return isMobile ? <MobileShell>{page}</MobileShell> : page;
 }
 
 function SeoTitle() {
   const loc = useLocation();
   useEffect(() => {
     const titles: Record<string, string> = {
-      '/': 'Wouaff — ton fil, pas leur algo',
-      '/messages': 'Messages — Wouaff',
-      '/settings': 'Paramètres — Wouaff',
-      '/admin': 'Administration — Wouaff',
-      '/communities': 'Communautés — Wouaff',
-      '/discover': 'Découvrir — Wouaff',
-      '/notifications': 'Notifications — Wouaff',
-      '/search': 'Recherche — Wouaff',
-      '/auth': 'Connexion — Wouaff',
-      '/download': 'Télécharger Wouaff — Wouaff',
-      '/forgot-password': 'Mot de passe oublié — Wouaff',
+      '/': 'Wouaff, ton fil, pas leur algo',
+      '/messages': 'Messages, Wouaff',
+      '/settings': 'Paramètres, Wouaff',
+      '/admin': 'Administration, Wouaff',
+      '/communities': 'Communautés, Wouaff',
+      '/discover': 'Découvrir, Wouaff',
+      '/notifications': 'Notifications, Wouaff',
+      '/search': 'Recherche, Wouaff',
+      '/auth': 'Connexion, Wouaff',
+      '/download': 'Télécharger Wouaff, Wouaff',
+      '/forgot-password': 'Mot de passe oublié, Wouaff',
+      '/contact': 'Contact, Wouaff',
+      '/mentions-legales': 'Mentions légales, Wouaff',
+    };
+    const descriptions: Record<string, string> = {
+      '/': 'Posts, vidéos, communautés, messages privés chiffrés. Réseau social français open source, zéro pub, tes données restent en France.',
+      '/messages': 'Vos conversations privées, chiffrées de bout en bout, sur Wouaff.',
+      '/communities': 'Les communautés françaises de Wouaff, par thème et par passion.',
+      '/discover': 'Découvrir les communautés Wouaff.',
+      '/download': 'Télécharger Wouaff sur ton téléphone ou ton ordinateur.',
+      '/contact': 'Écrire à l’équipe Wouaff.',
+      '/mentions-legales': 'Mentions légales du service Wouaff.',
     };
     let t = titles[loc.pathname];
+    const d = descriptions[loc.pathname];
     if (!t) {
-      if (loc.pathname.startsWith('/c/')) t = 'Communauté — Wouaff';
-      else if (loc.pathname.startsWith('/@')) t = 'Profil — Wouaff';
-      else if (loc.pathname.startsWith('/post/')) t = 'Post — Wouaff';
-      else if (loc.pathname.startsWith('/hashtag/')) t = 'Hashtag — Wouaff';
+      if (loc.pathname.startsWith('/c/')) t = 'Communauté, Wouaff';
+      else if (loc.pathname.startsWith('/@')) t = 'Profil, Wouaff';
+      else if (loc.pathname.startsWith('/post/')) t = 'Post, Wouaff';
+      else if (loc.pathname.startsWith('/hashtag/')) t = 'Hashtag, Wouaff';
     }
-    if (t) document.title = t;
+    if (t) {
+      document.title = t;
+      const meta = document.querySelector('meta[name="description"]');
+      if (meta && d) meta.setAttribute('content', d);
+    }
   }, [loc.pathname]);
   return null;
 }
@@ -228,6 +249,8 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
         <Route path="/" element={<HomeRoot isMobile={mobile} />} />
         <Route
           path="/notifications"
@@ -409,6 +432,7 @@ export default function App() {
       <ThemeProvider>
         <OpenSourceBanner />
         <PwaInstallPrompt />
+        <CookieConsent />
         <DiscordPresenceTracker />
         <BannedGuard>
           <div className="flex flex-col h-dvh">

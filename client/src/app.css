@@ -4173,7 +4173,7 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════
-   BOTTOM NAV (mobile) — Bootstrap-enhanced
+   BOTTOM NAV (mobile), Bootstrap-enhanced
    ══════════════════════════════════════════════════════════ */
 .bnav {
   display: none;
@@ -4390,7 +4390,7 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════
-   RESPONSIVE MOBILE — Bootstrap-enhanced
+   RESPONSIVE MOBILE, Bootstrap-enhanced
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 700px) {
   :root {
@@ -8867,7 +8867,7 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════
-   ADMIN — DESIGN V2 (polish)
+   ADMIN, DESIGN V2 (polish)
 ══════════════════════════════════════════════════════════════ */
 .admin-page {
   background:
@@ -11383,7 +11383,7 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════
-   VERSION MOBILE WEB (Ionic) — appliquée uniquement sous 768px
+   VERSION MOBILE WEB (Ionic), appliquée uniquement sous 768px
 ══════════════════════════════════════════════════════════════ */
 :root {
   --mobile-tab-h: calc(56px + var(--safe-bottom));
@@ -11498,7 +11498,7 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   DESIGN SYSTEM MOBILE (Ionic) — grille 8pt, échelle typo, AA
+   DESIGN SYSTEM MOBILE (Ionic), grille 8pt, échelle typo, AA
 ══════════════════════════════════════════════════════════════ */
 .mobile-shell {
   /* échelle d'espacement (multiples de 8) */

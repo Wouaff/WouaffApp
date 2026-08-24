@@ -1,3 +1,4 @@
+import { CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import DmcaBadge from '../components/Common/DmcaBadge';
@@ -66,7 +67,9 @@ export default function ResetPasswordPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-dvh bg-[var(--bg-page)] p-4">
         <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-          <div className="text-5xl mb-4">✅</div>
+          <div className="mb-4 flex justify-center text-green-500">
+            <CheckCircle2 size={48} />
+          </div>
           <h2 className="text-lg font-bold">Mot de passe réinitialisé !</h2>
           <p className="text-text-secondary text-sm mt-2">
             Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.

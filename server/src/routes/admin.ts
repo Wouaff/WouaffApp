@@ -76,7 +76,7 @@ async function requireRole(req: Request, res: Response, min: StaffLevel): Promis
   return true;
 }
 
-/* POST /admin/bootstrap — premier admin si la liste staff est vide */
+/* POST /admin/bootstrap, premier admin si la liste staff est vide */
 router.post('/bootstrap', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const allStaff = await getAllStaff();
@@ -88,7 +88,7 @@ router.post('/bootstrap', async (req: Request, res: Response) => {
   res.json({ success: true, message: 'Vous êtes maintenant propriétaire' });
 });
 
-/* GET /admin/staff — liste du staff (avec rôles) */
+/* GET /admin/staff, liste du staff (avec rôles) */
 router.get('/staff', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const staff = await getAllStaff();
@@ -100,7 +100,7 @@ router.get('/staff', async (req: Request, res: Response) => {
   res.json(result);
 });
 
-/* POST /admin/staff/:uid — ajouter un membre au staff (owner) */
+/* POST /admin/staff/:uid, ajouter un membre au staff (owner) */
 router.post('/staff/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   const { role } = req.body as { role?: string };
@@ -109,7 +109,7 @@ router.post('/staff/:uid', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* PUT /admin/staff/:uid/role — changer le rôle d'un membre (owner) */
+/* PUT /admin/staff/:uid/role, changer le rôle d'un membre (owner) */
 router.put('/staff/:uid/role', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   const { role } = req.body as { role?: string };
@@ -126,7 +126,7 @@ router.put('/staff/:uid/role', async (req: Request, res: Response) => {
   res.json({ success: true, role: next });
 });
 
-/* DELETE /admin/staff/:uid — retirer du staff (owner) */
+/* DELETE /admin/staff/:uid, retirer du staff (owner) */
 router.delete('/staff/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   await setStaff(req.params.uid, false);
@@ -134,14 +134,14 @@ router.delete('/staff/:uid', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* GET /admin/stats — statistiques */
+/* GET /admin/stats, statistiques */
 router.get('/stats', async (_req: Request, res: Response) => {
   if (!(await requireRole(_req, res, 'moderator'))) return;
   const stats = await getAdminStats();
   res.json(stats);
 });
 
-/* GET /admin/analytics — analytics (inscriptions/posts/messages par jour) */
+/* GET /admin/analytics, analytics (inscriptions/posts/messages par jour) */
 router.get('/analytics', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const days = Math.min(90, Math.max(1, parseInt(req.query.days as string, 10) || 7));
@@ -149,7 +149,7 @@ router.get('/analytics', async (req: Request, res: Response) => {
   res.json(analytics);
 });
 
-/* GET /admin/search — recherche globale */
+/* GET /admin/search, recherche globale */
 router.get('/search', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const q = ((req.query.q as string) || '').trim();
@@ -186,27 +186,27 @@ router.get('/search', async (req: Request, res: Response) => {
   res.json({ users, posts, videos, groups, messages });
 });
 
-/* GET /admin/users/recent — derniers utilisateurs inscrits */
+/* GET /admin/users/recent, derniers utilisateurs inscrits */
 router.get('/users/recent', async (_req: Request, res: Response) => {
   if (!(await requireRole(_req, res, 'moderator'))) return;
   const users = await getRecentUsers(20);
   res.json(users);
 });
 
-/* GET /admin/badges — liste des badges disponibles */
+/* GET /admin/badges, liste des badges disponibles */
 router.get('/badges', async (_req: Request, res: Response) => {
   const badges = await getBadges();
   res.json(badges);
 });
 
-/* POST /admin/badges/seed — recréer les badges manquants */
+/* POST /admin/badges/seed, recréer les badges manquants */
 router.post('/badges/seed', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const result = await seedBadges();
   res.json(result);
 });
 
-/* PUT /admin/badges/:uid — remplacer tous les badges d'un utilisateur */
+/* PUT /admin/badges/:uid, remplacer tous les badges d'un utilisateur */
 router.put('/badges/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const { badgeIds } = req.body as { badgeIds: string[] };
@@ -214,21 +214,21 @@ router.put('/badges/:uid', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* POST /admin/badges/:uid/add/:badgeId — ajouter un badge à un utilisateur */
+/* POST /admin/badges/:uid/add/:badgeId, ajouter un badge à un utilisateur */
 router.post('/badges/:uid/add/:badgeId', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   await addBadgeToUser(req.params.uid, req.params.badgeId);
   res.json({ success: true });
 });
 
-/* GET /admin/profile/:uid/email — email d'un utilisateur + statut de vérification (staff) */
+/* GET /admin/profile/:uid/email, email d'un utilisateur + statut de vérification (staff) */
 router.get('/profile/:uid/email', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const info = await getUserEmail(req.params.uid);
   res.json(info);
 });
 
-/* PUT /admin/profile/:uid — modifier le profil d'un utilisateur */
+/* PUT /admin/profile/:uid, modifier le profil d'un utilisateur */
 router.put('/profile/:uid', async (req: Request, res: Response) => {
   if (req.body && req.body.email !== undefined) {
     if (!(await requireRole(req, res, 'owner'))) return;
@@ -237,14 +237,14 @@ router.put('/profile/:uid', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* POST /admin/profile/:uid/reset-wouaffid — réinitialiser le wouaffId */
+/* POST /admin/profile/:uid/reset-wouaffid, réinitialiser le wouaffId */
 router.post('/profile/:uid/reset-wouaffid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   await resetUserWouaffId(req.params.uid);
   res.json({ success: true });
 });
 
-/* DELETE /admin/profile/:uid — supprimer un compte utilisateur (owner) */
+/* DELETE /admin/profile/:uid, supprimer un compte utilisateur (owner) */
 router.delete('/profile/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   await deleteUserProfile(req.params.uid);
@@ -252,7 +252,7 @@ router.delete('/profile/:uid', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* POST /admin/migrate/wouaffids — indexer tous les wouaffIds existants (owner) */
+/* POST /admin/migrate/wouaffids, indexer tous les wouaffIds existants (owner) */
 router.post('/migrate/wouaffids', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   const result = await migrateWouaffIds();
@@ -260,21 +260,21 @@ router.post('/migrate/wouaffids', async (req: Request, res: Response) => {
   res.json(result);
 });
 
-/* GET /admin/logs — activité récente du staff */
+/* GET /admin/logs, activité récente du staff */
 router.get('/logs', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const logs = await getAdminLogs(100);
   res.json(logs);
 });
 
-/* GET /admin/login-history/:uid — historique des connexions d'un utilisateur */
+/* GET /admin/login-history/:uid, historique des connexions d'un utilisateur */
 router.get('/login-history/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const history = await getLoginHistory(req.params.uid, 100);
   res.json(history);
 });
 
-/* POST /admin/log-action — logger une action depuis le frontend */
+/* POST /admin/log-action, logger une action depuis le frontend */
 router.post('/log-action', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const { action, targetType, targetId, details } = req.body as {
@@ -289,14 +289,14 @@ router.post('/log-action', async (req: Request, res: Response) => {
 
 /* ── Bannissements (owner) ── */
 
-/* GET /admin/bans — liste des bannissements actifs */
+/* GET /admin/bans, liste des bannissements actifs */
 router.get('/bans', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   const bans = await getActiveBans(200);
   res.json(bans);
 });
 
-/* POST /admin/bans — bannir un utilisateur */
+/* POST /admin/bans, bannir un utilisateur */
 router.post('/bans', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   const authReq = req as AuthRequest;
@@ -319,7 +319,7 @@ router.post('/bans', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* DELETE /admin/bans/:uid — débannir un utilisateur */
+/* DELETE /admin/bans/:uid, débannir un utilisateur */
 router.delete('/bans/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   await unbanUser(req.params.uid);
@@ -330,13 +330,13 @@ router.delete('/bans/:uid', async (req: Request, res: Response) => {
 
 /* ── Bannissements d'adresses IP ── */
 
-/* GET /admin/ip-bans — liste des IP bannies actives */
+/* GET /admin/ip-bans, liste des IP bannies actives */
 router.get('/ip-bans', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   res.json(await getActiveIpBans(200));
 });
 
-/* POST /admin/ip-bans — bannir une adresse IP */
+/* POST /admin/ip-bans, bannir une adresse IP */
 router.post('/ip-bans', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   const authReq = req as AuthRequest;
@@ -364,7 +364,7 @@ router.post('/ip-bans', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* DELETE /admin/ip-bans/:id — débannir une adresse IP */
+/* DELETE /admin/ip-bans/:id, débannir une adresse IP */
 router.delete('/ip-bans/:id', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   const authReq = req as AuthRequest;
@@ -382,21 +382,21 @@ router.delete('/ip-bans/:id', async (req: Request, res: Response) => {
 
 /* ── Signalements ── */
 
-/* GET /admin/reports — groupes signalés */
+/* GET /admin/reports, groupes signalés */
 router.get('/reports', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const reports = await getReportedGroups();
   res.json(reports);
 });
 
-/* GET /admin/reports/users — signalements d'utilisateurs */
+/* GET /admin/reports/users, signalements d'utilisateurs */
 router.get('/reports/users', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const reports = await listUserReports(100);
   res.json(reports);
 });
 
-/* POST /admin/reports/users/:id/clear — clôturer un signalement utilisateur */
+/* POST /admin/reports/users/:id/clear, clôturer un signalement utilisateur */
 router.post('/reports/users/:id/clear', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const id = parseInt(req.params.id, 10);
@@ -409,14 +409,14 @@ router.post('/reports/users/:id/clear', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* GET /admin/reports/posts — signalements de posts */
+/* GET /admin/reports/posts, signalements de posts */
 router.get('/reports/posts', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const reports = await listPostReports(100);
   res.json(reports);
 });
 
-/* POST /admin/reports/posts/:id/clear — clôturer un signalement de post */
+/* POST /admin/reports/posts/:id/clear, clôturer un signalement de post */
 router.post('/reports/posts/:id/clear', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const id = parseInt(req.params.id, 10);
@@ -429,14 +429,14 @@ router.post('/reports/posts/:id/clear', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* GET /admin/reports/history — historique des signalements traités */
+/* GET /admin/reports/history, historique des signalements traités */
 router.get('/reports/history', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const history = await getReportActions(100);
   res.json(history);
 });
 
-/* POST /admin/groups/:gid/report/clear — lever le signalement d'un groupe */
+/* POST /admin/groups/:gid/report/clear, lever le signalement d'un groupe */
 router.post('/groups/:gid/report/clear', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   await clearGroupReport(req.params.gid);
@@ -446,7 +446,7 @@ router.post('/groups/:gid/report/clear', async (req: Request, res: Response) => 
 
 /* ── Groupes (modération) ── */
 
-/* GET /admin/groups — tous les groupes */
+/* GET /admin/groups, tous les groupes */
 router.get('/groups', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
@@ -456,7 +456,7 @@ router.get('/groups', async (req: Request, res: Response) => {
   res.json(groups);
 });
 
-/* GET /admin/groups/:gid — détail d'un groupe */
+/* GET /admin/groups/:gid, détail d'un groupe */
 router.get('/groups/:gid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const group = await getGroup(req.params.gid);
@@ -467,7 +467,7 @@ router.get('/groups/:gid', async (req: Request, res: Response) => {
   res.json(group);
 });
 
-/* PUT /admin/groups/:gid — modifier un groupe */
+/* PUT /admin/groups/:gid, modifier un groupe */
 router.put('/groups/:gid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const allowed = ['name', 'description', 'icon', 'banner', 'privacy'];
@@ -488,7 +488,7 @@ router.put('/groups/:gid', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* PUT /admin/groups/:gid/members/:uid/role — changer le rôle d'un membre */
+/* PUT /admin/groups/:gid/members/:uid/role, changer le rôle d'un membre */
 router.put('/groups/:gid/members/:uid/role', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const { role } = req.body as { role?: string };
@@ -505,7 +505,7 @@ router.put('/groups/:gid/members/:uid/role', async (req: Request, res: Response)
   res.json({ success: true });
 });
 
-/* DELETE /admin/groups/:gid/members/:uid — exclure un membre */
+/* DELETE /admin/groups/:gid/members/:uid, exclure un membre */
 router.delete('/groups/:gid/members/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   await removeGroupMember(req.params.gid, req.params.uid);
@@ -517,7 +517,7 @@ router.delete('/groups/:gid/members/:uid', async (req: Request, res: Response) =
   res.json({ success: true });
 });
 
-/* DELETE /admin/groups/:gid — supprimer un groupe (modération) */
+/* DELETE /admin/groups/:gid, supprimer un groupe (modération) */
 router.delete('/groups/:gid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const group = await getGroup(req.params.gid);
@@ -535,7 +535,7 @@ router.delete('/groups/:gid', async (req: Request, res: Response) => {
 
 /* ── Modération du contenu ── */
 
-/* GET /admin/posts — posts récents (modération) */
+/* GET /admin/posts, posts récents (modération) */
 router.get('/posts', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 30));
@@ -544,7 +544,7 @@ router.get('/posts', async (req: Request, res: Response) => {
   res.json(posts);
 });
 
-/* DELETE /admin/posts/:id — supprimer n'importe quel post */
+/* DELETE /admin/posts/:id, supprimer n'importe quel post */
 router.delete('/posts/:id', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const deleted = await deletePostById(req.params.id);
@@ -559,7 +559,7 @@ router.delete('/posts/:id', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* GET /admin/comments — commentaires récents (modération) */
+/* GET /admin/comments, commentaires récents (modération) */
 router.get('/comments', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 30));
@@ -567,7 +567,7 @@ router.get('/comments', async (req: Request, res: Response) => {
   res.json(comments);
 });
 
-/* DELETE /admin/posts/comments/:id — supprimer n'importe quel commentaire */
+/* DELETE /admin/posts/comments/:id, supprimer n'importe quel commentaire */
 router.delete('/posts/comments/:id', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const id = parseInt(req.params.id, 10);
@@ -584,7 +584,7 @@ router.delete('/posts/comments/:id', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* GET /admin/videos — vidéos récentes (modération) */
+/* GET /admin/videos, vidéos récentes (modération) */
 router.get('/videos', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 30));
@@ -592,7 +592,7 @@ router.get('/videos', async (req: Request, res: Response) => {
   res.json(videos);
 });
 
-/* DELETE /admin/videos/:id — supprimer n'importe quelle vidéo */
+/* DELETE /admin/videos/:id, supprimer n'importe quelle vidéo */
 router.delete('/videos/:id', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const deleted = await deleteVideoById(req.params.id);
@@ -606,14 +606,14 @@ router.delete('/videos/:id', async (req: Request, res: Response) => {
 
 /* ── Maintenance (owner) ── */
 
-/* GET /admin/maintenance — statut maintenance */
+/* GET /admin/maintenance, statut maintenance */
 router.get('/maintenance', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const status = await getMaintenanceMode();
   res.json(status);
 });
 
-/* POST /admin/maintenance — activer/désactiver la maintenance (owner) */
+/* POST /admin/maintenance, activer/désactiver la maintenance (owner) */
 router.post('/maintenance', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   const { enabled, message } = req.body as { enabled: boolean; message?: string };
@@ -628,7 +628,7 @@ router.post('/maintenance', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* POST /admin/purge-unverified — supprimer tous les comptes sans email vérifié (owner) */
+/* POST /admin/purge-unverified, supprimer tous les comptes sans email vérifié (owner) */
 router.post('/purge-unverified', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   const result = await purgeUnverifiedAccounts();

@@ -15,6 +15,8 @@ import { checkIpBan } from './middleware/auth.js';
 import { errorHandler, setupProcessHandlers } from './middleware/errorHandler.js';
 import { maintenanceCheck } from './middleware/maintenance.js';
 import { rateLimit } from './middleware/rateLimit.js';
+import { rateLimitByKey } from './middleware/rateLimitByKey.js';
+import { redirectHttps, securityHeaders } from './middleware/securityHeaders.js';
 import { sqlGuard } from './middleware/sqlGuard.js';
 import { requestTimeout } from './middleware/timeout.js';
 import adminRouter from './routes/admin.js';
@@ -23,6 +25,7 @@ import blocksRouter from './routes/blocks.js';
 import callsRouter from './routes/calls.js';
 import captchaRouter from './routes/captcha.js';
 import communitiesRouter from './routes/communities.js';
+import contactRouter from './routes/contact.js';
 import contactsRouter from './routes/contacts.js';
 import conversationsRouter from './routes/conversations.js';
 import gifsRouter from './routes/gifs.js';
@@ -54,6 +57,10 @@ const app = express();
 app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
+/* En-têtes de sécurité + redirection HTTPS */
+app.use(redirectHttps);
+app.use(securityHeaders);
+
 /* Middleware */
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.APP_URL || 'https://wouaff.app')
   .split(',')
@@ -75,7 +82,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
 
-/* SQL injection guard — scanne tous les champs textuels des requêtes API */
+/* SQL injection guard, scanne tous les champs textuels des requêtes API */
 app.use('/api', sqlGuard);
 
 /* Blocage des adresses IP bannies (toutes routes API confondues) */
@@ -83,6 +90,15 @@ app.use('/api', checkIpBan);
 
 /* Rate limiting */
 app.use('/api/auth/login', rateLimit({ windowMs: 60000, max: 20 }));
+app.use(
+  '/api/auth/login',
+  rateLimitByKey({
+    windowMs: 60000,
+    max: 8,
+    keyFn: (req) => ((req.body as { email?: string } | undefined)?.email || '').toLowerCase(),
+    message: 'Trop de tentatives pour ce compte, réessayez plus tard',
+  }),
+);
 app.use('/api/auth/register', rateLimit({ windowMs: 60000, max: 10 }));
 app.use('/api/auth/forgot-password', rateLimit({ windowMs: 60000, max: 5 }));
 app.use('/api/contacts', rateLimit({ windowMs: 60000, max: 60 }));
@@ -96,6 +112,7 @@ app.use('/api/gifs', rateLimit({ windowMs: 60000, max: 60 }));
 app.use('/api/link-preview', rateLimit({ windowMs: 60000, max: 20 }));
 app.use('/api/admin/bootstrap', rateLimit({ windowMs: 60000, max: 3 }));
 app.use('/api/auth/2fa/verify', rateLimit({ windowMs: 60000, max: 10 }));
+app.use('/api/contact', rateLimit({ windowMs: 60000, max: 5 }));
 app.use('/api/auth/verify-email', rateLimit({ windowMs: 60000, max: 10 }));
 app.use('/api/notifications', rateLimit({ windowMs: 60000, max: 60 }));
 app.use('/api/groups', rateLimit({ windowMs: 60000, max: 60 }));
@@ -117,13 +134,14 @@ app.use('/api', maintenanceCheck);
 app.use('/api', requestTimeout(30000));
 
 /* Socket.IO */
-const io = setupSocket(httpServer);
+const io = setupSocket(httpServer, allowedOrigins);
 app.set('io', io);
 
 /* REST API (all routers auto-wrap async handlers) */
 app.use('/api/auth', patchRouter(authRouter));
 app.use('/api/auth', patchRouter(securityRouter));
 app.use('/api/captcha', patchRouter(captchaRouter));
+app.use('/api/contact', patchRouter(contactRouter));
 app.use('/api/communities', patchRouter(communitiesRouter));
 app.use('/api/messages', patchRouter(messagesRouter));
 app.use('/api/conversations', patchRouter(conversationsRouter));
@@ -150,7 +168,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
 });
 
-/* API 404 — JSON, not the SPA fallback */
+/* API 404, JSON, not the SPA fallback */
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Not Found' });
 });

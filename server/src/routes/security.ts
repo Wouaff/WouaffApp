@@ -42,11 +42,13 @@ const APP_URL = process.env.APP_URL || 'http://localhost:5173';
 const RP_NAME = 'Wouaff';
 const RP_ID = new URL(APP_URL).hostname;
 const ORIGIN = APP_URL.replace(/\/$/, '');
+const isProd = process.env.NODE_ENV === 'production' || !!process.env.APP_URL;
 
 function setSessionCookie(res: Response, sessionId: string): void {
   res.cookie('session_id', sessionId, {
     httpOnly: true,
     sameSite: 'lax',
+    secure: isProd,
     maxAge: 30 * 24 * 60 * 60 * 1000,
     path: '/',
   });

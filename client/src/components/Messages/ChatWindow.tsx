@@ -226,7 +226,7 @@ export const ChatWindow = memo(function ChatWindow({
           <div className="text-center text-[13px] text-[var(--text-muted)] py-8">Chargement…</div>
         )}
         {!loading && entries.length === 0 && (
-          <div className="text-center text-[13px] text-[var(--text-muted)] py-8">Aucun message. Dites bonjour ! 👋</div>
+          <div className="text-center text-[13px] text-[var(--text-muted)] py-8">Aucun message. Dites bonjour !</div>
         )}
         {entries.map(([key, msg]) => {
           const mine = msg.from === meUid;
@@ -239,7 +239,7 @@ export const ChatWindow = memo(function ChatWindow({
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
-                  alt=""
+                  alt={`Avatar de ${senderLabel(msg.from)}`}
                   loading="lazy"
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).style.display = 'none';
@@ -320,7 +320,11 @@ export const ChatWindow = memo(function ChatWindow({
         <div className="flex-1 min-w-0 flex flex-col">
           {imageData && (
             <div className="relative mb-2 w-max">
-              <img src={imageData} alt="" className="max-h-32 rounded-xl border border-[var(--border)]" />
+              <img
+                src={imageData}
+                alt="Visuel à envoyer"
+                className="max-h-32 rounded-xl border border-[var(--border)]"
+              />
               <button
                 type="button"
                 onClick={() => setImageData(undefined)}

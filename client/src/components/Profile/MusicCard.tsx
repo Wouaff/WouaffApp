@@ -42,7 +42,13 @@ export default function MusicCard({ music }: { music: ProfileMusic }) {
     >
       <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-[var(--bg-input)] flex items-center justify-center text-brand">
         {music.thumbnail ? (
-          <img src={music.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+          <img
+            src={music.thumbnail}
+            alt="Couverture de la musique"
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <Music2 size={20} />
         )}

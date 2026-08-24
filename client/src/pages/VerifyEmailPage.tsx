@@ -1,3 +1,4 @@
+import { CheckCircle2, Loader2, Lock } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import DmcaBadge from '../components/Common/DmcaBadge';
@@ -103,13 +104,17 @@ export default function VerifyEmailPage() {
         <div className="py-5">
           {status === 'loading' && (
             <>
-              <div className="text-5xl mb-4 animate-spin">⏳</div>
+              <div className="mb-4 flex justify-center text-brand">
+                <Loader2 size={48} className="animate-spin" />
+              </div>
               <p className="text-text-secondary text-sm">Vérification de votre email...</p>
             </>
           )}
           {status === 'success' && (
             <>
-              <div className="text-5xl mb-4">✅</div>
+              <div className="mb-4 flex justify-center text-green-500">
+                <CheckCircle2 size={48} />
+              </div>
               <h2 className="text-lg font-bold">Email vérifié !</h2>
               <p className="text-text-secondary text-sm mt-2">{message}</p>
               <Link
@@ -122,7 +127,9 @@ export default function VerifyEmailPage() {
           )}
           {(status === 'idle' || status === 'error') && (
             <>
-              <div className="text-5xl mb-4">🔒</div>
+              <div className="mb-4 flex justify-center text-brand">
+                <Lock size={48} />
+              </div>
               <h2 className="text-lg font-bold mb-2">Vérification de votre email</h2>
               <p className="text-text-secondary text-sm mb-6">Saisissez le code à 6 chiffres reçu par email.</p>
 

@@ -26,7 +26,7 @@ export default function OpenSourceBanner() {
         aria-label="Annonce open source WouaffApp"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold mb-3">🎉 WouaffApp est maintenant open source !</h2>
+        <h2 className="text-lg font-semibold mb-3">WouaffApp est maintenant open source !</h2>
         <p className="text-sm leading-relaxed mb-3">
           Nous sommes ravis de vous annoncer que le code source de WouaffApp est désormais ouvert à toutes et à tous sur{' '}
           <a
@@ -44,7 +44,7 @@ export default function OpenSourceBanner() {
           propres améliorations en créant des <strong>Pull Requests</strong>.
         </p>
         <p className="text-sm leading-relaxed mb-4">
-          Chaque contribution, aussi petite soit-elle, est la bienvenue. Merci de faire partie de l'aventure ! ❤️
+          Chaque contribution, aussi petite soit-elle, est la bienvenue. Merci de faire partie de l'aventure !
         </p>
         <button
           type="button"

@@ -213,7 +213,7 @@ export default function NotificationsPage() {
             <div className="flex-1 min-w-0">
               <div className="text-[14px] font-bold text-[var(--text-primary)]">Notifications du navigateur</div>
               <div className="text-[12px] text-[var(--text-secondary)]">
-                Alertes actives — vous serez notifié même en dehors de l'onglet
+                Alertes actives, vous serez notifié même en dehors de l'onglet
               </div>
             </div>
             <span className="text-[12px] font-bold text-online flex-shrink-0">Activées</span>
@@ -271,7 +271,11 @@ export default function NotificationsPage() {
                     <div className="relative flex-shrink-0">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden">
                         {item.actorAvatar ? (
-                          <img src={item.actorAvatar} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={item.actorAvatar}
+                            alt={`Avatar de ${item.actorPseudo || "l'utilisateur"}`}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <span>{initial}</span>
                         )}
@@ -299,7 +303,7 @@ export default function NotificationsPage() {
                           {item.postImage && (
                             <img
                               src={item.postImage}
-                              alt=""
+                              alt="Visuel du post"
                               className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                               loading="lazy"
                               decoding="async"

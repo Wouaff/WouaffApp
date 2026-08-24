@@ -155,7 +155,7 @@ export function ModerationTab() {
                 {p.image && (
                   <img
                     src={p.image}
-                    alt=""
+                    alt="Visuel du post signalé"
                     className="wa-item-thumb"
                     onError={(e) => {
                       (e.target as HTMLElement).style.display = 'none';

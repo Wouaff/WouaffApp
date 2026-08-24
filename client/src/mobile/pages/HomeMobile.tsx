@@ -89,7 +89,7 @@ export default function HomeMobile() {
       setPage(next);
       setHasMore(data.length > 0);
     } catch {
-      /* silencieux — on pourra réessayer au prochain scroll */
+      /* silencieux, on pourra réessayer au prochain scroll */
     } finally {
       setLoadingMore(false);
     }

@@ -832,7 +832,7 @@ export function renderLinkPreviews(text: string, previews: Record<string, LinkPr
             <img
               className="link-preview-img"
               src={preview.image}
-              alt=""
+              alt="Aperçu du lien"
               onError={(e) => {
                 (e.target as HTMLElement).style.display = 'none';
               }}

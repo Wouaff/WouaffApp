@@ -18,6 +18,27 @@ const ALLOWED_VIDEO_TYPES = new Set([
   'video/x-matroska',
 ]);
 
+/* Vérifie les magic bytes, pas seulement le mimetype déclaré par le client */
+function isValidVideoBuffer(buf: Buffer): boolean {
+  if (buf.length < 12) return false;
+  const isFtyp = buf[4] === 0x66 && buf[5] === 0x74 && buf[6] === 0x79 && buf[7] === 0x70;
+  if (isFtyp) return true;
+  const isEbml = buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3;
+  if (isEbml) return true;
+  const isOgg = buf[0] === 0x4f && buf[1] === 0x67 && buf[2] === 0x67 && buf[3] === 0x53;
+  if (isOgg) return true;
+  const isRiffAvi =
+    buf[0] === 0x52 &&
+    buf[1] === 0x49 &&
+    buf[2] === 0x46 &&
+    buf[3] === 0x46 &&
+    buf[8] === 0x41 &&
+    buf[9] === 0x56 &&
+    buf[10] === 0x49 &&
+    buf[11] === 0x20;
+  return isRiffAvi;
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 100 * 1024 * 1024 },
@@ -41,6 +62,10 @@ router.post('/', upload.fields([{ name: 'video', maxCount: 1 }]), async (req: Re
     return;
   }
   const { caption, lat, lng, locationName } = req.body as Record<string, string>;
+  if (!isValidVideoBuffer(videoFile.buffer)) {
+    res.status(400).json({ error: 'Fichier invalide, seule une vraie vidéo est acceptée' });
+    return;
+  }
   try {
     const ext = videoFile.originalname.split('.').pop() || 'mp4';
     const videoUrl = await uploadToQuickUploads(videoFile.buffer, `video.${ext}`, videoFile.mimetype);

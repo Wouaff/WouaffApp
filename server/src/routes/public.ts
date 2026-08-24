@@ -137,7 +137,7 @@ router.get('/profile/:wouaffId/following', async (req: Request, res: Response) =
   }
 });
 
-/* GET /public/posts/:id — un post partageable (sans authentification) */
+/* GET /public/posts/:id, un post partageable (sans authentification) */
 router.get('/posts/:id', async (req: Request, res: Response) => {
   try {
     const row = await getOne<Record<string, unknown>>(

@@ -55,7 +55,7 @@ export function useMentionAutocomplete(
           setActiveIndex(0);
           setOpen(res.results.length > 0);
         } catch {
-          /* réseau — on garde le dropdown fermé */
+          /* réseau, on garde le dropdown fermé */
         }
       }, 200);
     },

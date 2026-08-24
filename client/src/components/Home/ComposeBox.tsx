@@ -287,7 +287,11 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   return (
     <div className="flex gap-3 p-4 border-b border-[var(--border)]">
       <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
-        {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span>{initial}</span>}
+        {avatar ? (
+          <img src={avatar} alt="Votre avatar" className="w-full h-full object-cover" />
+        ) : (
+          <span>{initial}</span>
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="relative">

@@ -15,7 +15,7 @@ import type { AuthRequest } from '../types/index.js';
 const router: Router = Router();
 router.use(verifyToken);
 
-/* GET /stories — stories des contacts */
+/* GET /stories, stories des contacts */
 router.get('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const contactUids = await getContactUids(authReq.uid!);
@@ -39,7 +39,7 @@ router.get('/', async (req: Request, res: Response) => {
   res.json(result);
 });
 
-/* GET /stories/mine — mes stories */
+/* GET /stories/mine, mes stories */
 router.get('/mine', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const stories = await getStories(authReq.uid!);
@@ -52,7 +52,7 @@ router.get('/mine', async (req: Request, res: Response) => {
   res.json(active);
 });
 
-/* POST /stories — publier une story */
+/* POST /stories, publier une story */
 router.post('/', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { media, type, audioData, audioName, audioStartTime, audioExtractDuration, description } = req.body as {
@@ -100,7 +100,7 @@ router.post('/', async (req: Request, res: Response) => {
   res.json({ storyId, ...storyData });
 });
 
-/* POST /stories/:storyId/view — marquer comme vu */
+/* POST /stories/:storyId/view, marquer comme vu */
 router.post('/:storyId/view', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { uid } = req.body as { uid: string };
@@ -116,7 +116,7 @@ router.post('/:storyId/view', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* DELETE /stories/:storyId — supprimer une story */
+/* DELETE /stories/:storyId, supprimer une story */
 router.delete('/:storyId', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   await deleteStory(authReq.uid!, req.params.storyId);

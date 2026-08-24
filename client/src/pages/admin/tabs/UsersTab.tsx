@@ -420,7 +420,11 @@ export function UsersTab({
             <div className="wa-profile-body">
               <div className="wa-profile-avatar-wrap">
                 {result.profile.avatar ? (
-                  <img className="wa-profile-avatar-img" src={result.profile.avatar} alt="" />
+                  <img
+                    className="wa-profile-avatar-img"
+                    src={result.profile.avatar}
+                    alt={`Avatar de ${result.profile.pseudo || 'utilisateur'}`}
+                  />
                 ) : (
                   <div className="wa-profile-avatar-fallback">{(result.profile.pseudo || '?')[0]?.toUpperCase()}</div>
                 )}
@@ -446,7 +450,13 @@ export function UsersTab({
                   selectedBadges.map((id) =>
                     badgeDefs[id] ? (
                       <span key={id} className={`wa-chip${id === 'staff' ? ' wa-chip-brand' : ''}`}>
-                        {badgeDefs[id].icon && <img src={badgeDefs[id].icon} alt="" className="wa-chip-img" />}
+                        {badgeDefs[id].icon && (
+                          <img
+                            src={badgeDefs[id].icon}
+                            alt={`Badge ${badgeDefs[id].name || id}`}
+                            className="wa-chip-img"
+                          />
+                        )}
                         {badgeDefs[id].name || id}
                       </span>
                     ) : null,
@@ -565,7 +575,7 @@ export function UsersTab({
                   className={`wa-badge-opt${selectedBadges.includes(id) ? ' selected' : ''}`}
                   onClick={() => toggleBadge(id)}
                 >
-                  {b.icon && <img src={b.icon} alt="" />}
+                  {b.icon && <img src={b.icon} alt={`Badge ${b.name || id}`} />}
                   <span>{b.name || id}</span>
                 </button>
               ))}

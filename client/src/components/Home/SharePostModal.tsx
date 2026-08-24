@@ -59,7 +59,7 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
       });
       onClose();
     } catch {
-      /* partage annulé par l'utilisateur — ne rien faire */
+      /* partage annulé par l'utilisateur, ne rien faire */
     } finally {
       setSharing(false);
     }
@@ -93,7 +93,11 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
           <div className="flex gap-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] p-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
               {post.avatar ? (
-                <img src={post.avatar} alt="" className="w-full h-full object-cover" />
+                <img
+                  src={post.avatar}
+                  alt={`Avatar de ${post.pseudo || "l'utilisateur"}`}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <span>{initial}</span>
               )}

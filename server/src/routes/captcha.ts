@@ -21,7 +21,7 @@ async function getOptionalUid(req: Request): Promise<string | null> {
   return session?.uid || null;
 }
 
-/* GET /captcha/required?scope=register|forgot|post|comment — le CAPTCHA est-il requis ? */
+/* GET /captcha/required?scope=register|forgot|post|comment, le CAPTCHA est-il requis ? */
 router.get('/required', async (req: Request, res: Response) => {
   const scope = (req.query.scope as string) || '';
   if (!isCaptchaEnabled()) {
