@@ -2,7 +2,6 @@ import {
   Bell,
   Bookmark,
   ChevronLeft,
-  Feather,
   Home,
   LogOut,
   MessageSquare,
@@ -32,10 +31,6 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/bookmarks', label: 'Signets', icon: Bookmark, soon: true },
   { path: '/profile', label: 'Profil', icon: User },
 ];
-
-function focusCompose() {
-  window.dispatchEvent(new CustomEvent('wouaff:focus-compose'));
-}
 
 export default function LeftNav() {
   const location = useLocation();
@@ -203,21 +198,6 @@ export default function LeftNav() {
             );
           })}
         </nav>
-
-        {collapsed ? (
-          <button
-            onClick={focusCompose}
-            title="Poster"
-            aria-label="Poster"
-            className="mt-4 w-11 h-11 mx-auto flex items-center justify-center bg-brand hover:opacity-90 transition-opacity text-white rounded-full border-none cursor-pointer"
-          >
-            <Feather size={20} />
-          </button>
-        ) : (
-          <button className="mt-4 w-full btn btn-primary btn-pill text-md py-3" onClick={focusCompose}>
-            Poster
-          </button>
-        )}
 
         <div className="mt-auto">
           {(user?.staffRole === 'owner' || user?.staffRole === 'moderator') &&
