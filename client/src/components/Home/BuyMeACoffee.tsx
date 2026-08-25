@@ -2,7 +2,7 @@ import { Coffee } from 'lucide-react';
 
 export default function BuyMeACoffee() {
   return (
-    <div className="flex justify-center py-3 border-b border-[var(--border)]">
+    <div className="flex justify-start py-3 border-b border-[var(--border)]">
       <a
         href="https://www.buymeacoffee.com/wouaff"
         target="_blank"

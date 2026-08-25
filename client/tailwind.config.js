@@ -56,6 +56,15 @@ export default {
       fontFamily: {
         sans: ['Nunito', 'sans-serif'],
       },
+      fontSize: {
+        xss: 'var(--text-xs)',
+        sms: 'var(--text-sm)',
+        bases: 'var(--text-base)',
+        md: 'var(--text-md)',
+        lg: 'var(--text-lg)',
+        xl: 'var(--text-xl)',
+        '2xl': 'var(--text-2xl)',
+      },
       width: {
         sidebar: 'var(--sidebar-w)',
       },

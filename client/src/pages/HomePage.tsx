@@ -324,7 +324,7 @@ export default function HomePage() {
           <div className="flex items-center px-4 h-14">
             <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">Accueil</h1>
           </div>
-          <div className="flex">
+          <div className="w-full max-w-[600px] mx-auto flex">
             {tabs.map((t) => (
               <button
                 key={t.id}
@@ -335,9 +335,7 @@ export default function HomePage() {
                   tab === t.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)]'
                 }`}
               >
-                <span className={tab === t.id ? 'text-[15px] font-extrabold' : 'text-[15px] font-medium'}>
-                  {t.label}
-                </span>
+                <span className={tab === t.id ? 'text-md font-extrabold' : 'text-md font-medium'}>{t.label}</span>
                 {tab === t.id && (
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-brand rounded-full" />
                 )}
@@ -358,11 +356,7 @@ export default function HomePage() {
           ) : error ? (
             <div className="py-16 px-6 text-center">
               <p className="m-0 text-[var(--text-secondary)]">{error}</p>
-              <button
-                type="button"
-                onClick={loadPosts}
-                className="mt-4 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
-              >
+              <button type="button" onClick={loadPosts} className="mt-4 btn btn-primary btn-pill text-sm px-6 py-2.5">
                 Réessayer
               </button>
             </div>

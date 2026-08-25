@@ -144,9 +144,7 @@ export default function LeftNav() {
             title="Accueil"
           >
             <img src="/assets/logo/logo.png" alt="Wouaff" className="w-8 h-8 rounded-lg flex-shrink-0" />
-            {!collapsed && (
-              <span className="text-[19px] font-black text-[var(--text-primary)] tracking-tight">Wouaff</span>
-            )}
+            {!collapsed && <span className="text-xl font-black text-[var(--text-primary)] tracking-tight">Wouaff</span>}
           </button>
           <button
             onClick={toggleCollapsed}
@@ -185,7 +183,7 @@ export default function LeftNav() {
                   <Icon size={24} strokeWidth={active ? 2.4 : 2} />
                   {badge > 0 && (
                     <span
-                      className={`absolute bg-brand text-white text-[10px] font-bold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center ${
+                      className={`absolute bg-brand text-white text-xss font-bold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center ${
                         collapsed ? '-top-1.5 -right-2' : '-top-1 -right-2.5'
                       }`}
                     >
@@ -194,10 +192,10 @@ export default function LeftNav() {
                   )}
                 </span>
                 {!collapsed && (
-                  <span className={`text-[17px] ${active ? 'font-extrabold' : 'font-medium'}`}>{item.label}</span>
+                  <span className={`text-lg ${active ? 'font-extrabold' : 'font-medium'}`}>{item.label}</span>
                 )}
                 {!collapsed && item.soon && (
-                  <span className="ml-auto text-[10px] font-bold text-[var(--text-muted)] border border-[var(--border)] rounded-full px-2 py-0.5">
+                  <span className="ml-auto inline-flex items-center text-xss font-bold text-[var(--text-muted)] border border-[var(--border)] rounded-full px-2 py-0.5">
                     Bientôt
                   </span>
                 )}
@@ -216,10 +214,7 @@ export default function LeftNav() {
             <Feather size={20} />
           </button>
         ) : (
-          <button
-            className="mt-4 w-full bg-brand hover:opacity-90 transition-opacity text-white font-bold text-[15px] rounded-full py-3 border-none cursor-pointer"
-            onClick={focusCompose}
-          >
+          <button className="mt-4 w-full btn btn-primary btn-pill text-md py-3" onClick={focusCompose}>
             Poster
           </button>
         )}
@@ -247,7 +242,7 @@ export default function LeftNav() {
                   <ShieldCheck size={18} className="text-brand" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-[15px] font-bold text-[var(--text-primary)] truncate">Administration</span>
+                  <span className="text-md font-bold text-[var(--text-primary)] truncate">Administration</span>
                   <span className="text-xs text-[var(--text-muted)] truncate">
                     {user?.staffRole === 'owner' ? 'Propriétaire' : 'Modérateur'}
                   </span>
@@ -284,7 +279,7 @@ export default function LeftNav() {
                 </svg>
               </div>
               <div className="flex flex-col min-w-0 text-left flex-1">
-                <span className="text-[15px] font-bold text-[var(--text-primary)] truncate">Discord</span>
+                <span className="text-md font-bold text-[var(--text-primary)] truncate">Discord</span>
                 <span className="text-xs text-[var(--text-muted)] truncate">Rejoindre la communauté</span>
               </div>
             </a>
@@ -315,7 +310,7 @@ export default function LeftNav() {
               {!collapsed && (
                 <>
                   <div className="flex flex-col min-w-0 text-left flex-1">
-                    <span className="text-[15px] font-bold text-[var(--text-primary)] truncate">
+                    <span className="text-md font-bold text-[var(--text-primary)] truncate">
                       {user?.pseudo || 'Utilisateur'}
                     </span>
                     <span className="text-xs text-[var(--text-muted)] truncate">Paramètres</span>

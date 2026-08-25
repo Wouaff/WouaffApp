@@ -463,9 +463,64 @@
 }
 
 /* ══════════════════════════════════════════════════════════
+   TYPE SCALE — 7 sizes (consolidated from 11)
+   12 / 13 / 14 / 15 / 17 / 20 / 24
+════════════════════════════════════════════════════════════ */
+:root {
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SHARED BUTTON CLASSES — 5 patterns (consolidated from 14)
+════════════════════════════════════════════════════════════ */
+@layer components {
+  .btn {
+    font-family: inherit;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+    border-radius: 9999px;
+  }
+  .btn-primary {
+    background: var(--brand);
+    color: #fff;
+  }
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+  }
+  .btn-ghost:hover {
+    color: var(--brand);
+    background: var(--brand-glow);
+  }
+  .btn-ghost-danger {
+    background: transparent;
+    color: var(--text-muted);
+  }
+  .btn-ghost-danger:hover {
+    color: var(--danger);
+    background: rgba(237, 66, 69, 0.1);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
    COMPONENT STYLES, seront progressivement supprimées
    au fur et à mesure de la migration Tailwind
-══════════════════════════════════════════════════════════ */
+════════════════════════════════════════════════════════════ */
 
 /* Increased touch targets for mobile, minimum 44px as per WCAG 2.5.5 */
 .pending-accept-btn,

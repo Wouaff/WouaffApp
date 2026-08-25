@@ -568,7 +568,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
               type="button"
               onClick={submit}
               disabled={!canPost}
-              className="bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity rounded-full px-5 py-2 font-bold text-white text-[15px] border-none cursor-pointer"
+              className="btn btn-primary btn-pill text-md px-5 py-2"
             >
               Poster
             </button>

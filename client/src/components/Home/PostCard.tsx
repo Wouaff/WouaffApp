@@ -9,7 +9,7 @@ import VoiceMessage from '../Common/VoiceMessage';
 import Poll from './Poll';
 import PostEmbeds from './PostEmbeds';
 import PostText from './PostText';
-import ReactionPicker, { topReactions } from './Reactions';
+import ReactionPicker from './Reactions';
 import ReportPostModal from './ReportPostModal';
 import SharePostModal from './SharePostModal';
 
@@ -42,7 +42,6 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
   const [reactionOpen, setReactionOpen] = useState(false);
   const isOwn = !!user && post.uid === user.uid;
   const initial = (post.pseudo || '?')[0]?.toUpperCase() || '?';
-  const summary = topReactions(post.reactions);
 
   const profileHref =
     post.handle && post.handle.length > 1 && post.handle !== '@inconnu' ? `/@${post.handle.replace(/^@/, '')}` : null;
@@ -60,7 +59,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
       onClick={() => onOpen(post)}
     >
       {repostInfo && (
-        <div className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] mb-2 pl-1">
+        <div className="flex items-center gap-1.5 text-sms text-[var(--text-muted)] mb-3 mt-1 pl-1">
           <Repeat2 size={15} className="flex-shrink-0" />
           {reposterHref ? (
             <Link
@@ -108,21 +107,21 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             {profileHref ? (
               <Link
                 to={profileHref}
-                className="font-bold text-[var(--text-primary)] text-[15px] hover:underline"
+                className="font-bold text-[var(--text-primary)] text-md hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 {post.pseudo}
               </Link>
             ) : (
-              <span className="font-bold text-[var(--text-primary)] text-[15px]">{post.pseudo}</span>
+              <span className="font-bold text-[var(--text-primary)] text-md">{post.pseudo}</span>
             )}
             <BadgeIcons ids={post.ownedBadges} defs={badgeDefs} size={16} />
-            <span className="text-[var(--text-muted)] text-[15px]">·</span>
-            <span className="text-[var(--text-muted)] text-[15px]">{formatTime(post.time)}</span>
+            <span className="text-[var(--text-muted)] text-md">·</span>
+            <span className="text-[var(--text-muted)] text-md">{formatTime(post.time)}</span>
           </div>
 
           {post.text && (
-            <p className="m-0 mt-1 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
+            <p className="m-0 mt-1 text-md leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
               {renderText(post.text)}
             </p>
           )}
@@ -147,34 +146,6 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             </div>
           )}
 
-          {summary.length > 0 && (
-            <div className="flex items-center justify-end mt-2 pr-1">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setReactionOpen(true);
-                }}
-                className="flex items-center gap-1 rounded-full border-none bg-transparent cursor-pointer px-1 py-0.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
-                aria-label={`${post.likes} réaction(s)`}
-                title={`${post.likes} réaction(s)`}
-              >
-                <span className="flex items-center">
-                  {summary.map((r, i) => (
-                    <span
-                      // biome-ignore lint/suspicious/noArrayIndexKey: ordre du résumé de réactions
-                      key={i}
-                      className="w-5 h-5 rounded-full bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-center text-[11px] -ml-1 first:ml-0"
-                    >
-                      {r.type}
-                    </span>
-                  ))}
-                </span>
-                <span className="text-[13px] font-semibold">{post.likes}</span>
-              </button>
-            </div>
-          )}
-
           <div
             className="post-actions flex items-center justify-between mt-3 max-w-[425px]"
             onClick={(e) => e.stopPropagation()}
@@ -182,7 +153,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             <button
               type="button"
               onClick={() => onOpen(post)}
-              className="post-action-btn flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors text-[var(--text-muted)] hover:text-brand hover:bg-[var(--brand-glow)]"
+              className="btn btn-ghost btn-pill flex items-center gap-1.5 text-sms px-2 py-1"
               aria-label={`Commenter (${post.comments})`}
             >
               <MessageCircle size={17} />
@@ -192,8 +163,8 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             <button
               type="button"
               onClick={() => onRepost(post.id)}
-              className={`post-action-btn flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors ${
-                post.reposted ? 'text-online' : 'text-[var(--text-muted)] hover:text-online hover:bg-online/10'
+              className={`btn btn-pill flex items-center gap-1.5 text-sms px-2 py-1 ${
+                post.reposted ? 'text-online' : 'btn-ghost hover:text-online hover:bg-online/10'
               }`}
               aria-label={`Repartager (${post.reposts})`}
             >
@@ -208,13 +179,13 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
                   e.stopPropagation();
                   setReactionOpen((o) => !o);
                 }}
-                className={`post-action-btn flex items-center gap-1.5 text-[13px] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 transition-colors ${
-                  post.myReaction ? 'text-red-500' : 'text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10'
+                className={`btn btn-pill flex items-center gap-1.5 text-sms px-2 py-1 ${
+                  post.myReaction ? 'text-red-500' : 'btn-ghost hover:text-red-500 hover:bg-red-500/10'
                 }`}
                 aria-label={`Réagir (${post.likes})`}
               >
                 {post.myReaction ? (
-                  <span className="text-[17px] leading-none">{post.myReaction}</span>
+                  <span className="text-lg leading-none">{post.myReaction}</span>
                 ) : (
                   <Heart size={17} />
                 )}
@@ -237,11 +208,11 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
                 e.stopPropagation();
                 setShareOpen(true);
               }}
-              className="post-action-btn flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:text-brand hover:bg-[var(--brand-glow)] transition-colors"
+              className="btn btn-ghost btn-pill flex items-center gap-1.5 text-sms px-2 py-1"
               aria-label="Partager ce post"
-              title="Partager"
             >
               <Share2 size={17} />
+              <span>Partager</span>
             </button>
 
             {!isOwn && (
@@ -251,11 +222,11 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
                   e.stopPropagation();
                   setReportOpen(true);
                 }}
-                className="post-action-btn flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-1 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                className="btn btn-ghost-danger btn-pill flex items-center gap-1.5 text-sms px-2 py-1"
                 aria-label="Signaler ce post"
-                title="Signaler"
               >
                 <Flag size={17} />
+                <span>Signaler</span>
               </button>
             )}
           </div>
