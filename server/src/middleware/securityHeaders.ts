@@ -4,13 +4,13 @@ const isProd = process.env.NODE_ENV === 'production' || !!process.env.APP_URL;
 
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://wouaff.statuspage.io https://images.dmca.com",
+  "script-src 'self' 'unsafe-inline' https://wouaff.statuspage.io https://8d9r257f8g5b.statuspage.io https://images.dmca.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
   "media-src 'self' data: blob: https:",
   "connect-src 'self' https: wss:",
-  "frame-src 'self' https://wouaff.statuspage.io https://images.dmca.com",
+  "frame-src 'self' https://wouaff.statuspage.io https://8d9r257f8g5b.statuspage.io https://images.dmca.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
