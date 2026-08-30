@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './app.css';
 import './index.css';
+import './feed-modern.css';
 import App from './App';
 import ErrorBoundary from './components/Common/ErrorBoundary';
 import { AuthProvider } from './hooks/useAuth';
