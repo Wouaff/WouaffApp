@@ -168,6 +168,8 @@ export interface SocialPost {
   avatar?: string;
   time: number;
   text: string;
+  edited?: boolean;
+  editedAt?: number;
   image?: string;
   audio?: string;
   audioDuration?: number;

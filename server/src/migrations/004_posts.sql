@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS posts (
   repostsCount INT DEFAULT 0,
   commentsCount INT DEFAULT 0,
   createdAt BIGINT DEFAULT 0,
+  editedAt BIGINT DEFAULT 0,
   reported TINYINT(1) DEFAULT 0,
   reportedBy VARCHAR(128) DEFAULT NULL,
   reportedAt BIGINT DEFAULT 0,

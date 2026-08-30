@@ -136,6 +136,15 @@ export default function HomePage() {
   }, [pendingPostId, items]);
 
   useEffect(() => {
+    const handleUpdated = (event: Event) => {
+      const post = (event as CustomEvent<SocialPost>).detail;
+      if (post?.id) updateItem(post.id, (item) => ({ ...item, post }));
+    };
+    window.addEventListener('wouaff:post-updated', handleUpdated);
+    return () => window.removeEventListener('wouaff:post-updated', handleUpdated);
+  }, [updateItem]);
+
+  useEffect(() => {
     if (!user) return;
     const handleNew = (post: SocialPost) => {
       const item = toPostItem(post);

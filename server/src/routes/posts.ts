@@ -14,6 +14,15 @@ import { extractHashtags } from '../utils/hashtags.js';
 import { insertCommentMentions, insertPostMentions } from '../utils/mentions.js';
 
 const MAX_LENGTH = 280;
+const DEFAULT_EDIT_WINDOW_MINUTES = 30;
+
+async function getPostEditWindowMs(): Promise<number> {
+  const setting = await getOne<{ settingValue: string }>('SELECT settingValue FROM app_settings WHERE settingKey = ?', [
+    'post_edit_window_minutes',
+  ]);
+  const minutes = Number(setting?.settingValue);
+  return (Number.isFinite(minutes) && minutes > 0 ? minutes : DEFAULT_EDIT_WINDOW_MINUTES) * 60_000;
+}
 
 function toCommentHandle(wouaffId?: string, pseudo?: string): string | undefined {
   if (wouaffId) return `@${wouaffId}`;
@@ -112,6 +121,8 @@ async function toPostData(
     avatar: row.avatar as string,
     time: row.createdAt as number,
     text: row.text as string,
+    edited: Boolean(row.editedAt),
+    editedAt: (row.editedAt as number) || undefined,
     image: (row.image as string) || undefined,
     audio: (row.audio as string) || undefined,
     audioDuration: (row.audioDuration as number) || 0,
@@ -171,7 +182,7 @@ async function fetchRepostedMap(uid: string, ids: string[]): Promise<Set<string>
 }
 
 const REPOST_SELECT = `SELECT r.uid AS repostedByUid, r.createdAt AS repostedAt,
-            p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.poll, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+            p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.poll, p.editedAt, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid,
             ru.pseudo AS reposterPseudo, ru.avatar AS reposterAvatar, ru.wouaffId AS reposterWouaffId,
             rs.uid AS reposterStaffUid
@@ -328,7 +339,7 @@ router.get('/', async (req: Request, res: Response) => {
   const postWhere = postWheres.length > 0 ? `WHERE ${postWheres.join(' AND ')}` : '';
   postParams.push(window, offset);
   const postRows = await query<Array<Record<string, unknown>>>(
-    `SELECT p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+    `SELECT p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.poll, p.editedAt, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
      FROM posts p
      LEFT JOIN users pr ON pr.uid = p.uid
@@ -357,7 +368,7 @@ router.get('/', async (req: Request, res: Response) => {
   repostParams.push(window, offset);
   const repostRows = await query<Array<Record<string, unknown>>>(
     `SELECT r.uid AS repostedByUid, r.createdAt AS repostedAt,
-            p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.poll, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+            p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.poll, p.editedAt, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid,
             ru.pseudo AS reposterPseudo, ru.avatar AS reposterAvatar, ru.wouaffId AS reposterWouaffId,
             rs.uid AS reposterStaffUid
@@ -415,7 +426,7 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getOne<Record<string, unknown>>(
-    `SELECT p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+    `SELECT p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.poll, p.editedAt, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
             pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
      FROM posts p
      LEFT JOIN users pr ON pr.uid = p.uid
@@ -433,6 +444,99 @@ router.get('/:id', async (req: Request, res: Response) => {
   const badgesMap = await fetchBadgesMap([row.uid as string]);
   const reactionsMap = await fetchReactionCounts([req.params.id]);
   res.json(await toPostData(row, myReactions, repostedMap, pollVotes, badgesMap, reactionsMap));
+});
+
+router.patch('/:id', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const row = await getOne<Record<string, unknown>>('SELECT * FROM posts WHERE id = ?', [req.params.id]);
+  if (!row) {
+    res.status(404).json({ error: 'Post introuvable' });
+    return;
+  }
+  if (row.uid !== authReq.uid) {
+    res.status(403).json({ error: 'Interdit' });
+    return;
+  }
+  const editWindowMs = await getPostEditWindowMs();
+  if (Date.now() - Number(row.createdAt) > editWindowMs) {
+    res
+      .status(403)
+      .json({ error: `Modification possible pendant ${Math.round(editWindowMs / 60_000)} minutes après publication` });
+    return;
+  }
+  const { text, image, audio, audioDuration, poll } = req.body as {
+    text?: string;
+    image?: string;
+    audio?: string;
+    audioDuration?: number;
+    poll?: { question?: string; options?: string[] };
+  };
+  const content = (text || '').trim();
+  if (content.length > MAX_LENGTH) {
+    res.status(400).json({ error: `Maximum ${MAX_LENGTH} caractères` });
+    return;
+  }
+  const img = typeof image === 'string' ? image.trim() : '';
+  const aud = typeof audio === 'string' ? audio.trim() : '';
+  let pollJson: string | null = null;
+  if (poll && Array.isArray(poll.options)) {
+    const options = poll.options.map((o) => o.trim().slice(0, 80)).filter(Boolean);
+    if (options.length < 2 || options.length > 4) {
+      res.status(400).json({ error: 'Un sondage doit avoir entre 2 et 4 options' });
+      return;
+    }
+    pollJson = JSON.stringify({ question: (poll.question || '').trim().slice(0, 140), options });
+  }
+  if (!content && !img && !aud && !pollJson) {
+    res.status(400).json({ error: 'Texte, image, audio ou sondage requis' });
+    return;
+  }
+  const editedAt = Date.now();
+  await query(
+    'INSERT INTO post_edits (postId, editorUid, text, image, audio, audioDuration, poll, editedAt) VALUES (?,?,?,?,?,?,?,?)',
+    [req.params.id, authReq.uid!, row.text, row.image, row.audio, row.audioDuration || 0, row.poll, editedAt],
+  );
+  await query(
+    'UPDATE posts SET text = ?, image = ?, audio = ?, audioDuration = ?, poll = ?, editedAt = ? WHERE id = ?',
+    [content, img || null, aud || null, audioDuration || 0, pollJson, editedAt, req.params.id],
+  );
+  await query('DELETE FROM hashtag_occurrences WHERE postId = ? AND kind = ?', [req.params.id, 'post']);
+  if (content) await insertHashtags(req.params.id, authReq.uid!, 'post', editedAt, content);
+  const updated = await getOne<Record<string, unknown>>(
+    `SELECT p.id, p.uid, p.text, p.image, p.audio, p.audioDuration, p.poll, p.editedAt, p.likesCount, p.repostsCount, p.commentsCount, p.createdAt,
+            pr.pseudo, pr.avatar, pr.wouaffId, s.uid AS staffUid
+     FROM posts p LEFT JOIN users pr ON pr.uid = p.uid LEFT JOIN staff s ON s.uid = p.uid WHERE p.id = ?`,
+    [req.params.id],
+  );
+  const post = await toPostData(
+    updated!,
+    await fetchMyReactions(authReq.uid!, [req.params.id]),
+    await fetchRepostedMap(authReq.uid!, [req.params.id]),
+    await fetchPollVotes([req.params.id], authReq.uid),
+    await fetchBadgesMap([authReq.uid!]),
+    await fetchReactionCounts([req.params.id]),
+  );
+  const io: Server = req.app.get('io');
+  if (io) io.emit('post:updated', post);
+  res.json(post);
+});
+
+router.get('/:id/history', async (req: Request, res: Response) => {
+  const row = await getOne<{ uid: string }>('SELECT uid FROM posts WHERE id = ?', [req.params.id]);
+  const authReq = req as AuthRequest;
+  if (!row) {
+    res.status(404).json({ error: 'Post introuvable' });
+    return;
+  }
+  if (row.uid !== authReq.uid) {
+    res.status(403).json({ error: 'Interdit' });
+    return;
+  }
+  const history = await query(
+    'SELECT id, text, image, audio, audioDuration, poll, editedAt FROM post_edits WHERE postId = ? ORDER BY editedAt DESC',
+    [req.params.id],
+  );
+  res.json(history);
 });
 
 router.delete('/:id', async (req: Request, res: Response) => {

@@ -676,6 +676,28 @@ export const posts = {
   comments: (id: string) => request<PostComment[]>('GET', `/posts/${id}/comments`),
   addComment: (id: string, text: string, capToken?: string) =>
     request<PostComment>('POST', `/posts/${id}/comments`, { text, capToken }),
+  edit: (
+    id: string,
+    data: {
+      text: string;
+      image?: string;
+      audio?: string;
+      audioDuration?: number;
+      poll?: { question?: string; options: string[] };
+    },
+  ) => request<SocialPost>('PATCH', `/posts/${id}`, data),
+  history: (id: string) =>
+    request<
+      Array<{
+        id: number;
+        text: string;
+        image?: string;
+        audio?: string;
+        audioDuration?: number;
+        poll?: { question?: string; options: string[] } | null;
+        editedAt: number;
+      }>
+    >('GET', `/posts/${id}/history`),
   delete: (id: string) => request<{ success: boolean }>('DELETE', `/posts/${id}`),
   deleteComment: (commentId: number) => request<{ success: boolean }>('DELETE', `/posts/comments/${commentId}`),
   likeComment: (commentId: number) =>

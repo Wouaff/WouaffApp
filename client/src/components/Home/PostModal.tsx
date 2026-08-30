@@ -263,6 +263,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
             <span className="text-[var(--text-muted)] text-[15px]">{post.handle}</span>
             <span className="text-[var(--text-muted)] text-[15px]">·</span>
             <span className="text-[var(--text-muted)] text-[15px]">{formatTime(post.time)}</span>
+            {post.edited && <span className="text-[var(--text-muted)] text-xs">· modifié</span>}
           </div>
           {post.text && (
             <p className="m-0 mt-1 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">

@@ -6,6 +6,7 @@ import { useBadges } from '../../hooks/useBadges';
 import type { RepostInfo, SocialPost } from '../../types';
 import BadgeIcons from '../Common/BadgeIcons';
 import VoiceMessage from '../Common/VoiceMessage';
+import EditPostModal from './EditPostModal';
 import Poll from './Poll';
 import PostEmbeds from './PostEmbeds';
 import PostText from './PostText';
@@ -40,6 +41,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
   const [reportOpen, setReportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [reactionOpen, setReactionOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const isOwn = !!user && post.uid === user.uid;
   const initial = (post.pseudo || '?')[0]?.toUpperCase() || '?';
 
@@ -118,6 +120,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             <BadgeIcons ids={post.ownedBadges} defs={badgeDefs} size={16} />
             <span className="text-[var(--text-muted)] text-md">·</span>
             <span className="text-[var(--text-muted)] text-md">{formatTime(post.time)}</span>
+            {post.edited && <span className="text-[var(--text-muted)] text-xs">· modifié</span>}
           </div>
 
           {post.text && (
@@ -215,6 +218,20 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
               <span>Partager</span>
             </button>
 
+            {isOwn && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditOpen(true);
+                }}
+                className="btn btn-ghost btn-pill text-sms px-2 py-1"
+                aria-label="Modifier la publication"
+              >
+                Modifier
+              </button>
+            )}
+
             {!isOwn && (
               <button
                 type="button"
@@ -232,6 +249,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
           </div>
         </div>
       </div>
+      {editOpen && <EditPostModal post={post} onClose={() => setEditOpen(false)} onSaved={() => setEditOpen(false)} />}
       {reportOpen && <ReportPostModal postId={post.id} onClose={() => setReportOpen(false)} />}
       {shareOpen && <SharePostModal post={post} onClose={() => setShareOpen(false)} />}
     </article>
