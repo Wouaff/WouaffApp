@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 
-const isProd = process.env.NODE_ENV === 'production' || !!process.env.APP_URL;
+const isProd = process.env.NODE_ENV === 'production';
 
 const CSP = [
   "default-src 'self'",
@@ -30,12 +30,19 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
   next();
 }
 
-/* Redirige HTTP vers HTTPS (utile derrière un reverse proxy qui nettoie X-Forwarded-Proto) */
+/* Redirige HTTP vers HTTPS uniquement en production (jamais en développement local). */
 export function redirectHttps(req: Request, res: Response, next: NextFunction): void {
-  if (isProd && !req.secure) {
-    const host = req.headers.host || '';
-    res.redirect(301, `https://${host}${req.originalUrl}`);
+  if (!isProd || req.secure) {
+    next();
     return;
   }
-  next();
+
+  const host = req.headers.host || '';
+  const hostname = host.split(':')[0].toLowerCase();
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+    next();
+    return;
+  }
+
+  res.redirect(301, `https://${host}${req.originalUrl}`);
 }
