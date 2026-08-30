@@ -55,7 +55,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
 
   return (
     <article
-      className="p-4 border-b border-[var(--border)] transition-colors hover:bg-[var(--bg-hover)]/40 cursor-pointer"
+      className="feed-post p-4 border-b border-[var(--border)] transition-colors hover:bg-[var(--bg-hover)]/40 cursor-pointer"
       onClick={() => onOpen(post)}
     >
       {repostInfo && (
@@ -121,7 +121,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
           </div>
 
           {post.text && (
-            <p className="m-0 mt-1 text-md leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
+            <p className="feed-post-text m-0 mt-1 text-md leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
               {renderText(post.text)}
             </p>
           )}
@@ -147,7 +147,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
           )}
 
           <div
-            className="post-actions flex items-center justify-between mt-3 max-w-[425px]"
+            className="feed-post-actions post-actions flex items-center justify-between mt-3 max-w-[425px]"
             onClick={(e) => e.stopPropagation()}
           >
             <button

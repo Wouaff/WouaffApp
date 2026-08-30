@@ -1,0 +1,73 @@
+/* Modern feed layer: Wouaff orange identity with a calmer social-network rhythm. */
+.feed-shell {
+  scrollbar-gutter: stable;
+}
+
+.feed-column {
+  background: color-mix(in srgb, var(--bg-base) 28%, transparent);
+}
+
+.feed-header {
+  background: color-mix(in srgb, var(--bg-base) 86%, transparent) !important;
+}
+
+.feed-header h1 {
+  letter-spacing: -0.04em;
+}
+
+.feed-composer {
+  background: color-mix(in srgb, var(--bg-card) 76%, transparent);
+  padding: 20px 18px !important;
+}
+
+.feed-composer textarea {
+  font-size: 19px !important;
+  letter-spacing: -0.01em;
+}
+
+.feed-post {
+  background: color-mix(in srgb, var(--bg-base) 45%, transparent);
+  padding: 18px !important;
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.feed-post:hover {
+  background: color-mix(in srgb, var(--bg-hover) 72%, transparent) !important;
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+
+.feed-post-text {
+  letter-spacing: -0.01em;
+}
+
+.feed-post-actions {
+  color: var(--text-muted);
+}
+
+.feed-post-actions .btn {
+  min-height: 36px;
+  padding-inline: 10px !important;
+}
+
+.feed-post-actions .btn:hover {
+  background: var(--brand-glow);
+}
+
+@media (min-width: 1024px) {
+  .feed-shell {
+    border-radius: 18px 18px 0 0;
+    margin: 10px 0 0;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--border) 65%, transparent);
+  }
+}
+
+@media (max-width: 767px) {
+  .feed-column {
+    max-width: none !important;
+  }
+
+  .feed-composer,
+  .feed-post {
+    padding-inline: 14px !important;
+  }
+}
