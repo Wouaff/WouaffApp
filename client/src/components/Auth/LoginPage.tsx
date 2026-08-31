@@ -2,7 +2,6 @@ import { Check, ChevronLeft, KeyRound, Lock, MapPin, ShieldCheck } from 'lucide-
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { useCap } from '../../hooks/useCap';
 import { login, register } from '../../services/auth';
 import {
   browserSupportsWebAuthn,
@@ -65,7 +64,6 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [honeypot, setHoneypot] = useState('');
-  const cap = useCap('register');
 
   const [twoFactor, setTwoFactor] = useState<{ loginChallenge: string; methods: TwoFactorMethods } | null>(null);
   const [twoFACode, setTwoFACode] = useState('');
@@ -128,17 +126,12 @@ export default function LoginPage() {
           setError('Le mot de passe ne respecte pas les exigences de sécurité.');
           return;
         }
-        if (cap.required && !cap.token) {
-          setError('Veuillez confirmer que vous êtes humain.');
-          return;
-        }
       }
 
       setIsLoading(true);
       try {
         if (isRegister) {
-          await register(email, password, pseudo, cap.token, honeypot);
-          cap.reset();
+          await register(email, password, pseudo, undefined, honeypot);
           setRegisteredEmail(email);
           return;
         } else {
@@ -153,7 +146,6 @@ export default function LoginPage() {
           }
         }
         await refresh();
-        cap.reset();
         requestAnimationFrame(() => navigate('/'));
       } catch (err: unknown) {
         setError((err as Error).message || GENERIC_ERR);
@@ -161,7 +153,7 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     },
-    [email, password, pseudo, confirmPassword, isRegister, pwValid, navigate, refresh, cap, honeypot],
+    [email, password, pseudo, confirmPassword, isRegister, pwValid, navigate, refresh, honeypot],
   );
 
   const toggleMode = () => {
@@ -685,8 +677,6 @@ export default function LoginPage() {
                     {error}
                   </div>
                 )}
-
-                {isRegister && <div className="mb-5 flex justify-center">{cap.widget}</div>}
 
                 {/* Honeypot anti-bot, invisible pour les humains */}
                 {isRegister && (

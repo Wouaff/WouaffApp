@@ -4,7 +4,7 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
 import { createSession, verifyToken } from '../middleware/auth.js';
-import { verifyCaptcha, verifyCaptchaStrict } from '../middleware/captcha.js';
+import { verifyCaptcha } from '../middleware/captcha.js';
 import { rateLimitByKey } from '../middleware/rateLimitByKey.js';
 import { enqueueNewUserAlert } from '../services/discordWebhook.js';
 import { genCode, sendVerificationEmail } from '../services/email.js';
@@ -48,7 +48,7 @@ const registerEmailLimit = rateLimitByKey({
 });
 
 /* POST /auth/register */
-router.post('/register', verifyCaptchaStrict, registerEmailLimit, async (req: Request, res: Response) => {
+router.post('/register', registerEmailLimit, async (req: Request, res: Response) => {
   try {
     /* Honeypot : si rempli par un bot, on fait semblant de marcher mais on rejette */
     const honeypot = (req.body as Record<string, unknown>).website as string | undefined;
