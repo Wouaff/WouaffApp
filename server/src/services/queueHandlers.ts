@@ -1,7 +1,7 @@
 import type { Server } from 'socket.io';
 import type { NotificationType } from '../types/index.js';
 import { sendNewUserAlert, sendSqlInjectionAlertData } from './discordWebhook.js';
-import { sendPasswordResetEmail, sendVerificationEmail } from './email.js';
+import { getLastEmailError, sendPasswordResetEmail, sendVerificationEmail } from './email.js';
 import { createNotification } from './notifications.js';
 import { registerJobHandler } from './queue.js';
 
@@ -11,15 +11,23 @@ export function setQueueIo(io: Server): void {
   ioRef = io;
 }
 
+/* Envoi d'email : lève une erreur si l'envoi échoue, pour déclencher le retry de la file (backoff) */
+async function sendEmailOrThrow(send: () => Promise<boolean>): Promise<void> {
+  const sent = await send();
+  if (!sent) {
+    throw new Error(getLastEmailError() || "Echec de l'envoi de l'email");
+  }
+}
+
 export function registerQueueHandlers(): void {
   /* Emails (vérification / reset), avec retries en cas de panne SMTP */
   registerJobHandler('email', async (payload) => {
     const kind = payload.kind as string;
     const to = String(payload.to ?? '');
     if (kind === 'verify') {
-      await sendVerificationEmail(to, String(payload.code ?? ''));
+      await sendEmailOrThrow(() => sendVerificationEmail(to, String(payload.code ?? '')));
     } else if (kind === 'reset') {
-      await sendPasswordResetEmail(to, String(payload.token ?? ''));
+      await sendEmailOrThrow(() => sendPasswordResetEmail(to, String(payload.token ?? '')));
     }
   });
 
