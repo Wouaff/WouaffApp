@@ -172,7 +172,7 @@ export default function PostPage() {
     <div className="flex h-full">
       <LeftNav />
       <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
-        <div className="mx-auto max-w-[600px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
+        <div className="mx-auto max-w-[720px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
           <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
             <div className="flex items-center gap-3 px-2 h-14">
               <button

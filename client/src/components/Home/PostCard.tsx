@@ -117,6 +117,9 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             ) : (
               <span className="font-bold text-[var(--text-primary)] text-md">{post.pseudo}</span>
             )}
+            {post.handle && post.handle.length > 1 && post.handle !== '@inconnu' && (
+              <span className="text-[var(--text-muted)] text-md">@{post.handle.replace(/^@/, '')}</span>
+            )}
             <BadgeIcons ids={post.ownedBadges} defs={badgeDefs} size={16} />
             <span className="text-[var(--text-muted)] text-md">·</span>
             <span className="text-[var(--text-muted)] text-md">{formatTime(post.time)}</span>
@@ -150,7 +153,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
           )}
 
           <div
-            className="feed-post-actions post-actions flex items-center justify-between mt-3 max-w-[425px]"
+            className="feed-post-actions post-actions flex items-center justify-between mt-3"
             onClick={(e) => e.stopPropagation()}
           >
             <button

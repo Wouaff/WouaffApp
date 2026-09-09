@@ -330,10 +330,10 @@ export default function HomePage() {
       <LeftNav />
       <main className="feed-shell flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)] bg-[var(--bg-deep)]">
         <header className="feed-header sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
-          <div className="flex items-center px-4 h-14">
+          <div className="w-full max-w-[720px] mx-auto flex items-center px-4 h-14">
             <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">Accueil</h1>
           </div>
-          <div className="w-full max-w-[600px] mx-auto flex">
+          <div className="w-full max-w-[720px] mx-auto flex">
             {tabs.map((t) => (
               <button
                 key={t.id}
@@ -353,7 +353,7 @@ export default function HomePage() {
           </div>
         </header>
 
-        <div className="feed-column w-full max-w-[600px] mx-auto">
+        <div className="feed-column w-full max-w-[720px] mx-auto">
           <ComposeBox onPost={handlePost} />
           <BuyMeACoffee />
 

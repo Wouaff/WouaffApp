@@ -70,7 +70,7 @@ export default function RightSidebar() {
   };
 
   return (
-    <aside className="hidden lg:flex flex-col flex-shrink-0 h-full w-[350px] border-l border-[var(--border)] bg-[var(--bg-base)]">
+    <aside className="hidden lg:flex flex-col flex-shrink-0 h-full w-[320px] border-l border-[var(--border)] bg-[var(--bg-base)]">
       <div className="flex-1 overflow-y-auto px-6 py-3">
         <div className="sticky top-0 z-10 pb-2 -mx-2 px-2 bg-[var(--bg-base)]">
           <div className="relative">
@@ -141,7 +141,7 @@ export default function RightSidebar() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[15px] font-bold text-[var(--text-primary)] truncate">{s.pseudo}</div>
-                    <div className="text-[13px] text-[var(--text-muted)] truncate">{s.bio || toHandle(s)}</div>
+                    <div className="text-[13px] text-[var(--text-muted)] truncate">{toHandle(s)}</div>
                   </div>
                   <button
                     type="button"
