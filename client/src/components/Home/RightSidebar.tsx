@@ -101,16 +101,16 @@ export default function RightSidebar() {
           {trendList.length === 0 ? (
             <div className="px-4 py-4 text-[13px] text-[var(--text-muted)]">{t('Aucune tendance pour le moment')}</div>
           ) : (
-            trendList.map((t) => (
+            trendList.map((trend) => (
               <Link
-                key={t.tag}
-                to={`/hashtag/${encodeURIComponent(t.tag)}`}
+                key={trend.tag}
+                to={`/hashtag/${encodeURIComponent(trend.tag)}`}
                 className="block w-full text-left px-4 py-3 border-none bg-transparent no-underline cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
               >
-                <span className="block text-[12px] text-[var(--text-muted)]">{t.category}</span>
-                <span className="block text-[15px] font-bold text-[var(--text-primary)]">#{t.tag}</span>
+                <span className="block text-[12px] text-[var(--text-muted)]">{trend.category}</span>
+                <span className="block text-[15px] font-bold text-[var(--text-primary)]">#{trend.tag}</span>
                 <span className="block text-[12px] text-[var(--text-muted)]">
-                  {t('{n} publications', { n: t.posts })}
+                  {t('{n} publications', { n: trend.posts })}
                 </span>
               </Link>
             ))
