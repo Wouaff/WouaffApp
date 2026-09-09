@@ -1,4 +1,4 @@
-import { Check, Lock, Search, Server, ShieldCheck, TrendingUp, UserPlus } from 'lucide-react';
+import { Lock, Search, Server, ShieldCheck, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { profiles, trends as trendsAPI } from '../../services/api';
@@ -146,15 +146,14 @@ export default function RightSidebar() {
                   <button
                     type="button"
                     onClick={() => toggleFollow(s)}
-                    className={`flex items-center gap-1 rounded-full px-4 py-1.5 text-[13px] font-bold border-none cursor-pointer transition-colors ${
+                    className={`rounded-full px-4 py-1.5 text-[14px] font-bold border cursor-pointer transition-colors ${
                       isFollowing
-                        ? 'bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border)]'
-                        : 'bg-[var(--text-primary)] text-[var(--bg-base)] hover:opacity-90'
+                        ? 'bg-transparent text-[var(--text-primary)] border-[var(--border)] hover:border-[var(--text-muted)]'
+                        : 'bg-[var(--text-primary)] text-[var(--bg-base)] border-transparent hover:opacity-90'
                     }`}
                     aria-label={isFollowing ? `Ne plus suivre ${s.pseudo}` : `Suivre ${s.pseudo}`}
                   >
-                    {isFollowing ? <Check size={14} /> : <UserPlus size={14} />}
-                    <span>{isFollowing ? 'Suivi' : 'Suivre'}</span>
+                    {isFollowing ? 'Suivi' : 'Suivre'}
                   </button>
                 </div>
               );
@@ -195,9 +194,24 @@ export default function RightSidebar() {
           </ul>
         </div>
 
-        <p className="m-0 mt-4 text-[12px] text-[var(--text-muted)] px-1">
-          Wouaff · Réseau social souverain · Fait en France 🇫🇷
-        </p>
+        <nav
+          className="mt-4 px-1 flex flex-wrap gap-x-3 gap-y-1.5 text-[13px] text-[var(--text-muted)]"
+          aria-label="Liens Wouaff"
+        >
+          <Link
+            to="/mentions-legales"
+            className="no-underline text-inherit hover:underline hover:text-[var(--text-primary)] transition-colors"
+          >
+            Mentions légales
+          </Link>
+          <Link
+            to="/contact"
+            className="no-underline text-inherit hover:underline hover:text-[var(--text-primary)] transition-colors"
+          >
+            Contact
+          </Link>
+          <span className="cursor-default">Wouaff · Fait en France 🇫🇷</span>
+        </nav>
       </div>
     </aside>
   );

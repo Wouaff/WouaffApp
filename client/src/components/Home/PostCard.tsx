@@ -86,7 +86,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             aria-label={`Voir le profil de ${post.pseudo}`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
               {post.avatar ? (
                 <img src={post.avatar} alt={`Avatar de ${post.pseudo}`} className="w-full h-full object-cover" />
               ) : (
@@ -95,7 +95,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             </div>
           </Link>
         ) : (
-          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
             {post.avatar ? (
               <img src={post.avatar} alt={`Avatar de ${post.pseudo}`} className="w-full h-full object-cover" />
             ) : (

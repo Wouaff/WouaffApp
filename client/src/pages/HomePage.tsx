@@ -346,7 +346,7 @@ export default function HomePage() {
               >
                 <span className={tab === t.id ? 'text-md font-extrabold' : 'text-md font-medium'}>{t.label}</span>
                 {tab === t.id && (
-                  <span className="feed-tab-underline absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-brand rounded-full" />
+                  <span className="feed-tab-underline absolute bottom-0 left-0 w-full h-1 bg-brand rounded-full" />
                 )}
               </button>
             ))}

@@ -2,6 +2,7 @@ import {
   Bell,
   Bookmark,
   ChevronLeft,
+  Feather,
   Home,
   LogOut,
   MessageSquare,
@@ -111,6 +112,16 @@ export default function LeftNav() {
     navigate(path);
   };
 
+  /* CTA "Poster" façon Twitter : focus le composer, en revenant sur l'accueil si besoin */
+  const focusCompose = () => {
+    if (location.pathname !== '/') {
+      navigate('/');
+      window.setTimeout(() => window.dispatchEvent(new CustomEvent('wouaff:focus-compose')), 120);
+    } else {
+      window.dispatchEvent(new CustomEvent('wouaff:focus-compose'));
+    }
+  };
+
   const isActive = (item: NavItem) => {
     if (item.soon) return false;
     if (item.path === '/') return location.pathname === '/';
@@ -164,9 +175,7 @@ export default function LeftNav() {
                 key={item.label}
                 className={`flex items-center rounded-full py-2.5 cursor-pointer transition-colors border-none bg-transparent ${
                   collapsed ? 'justify-center px-0' : 'gap-4 px-3 text-left'
-                } ${active ? 'text-brand' : 'text-[var(--text-primary)]'} ${
-                  item.soon ? 'opacity-60' : 'hover:bg-[var(--bg-hover)]'
-                }`}
+                } text-[var(--text-primary)] ${item.soon ? 'opacity-60' : 'hover:bg-[var(--bg-hover)]'}`}
                 onClick={() => {
                   if (item.soon) return;
                   handleNav(item.path);
@@ -175,7 +184,7 @@ export default function LeftNav() {
                 title={item.soon ? `${item.label}, bientôt disponible` : item.label}
               >
                 <span className="relative flex-shrink-0">
-                  <Icon size={24} strokeWidth={active ? 2.4 : 2} />
+                  <Icon size={26} strokeWidth={active ? 2.6 : 2} />
                   {badge > 0 && (
                     <span
                       className={`absolute bg-brand text-white text-xss font-bold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center ${
@@ -187,7 +196,7 @@ export default function LeftNav() {
                   )}
                 </span>
                 {!collapsed && (
-                  <span className={`text-lg ${active ? 'font-extrabold' : 'font-medium'}`}>{item.label}</span>
+                  <span className={`text-xl ${active ? 'font-extrabold' : 'font-medium'}`}>{item.label}</span>
                 )}
                 {!collapsed && item.soon && (
                   <span className="ml-auto inline-flex items-center text-xss font-bold text-[var(--text-muted)] border border-[var(--border)] rounded-full px-2 py-0.5">
@@ -198,6 +207,19 @@ export default function LeftNav() {
             );
           })}
         </nav>
+
+        <button
+          type="button"
+          onClick={focusCompose}
+          aria-label="Poster un nouveau message"
+          title={collapsed ? 'Poster' : undefined}
+          className={`mt-4 flex items-center justify-center gap-2 rounded-full bg-brand text-white font-bold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer border-none ${
+            collapsed ? 'w-12 h-12 mx-auto' : 'w-full py-3 px-4 text-lg'
+          }`}
+        >
+          <Feather size={20} />
+          {!collapsed && <span>Poster</span>}
+        </button>
 
         <div className="mt-auto">
           {(user?.staffRole === 'owner' || user?.staffRole === 'moderator') &&
@@ -265,18 +287,16 @@ export default function LeftNav() {
             </a>
           )}
 
-          <div className={collapsed ? 'flex flex-col items-center gap-1 mt-2' : 'flex items-center gap-1'}>
+          <div className={collapsed ? 'flex flex-col items-center gap-2 mt-2' : 'mt-2 flex flex-col gap-1'}>
             <button
-              className={
-                collapsed
-                  ? 'w-9 h-9 rounded-full flex items-center justify-center mx-auto cursor-pointer border-none bg-transparent hover:bg-[var(--bg-hover)] transition-colors'
-                  : 'flex items-center gap-3 rounded-full p-2.5 flex-1 min-w-0 cursor-pointer border-none bg-transparent hover:bg-[var(--bg-hover)] transition-colors'
-              }
+              className={`flex items-center gap-3 rounded-full w-full cursor-pointer border-none bg-transparent transition-colors hover:bg-[var(--bg-hover)] ${
+                collapsed ? 'justify-center p-2' : 'p-2.5'
+              }`}
               onClick={() => navigate('/settings')}
               aria-label="Profil et paramètres"
               title={collapsed ? 'Profil et paramètres' : undefined}
             >
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
                 {avatar ? (
                   <img
                     src={avatar}
@@ -293,7 +313,7 @@ export default function LeftNav() {
                     <span className="text-md font-bold text-[var(--text-primary)] truncate">
                       {user?.pseudo || 'Utilisateur'}
                     </span>
-                    <span className="text-xs text-[var(--text-muted)] truncate">Paramètres</span>
+                    <span className="text-xs text-[var(--text-muted)] truncate">{myHandle || 'Paramètres'}</span>
                   </div>
                   <Settings size={18} className="text-[var(--text-muted)] flex-shrink-0" />
                 </>
@@ -301,12 +321,13 @@ export default function LeftNav() {
             </button>
             {!collapsed && (
               <button
-                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer border-none bg-transparent text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--bg-hover)] transition-colors"
+                className="flex items-center gap-3 rounded-full p-2.5 w-full cursor-pointer border-none bg-transparent text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--bg-hover)] transition-colors"
                 onClick={logout}
                 aria-label="Se déconnecter"
                 title="Se déconnecter"
               >
                 <LogOut size={18} />
+                <span className="text-md font-bold">Se déconnecter</span>
               </button>
             )}
             {collapsed && (
