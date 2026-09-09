@@ -47,11 +47,9 @@ export async function sendContactEmail(from: string, subject: string, text: stri
   }
 }
 
-const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-
 export function genCode(): string {
-  const values = crypto.getRandomValues(new Uint8Array(8));
-  return Array.from(values, (v) => CODE_CHARS[v % CODE_CHARS.length]).join('');
+  const values = crypto.getRandomValues(new Uint8Array(6));
+  return Array.from(values, (v) => v % 10).join('');
 }
 
 export async function sendVerificationEmail(to: string, code: string): Promise<boolean> {
