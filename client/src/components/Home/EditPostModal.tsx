@@ -1,5 +1,6 @@
 import { History, Save, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useI18n } from '../../i18n/context';
 import { posts as postsAPI } from '../../services/api';
 import type { SocialPost } from '../../types';
 import { showToast } from '../Common/Toast';
@@ -11,6 +12,7 @@ interface EditPostModalProps {
 }
 
 export default function EditPostModal({ post, onClose, onSaved }: EditPostModalProps) {
+  const { t } = useI18n();
   const [text, setText] = useState(post.text);
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<Array<{ id: number; text: string; editedAt: number }>>([]);
@@ -30,10 +32,10 @@ export default function EditPostModal({ post, onClose, onSaved }: EditPostModalP
       const updated = await postsAPI.edit(post.id, { text: text.trim() });
       onSaved(updated);
       window.dispatchEvent(new CustomEvent('wouaff:post-updated', { detail: updated }));
-      showToast('Publication modifiée', 'success');
+      showToast(t('Publication modifiée'), 'success');
       onClose();
     } catch (error) {
-      showToast((error as Error).message || 'Impossible de modifier la publication', 'error');
+      showToast((error as Error).message || t('Impossible de modifier la publication'), 'error');
     } finally {
       setSaving(false);
     }
@@ -43,8 +45,8 @@ export default function EditPostModal({ post, onClose, onSaved }: EditPostModalP
     <div className="modal-overlay active" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card w-full max-w-[520px] p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="m-0 text-lg font-extrabold text-[var(--text-primary)]">Modifier la publication</h2>
-          <button type="button" onClick={onClose} className="icon-btn" aria-label="Fermer">
+          <h2 className="m-0 text-lg font-extrabold text-[var(--text-primary)]">{t('Modifier la publication')}</h2>
+          <button type="button" onClick={onClose} className="icon-btn" aria-label={t('Fermer')}>
             <X size={18} />
           </button>
         </div>
@@ -54,10 +56,10 @@ export default function EditPostModal({ post, onClose, onSaved }: EditPostModalP
           maxLength={280}
           rows={5}
           className="w-full resize-none rounded-2xl border border-[var(--border)] bg-[var(--bg-input)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--brand)]"
-          aria-label="Texte de la publication"
+          aria-label={t('Texte de la publication')}
         />
         <div className="mt-2 flex items-center justify-between text-xs text-[var(--text-muted)]">
-          <span>La modification est limitée à la fenêtre configurée.</span>
+          <span>{t('La modification est limitée à la fenêtre configurée.')}</span>
           <span>{text.length}/280</span>
         </div>
         <div className="mt-4 flex items-center justify-between gap-2">
@@ -66,11 +68,11 @@ export default function EditPostModal({ post, onClose, onSaved }: EditPostModalP
             onClick={() => setShowHistory((value) => !value)}
             className="btn btn-ghost flex items-center gap-2 px-3 py-2 text-sm"
           >
-            <History size={16} /> Historique ({history.length})
+            <History size={16} /> {t('Historique ({n})', { n: history.length })}
           </button>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className="btn btn-ghost px-4 py-2 text-sm">
-              Annuler
+              {t('Annuler')}
             </button>
             <button
               type="button"
@@ -78,14 +80,14 @@ export default function EditPostModal({ post, onClose, onSaved }: EditPostModalP
               disabled={!text.trim() || saving}
               className="btn btn-primary flex items-center gap-2 px-4 py-2 text-sm"
             >
-              <Save size={16} /> Enregistrer
+              <Save size={16} /> {t('Enregistrer')}
             </button>
           </div>
         </div>
         {showHistory && (
           <div className="mt-4 border-t border-[var(--border)] pt-3">
             {history.length === 0 ? (
-              <p className="m-0 text-sm text-[var(--text-muted)]">Aucune modification précédente.</p>
+              <p className="m-0 text-sm text-[var(--text-muted)]">{t('Aucune modification précédente.')}</p>
             ) : (
               history.map((entry) => (
                 <div key={entry.id} className="border-b border-[var(--border)] py-2 last:border-0">

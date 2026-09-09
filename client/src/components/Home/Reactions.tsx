@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useI18n } from '../../i18n/context';
 import type { PostReaction } from '../../types';
 
 export const REACTIONS = ['❤️', '👍', '🔥', '🤣', '😮', '😢', '🙏'] as const;
@@ -30,6 +31,7 @@ interface ReactionPickerProps {
 }
 
 export default function ReactionPicker({ onSelect, onClose }: ReactionPickerProps) {
+  const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,14 +47,14 @@ export default function ReactionPicker({ onSelect, onClose }: ReactionPickerProp
       ref={ref}
       className="absolute bottom-full mb-2 left-0 z-30 flex items-center gap-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border)] shadow-xl px-2 py-1.5"
       role="toolbar"
-      aria-label="Réactions"
+      aria-label={t('Réactions')}
     >
       {REACTIONS.map((emoji) => (
         <button
           key={emoji}
           type="button"
           onClick={() => onSelect(emoji)}
-          aria-label={`Réagir avec ${emoji}`}
+          aria-label={t('Réagir avec {emoji}', { emoji })}
           className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-[20px] leading-none transition-transform hover:scale-125 hover:bg-[var(--bg-hover)]"
         >
           {emoji}

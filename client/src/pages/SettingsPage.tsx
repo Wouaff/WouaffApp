@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   Copy,
   Image,
+  Languages,
   Link2,
   Loader2,
   Lock,
@@ -30,6 +31,7 @@ import MusicCard, { type ProfileMusic, parseProfileMusic } from '../components/P
 import SecurityTab from '../components/Settings/SecurityTab';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
+import { useI18n } from '../i18n/context';
 import { badges as badgesAPI, profiles as profilesAPI } from '../services/api';
 import type { UserProfile } from '../types';
 import { compressImage } from '../utils/audio';
@@ -270,11 +272,13 @@ export default function SettingsPage() {
     setSocialLinks((prev) => [...prev, { platform: next.id, url: '' }]);
   };
 
+  const { t, lang, setLang } = useI18n();
+
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: 'profile', label: 'Profil', icon: <User size={16} /> },
-    { id: 'account', label: 'Compte', icon: <Lock size={16} /> },
-    { id: 'security', label: 'Sécurité', icon: <ShieldCheck size={16} /> },
-    { id: 'badges', label: 'Badges', icon: <Award size={16} /> },
+    { id: 'profile', label: t('Profil'), icon: <User size={16} /> },
+    { id: 'account', label: t('Compte'), icon: <Lock size={16} /> },
+    { id: 'security', label: t('Sécurité'), icon: <ShieldCheck size={16} /> },
+    { id: 'badges', label: t('Badges'), icon: <Award size={16} /> },
   ];
 
   const visibleLinks = socialLinks.filter((l) => l.url.trim());
@@ -289,23 +293,25 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={goBack}
-                aria-label="Retour"
+                aria-label={t('Retour')}
                 className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
               <div className="min-w-0 flex-1">
-                <div className="font-extrabold text-[17px] text-[var(--text-primary)] leading-tight">Paramètres</div>
+                <div className="font-extrabold text-[17px] text-[var(--text-primary)] leading-tight">
+                  {t('Paramètres')}
+                </div>
                 <div className="text-[12px] text-[var(--text-muted)] leading-tight">
-                  Gérez votre profil, votre compte et vos badges
+                  {t('Gérez votre profil, votre compte et vos badges')}
                 </div>
               </div>
               {(user?.staffRole === 'owner' || user?.staffRole === 'moderator') && (
                 <button
                   type="button"
                   onClick={() => navigate('/admin')}
-                  aria-label="Panneau d'administration"
-                  title="Administration"
+                  aria-label={t("Panneau d'administration")}
+                  title={t('Administration')}
                   className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-[var(--text-muted)] hover:text-brand hover:bg-[var(--bg-hover)] transition-colors flex-shrink-0"
                 >
                   <ShieldCheck size={19} />
@@ -314,13 +320,13 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm('Se déconnecter ?')) {
+                  if (window.confirm(t('Se déconnecter ?'))) {
                     logout();
                     navigate('/auth');
                   }
                 }}
-                aria-label="Se déconnecter"
-                title="Se déconnecter"
+                aria-label={t('Se déconnecter')}
+                title={t('Se déconnecter')}
                 className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--bg-hover)] transition-colors flex-shrink-0"
               >
                 <LogOut size={19} />
@@ -370,9 +376,9 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex items-center gap-3 pb-1">
                       {[
-                        { label: 'Posts', value: profileCounts?.posts },
-                        { label: 'Abonnés', value: profileCounts?.followers },
-                        { label: 'Abonnements', value: profileCounts?.following },
+                        { label: t('Posts'), value: profileCounts?.posts },
+                        { label: t('Abonnés'), value: profileCounts?.followers },
+                        { label: t('Abonnements'), value: profileCounts?.following },
                       ].map((s) => (
                         <div key={s.label} className="text-center">
                           <div className="text-[15px] font-extrabold text-[var(--text-primary)] tabular-nums">
@@ -385,17 +391,17 @@ export default function SettingsPage() {
                   </div>
                   <div className="mt-3 flex items-center gap-1.5">
                     <span className="font-extrabold text-[19px] text-[var(--text-primary)]">
-                      {pseudo || 'Votre pseudo'}
+                      {pseudo || t('Votre pseudo')}
                     </span>
                   </div>
                   <div className="text-[14px] text-[var(--text-muted)] flex items-center gap-1.5">
                     {handle}
                     <button
                       type="button"
-                      onClick={() => copy(handle, 'Identifiant')}
-                      title="Copier l'identifiant"
+                      onClick={() => copy(handle, t('Identifiant'))}
+                      title={t("Copier l'identifiant")}
                       className="bg-transparent border-none cursor-pointer p-0.5 text-[var(--text-muted)] hover:text-brand transition-colors"
-                      aria-label="Copier l'identifiant"
+                      aria-label={t("Copier l'identifiant")}
                     >
                       <Copy size={13} />
                     </button>
@@ -831,20 +837,51 @@ export default function SettingsPage() {
               <div className={cardCls}>
                 <h3 className={sectionTitleCls}>
                   <span className={iconBadgeCls}>
+                    <Languages size={14} />
+                  </span>
+                  {t('Langue')}
+                </h3>
+                <div className="flex gap-2">
+                  {(
+                    [
+                      { id: 'fr', label: 'Français' },
+                      { id: 'en', label: 'English' },
+                    ] as const
+                  ).map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setLang(option.id)}
+                      aria-pressed={lang === option.id}
+                      className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold border cursor-pointer transition-colors ${
+                        lang === option.id
+                          ? 'bg-[var(--brand)] text-white border-transparent'
+                          : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--brand)]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={cardCls}>
+                <h3 className={sectionTitleCls}>
+                  <span className={iconBadgeCls}>
                     <Lock size={14} />
                   </span>
-                  Authentification
+                  {t('Authentification')}
                 </h3>
                 <div className="mb-3">
                   <label htmlFor="settingsEmail" className={labelCls}>
-                    Adresse email
+                    {t('Adresse email')}
                   </label>
                   <div className="flex items-center gap-2">
                     <input id="settingsEmail" readOnly value={user?.email || ''} className={`${inputCls} opacity-70`} />
                     <button
                       type="button"
                       onClick={() => copy(user?.email || '', 'Email')}
-                      title="Copier"
+                      title={t('Copier')}
                       className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] text-[var(--text-muted)] cursor-pointer hover:text-brand hover:bg-[var(--bg-hover)] transition-colors"
                     >
                       <Copy size={16} />
@@ -860,14 +897,14 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => copy(user?.uid || '', 'UID')}
-                      title="Copier"
+                      title={t('Copier')}
                       className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-input)] text-[var(--text-muted)] cursor-pointer hover:text-brand hover:bg-[var(--bg-hover)] transition-colors"
                     >
                       <Copy size={16} />
                     </button>
                   </div>
                   <div className={hintCls}>
-                    <ShieldCheck size={12} /> Ces données ne sont jamais affichées publiquement.
+                    <ShieldCheck size={12} /> {t('Ces données ne sont jamais affichées publiquement.')}
                   </div>
                 </div>
               </div>
@@ -877,11 +914,11 @@ export default function SettingsPage() {
                   <span className={iconBadgeCls}>
                     <Award size={14} />
                   </span>
-                  Collection de badges
+                  {t('Collection de badges')}
                 </h3>
                 <div className="flex items-center gap-3">
                   <span className="text-3xl font-black text-[var(--text-primary)]">{ownedBadgeIds.length}</span>
-                  <span className="text-[13px] text-[var(--text-muted)]">badge(s) dans votre collection</span>
+                  <span className="text-[13px] text-[var(--text-muted)]">{t('badge(s) dans votre collection')}</span>
                 </div>
                 {ownedBadgeIds.length > 0 && (
                   <button
@@ -889,7 +926,7 @@ export default function SettingsPage() {
                     onClick={() => setTab('badges')}
                     className="mt-2 text-[13px] font-bold text-brand rounded-full border-none bg-transparent cursor-pointer hover:underline"
                   >
-                    Voir mes badges →
+                    {t('Voir mes badges →')}
                   </button>
                 )}
               </div>
@@ -900,17 +937,19 @@ export default function SettingsPage() {
                     <span className={iconBadgeCls}>
                       <ShieldCheck size={14} />
                     </span>
-                    Modération
+                    {t('Modération')}
                   </h3>
                   <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
-                    Accédez au panneau d'administration pour gérer les utilisateurs, les publications et la modération.
+                    {t(
+                      "Accédez au panneau d'administration pour gérer les utilisateurs, les publications et la modération.",
+                    )}
                   </p>
                   <button
                     type="button"
                     onClick={() => navigate('/admin')}
                     className="flex items-center justify-center gap-2 w-full rounded-full bg-brand-dark text-white font-bold text-sm py-3 cursor-pointer border-none hover:bg-[#c75a24] transition-colors"
                   >
-                    <ShieldCheck size={16} /> Panneau d'administration
+                    <ShieldCheck size={16} /> {t("Panneau d'administration")}
                   </button>
                 </div>
               )}
@@ -920,18 +959,19 @@ export default function SettingsPage() {
                   <span className="w-7 h-7 rounded-lg bg-red-500/10 text-[var(--danger)] flex items-center justify-center flex-shrink-0">
                     <Trash2 size={14} />
                   </span>
-                  Zone dangereuse
+                  {t('Zone dangereuse')}
                 </h3>
                 <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
-                  La suppression de votre compte est <strong className="text-[var(--danger)]">irréversible</strong>.
-                  Toutes vos données (profil, messages, badges) seront définitivement effacées.
+                  {t(
+                    "La suppression de votre compte est <strong className='text-[var(--danger)]'>irréversible</strong>. Toutes vos données (profil, messages, badges) seront définitivement effacées.",
+                  )}
                 </p>
                 <button
                   type="button"
                   onClick={() => setDeleteModalOpen(true)}
                   className="flex items-center justify-center gap-2 w-full rounded-full bg-red-500/10 hover:bg-red-500/20 transition-colors text-[var(--danger)] font-bold text-sm py-3 cursor-pointer"
                 >
-                  <Trash2 size={16} /> Supprimer mon compte
+                  <Trash2 size={16} /> {t('Supprimer mon compte')}
                 </button>
               </div>
             </div>

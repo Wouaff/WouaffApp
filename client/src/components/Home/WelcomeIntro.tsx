@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { ArrowRight, ExternalLink, Flag, GitBranch, MessageCircle, Rocket, Rss, Users, Wrench } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useI18n } from '../../i18n/context';
 
 const DISCORD_URL = 'https://dsc.gg/wouaff';
 const GITHUB_URL = 'https://github.com/Wouaff/WouaffApp';
@@ -39,6 +40,7 @@ const STEPS: Step[] = [
 ];
 
 export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
+  const { t } = useI18n();
   const [step, setStep] = useState(0);
 
   const finish = useCallback(() => {
@@ -66,7 +68,7 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
       className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-[var(--bg-deep)]"
       role="dialog"
       aria-modal="true"
-      aria-label="Bienvenue dans Wouaff"
+      aria-label={t('Bienvenue dans Wouaff')}
     >
       {/* Fond dégradé + halos */}
       <div
@@ -94,15 +96,16 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
             <div className="text-5xl mb-4 animate-[pulse_2s_ease-in-out_infinite] text-brand">
               {current && <current.icon size={52} />}
             </div>
-            <h1 className="text-3xl font-black text-[var(--text-primary)] m-0">{current!.title}</h1>
-            <p className="mt-4 text-[15px] leading-relaxed text-[var(--text-secondary)] m-0">{current!.body}</p>
+            <h1 className="text-3xl font-black text-[var(--text-primary)] m-0">{t(current!.title)}</h1>
+            <p className="mt-4 text-[15px] leading-relaxed text-[var(--text-secondary)] m-0">{t(current!.body)}</p>
           </div>
         ) : (
           <div className="mt-8 w-full animate-[slideUp_0.5s_ease_both]">
-            <h1 className="text-3xl font-black text-[var(--text-primary)] m-0">Prêt à commencer ?</h1>
+            <h1 className="text-3xl font-black text-[var(--text-primary)] m-0">{t('Prêt à commencer ?')}</h1>
             <p className="mt-3 text-[15px] leading-relaxed text-[var(--text-secondary)] m-0">
-              Merci de faire partie de l’aventure Wouaff. Ensemble, construisons le premier réseau social véritablement
-              français et souverain.
+              {t(
+                'Merci de faire partie de l’aventure Wouaff. Ensemble, construisons le premier réseau social véritablement français et souverain.',
+              )}
             </p>
 
             <div className="mt-8 flex flex-col gap-3">
@@ -113,7 +116,7 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
                 className="flex items-center justify-center gap-2.5 rounded-full px-6 py-3.5 font-bold text-[15px] text-white bg-[#5865F2] hover:opacity-90 transition-opacity no-underline"
               >
                 <MessageCircle size={20} />
-                Rejoindre le Discord
+                {t('Rejoindre le Discord')}
               </a>
               <a
                 href={GITHUB_URL}
@@ -122,7 +125,7 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
                 className="flex items-center justify-center gap-2.5 rounded-full px-6 py-3.5 font-bold text-[15px] text-[var(--text-primary)] bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] transition-colors no-underline"
               >
                 <GitBranch size={20} />
-                Contribuer sur GitHub
+                {t('Contribuer sur GitHub')}
                 <ExternalLink size={14} className="opacity-60" />
               </a>
               <button
@@ -131,7 +134,7 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
                 className="mt-2 flex items-center justify-center gap-2.5 rounded-full px-6 py-3.5 font-bold text-[15px] text-white bg-brand hover:opacity-90 transition-opacity border-none cursor-pointer"
               >
                 <Rocket size={20} />
-                Commencer l’aventure
+                {t('Commencer l’aventure')}
               </button>
             </div>
           </div>
@@ -151,7 +154,7 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
               onClick={next}
               className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold text-white bg-brand hover:opacity-90 transition-opacity border-none cursor-pointer"
             >
-              Suivant
+              {t('Suivant')}
               <ArrowRight size={16} />
             </button>
           ) : null}
@@ -160,7 +163,7 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
             onClick={finish}
             className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors bg-transparent border-none cursor-pointer"
           >
-            Passer (Échap)
+            {t('Passer (Échap)')}
           </button>
         </div>
       </div>

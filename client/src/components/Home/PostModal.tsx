@@ -5,6 +5,8 @@ import { useBadges } from '../../hooks/useBadges';
 import { useCap } from '../../hooks/useCap';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
+import { useI18n } from '../../i18n/context';
+import { useFormatTimeAgo } from '../../i18n/time';
 import { posts as postsAPI } from '../../services/api';
 import {
   offCommentLiked,
@@ -38,20 +40,10 @@ interface PostModalProps {
   onCommentDelta: (id: string, delta: number) => void;
 }
 
-function formatTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const m = Math.floor(diff / 60_000);
-  if (m < 1) return "à l'instant";
-  if (m < 60) return `il y a ${m} min`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `il y a ${h} h`;
-  const d = Math.floor(h / 24);
-  if (d === 1) return 'hier';
-  return `il y a ${d} j`;
-}
-
 export default function PostModal({ post, onClose, onReact, onRepost, onVote, onCommentDelta }: PostModalProps) {
   const { user } = useAuth();
+  const { t } = useI18n();
+  const formatTime = useFormatTimeAgo();
   const isMobile = useIsMobile();
   const badgeDefs = useBadges();
   const [comments, setComments] = useState<PostComment[]>([]);
@@ -107,7 +99,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
         if (!cancelled) setComments(data);
       })
       .catch(() => {
-        if (!cancelled) showToast('Impossible de charger les commentaires', 'error');
+        if (!cancelled) showToast(t('Impossible de charger les commentaires'), 'error');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -115,7 +107,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
     return () => {
       cancelled = true;
     };
-  }, [post.id]);
+  }, [post.id, t]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -159,7 +151,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
     const value = text.trim();
     if (!value || sending) return;
     if (cap.required && !cap.token) {
-      showToast('Veuillez confirmer que vous êtes humain.', 'error');
+      showToast(t('Veuillez confirmer que vous êtes humain.'), 'error');
       return;
     }
     setSending(true);
@@ -171,25 +163,25 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
       setText('');
       setReplyTo(null);
     } catch {
-      showToast("Erreur lors de l'envoi du commentaire", 'error');
+      showToast(t("Erreur lors de l'envoi du commentaire"), 'error');
     } finally {
       setSending(false);
     }
-  }, [post.id, text, sending, onCommentDelta, cap]);
+  }, [post.id, text, sending, onCommentDelta, cap, t]);
 
   const removeComment = useCallback(
     async (commentId: number) => {
-      if (!confirm('Supprimer ce commentaire ?')) return;
+      if (!confirm(t('Supprimer ce commentaire ?'))) return;
       try {
         await postsAPI.deleteComment(commentId);
         setComments((prev) => prev.filter((c) => c.id !== commentId));
         onCommentDelta(post.id, -1);
-        showToast('Commentaire supprimé', 'success');
+        showToast(t('Commentaire supprimé'), 'success');
       } catch {
-        showToast('Erreur lors de la suppression', 'error');
+        showToast(t('Erreur lors de la suppression'), 'error');
       }
     },
-    [post.id, onCommentDelta],
+    [post.id, onCommentDelta, t],
   );
 
   const toggleCommentLike = useCallback(
@@ -210,10 +202,10 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
         setComments((prevComments) =>
           prevComments.map((c) => (c.id === commentId ? { ...c, liked: prev.liked, likes: prev.likes } : c)),
         );
-        showToast('Impossible de liker le commentaire', 'error');
+        showToast(t('Impossible de liker le commentaire'), 'error');
       }
     },
-    [comments],
+    [comments, t],
   );
 
   const initial = (post.pseudo || '?')[0]?.toUpperCase() || '?';
@@ -233,12 +225,12 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
         <button
           type="button"
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('Fermer')}
           className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-primary)] border-none bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
         >
           <X size={18} />
         </button>
-        <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">Post</span>
+        <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">{t('Post')}</span>
       </div>
       <div
         className="post-modal-post px-4 pt-4 pb-2 flex gap-3"
@@ -248,7 +240,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           {post.avatar ? (
             <img
               src={post.avatar}
-              alt={`Avatar de ${post.pseudo || "l'utilisateur"}`}
+              alt={t('Avatar de {name}', { name: post.pseudo || t("l'utilisateur") })}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -263,7 +255,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
             <span className="text-[var(--text-muted)] text-[15px]">{post.handle}</span>
             <span className="text-[var(--text-muted)] text-[15px]">·</span>
             <span className="text-[var(--text-muted)] text-[15px]">{formatTime(post.time)}</span>
-            {post.edited && <span className="text-[var(--text-muted)] text-xs">· modifié</span>}
+            {post.edited && <span className="text-[var(--text-muted)] text-xs">· {t('modifié')}</span>}
           </div>
           {post.text && (
             <p className="m-0 mt-1 text-[15px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
@@ -289,7 +281,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
         </div>
       </div>
       <div className="flex items-center justify-between px-4 py-1.5 border-b border-[var(--border)] max-w-[400px] flex-shrink-0">
-        <button type="button" className={actionBtn} aria-label={`Commenter (${post.comments})`}>
+        <button type="button" className={actionBtn} aria-label={t('Commenter ({n})', { n: post.comments })}>
           <MessageCircle size={17} />
           <span>{post.comments}</span>
         </button>
@@ -297,7 +289,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           type="button"
           onClick={() => onRepost(post.id)}
           className={actionBtnReposted}
-          aria-label={`Repartager (${post.reposts})`}
+          aria-label={t('Repartager ({n})', { n: post.reposts })}
         >
           <Repeat2 size={17} />
           <span>{post.reposts}</span>
@@ -307,7 +299,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
             type="button"
             onClick={() => setReactionOpen((o) => !o)}
             className={actionBtnLiked}
-            aria-label={`Réagir (${post.likes})`}
+            aria-label={t('Réagir ({n})', { n: post.likes })}
           >
             {post.myReaction ? (
               <span className="text-[17px] leading-none">{post.myReaction}</span>
@@ -330,8 +322,8 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           type="button"
           onClick={() => setShareOpen(true)}
           className={actionBtn}
-          aria-label="Partager ce post"
-          title="Partager"
+          aria-label={t('Partager ce post')}
+          title={t('Partager')}
         >
           <Share2 size={17} />
         </button>
@@ -340,8 +332,8 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
             type="button"
             onClick={() => setReportOpen(true)}
             className={`${actionBtn} hover:text-red-500 hover:bg-red-500/10`}
-            aria-label="Signaler ce post"
-            title="Signaler"
+            aria-label={t('Signaler ce post')}
+            title={t('Signaler')}
           >
             <Flag size={17} />
           </button>
@@ -353,8 +345,8 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
             type="button"
             onClick={() => setReactionOpen(true)}
             className="flex items-center gap-1 rounded-full border-none bg-transparent cursor-pointer px-1 py-0.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
-            aria-label={`${post.likes} réaction(s)`}
-            title={`${post.likes} réaction(s)`}
+            aria-label={t('{n} réaction(s)', { n: post.likes })}
+            title={t('{n} réaction(s)', { n: post.likes })}
           >
             <span className="flex items-center">
               {summary.map((r, i) => (
@@ -375,12 +367,12 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
         {loading ? (
           <div className="py-10 flex flex-col items-center gap-3">
             <div className="spinner" />
-            <p className="m-0 text-sm text-[var(--text-muted)]">Chargement des commentaires...</p>
+            <p className="m-0 text-sm text-[var(--text-muted)]">{t('Chargement des commentaires...')}</p>
           </div>
         ) : comments.length === 0 ? (
           <div className="py-10 text-center">
             <p className="m-0 text-[var(--text-secondary)]">
-              Aucun commentaire pour le moment. Sois le premier à répondre !
+              {t('Aucun commentaire pour le moment. Sois le premier à répondre !')}
             </p>
           </div>
         ) : (
@@ -391,7 +383,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
                   {c.avatar ? (
                     <img
                       src={c.avatar}
-                      alt={`Avatar de ${c.pseudo || "l'utilisateur"}`}
+                      alt={t('Avatar de {name}', { name: c.pseudo || t("l'utilisateur") })}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -400,7 +392,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1 flex-wrap">
-                    <span className="font-bold text-[var(--text-primary)] text-[14px]">{c.pseudo || 'Inconnu'}</span>
+                    <span className="font-bold text-[var(--text-primary)] text-[14px]">{c.pseudo || t('Inconnu')}</span>
                     {(c.ownedBadges || [])
                       .map((id) => badgeDefs[id])
                       .filter((b): b is { name?: string; icon?: string } => !!b && !!b.icon)
@@ -419,8 +411,8 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
                       <button
                         type="button"
                         onClick={() => toggleCommentLike(c.id)}
-                        aria-label={`J'aime ce commentaire (${c.likes})`}
-                        title="J'aime"
+                        aria-label={t("J'aime ce commentaire ({n})", { n: c.likes })}
+                        title={t("J'aime")}
                         className={`flex items-center gap-1 text-[12px] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 transition-colors ${
                           c.liked ? 'text-red-500' : 'text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10'
                         }`}
@@ -431,18 +423,18 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
                       <button
                         type="button"
                         onClick={() => startReply(c)}
-                        aria-label={`Répondre à ${c.pseudo || 'ce commentaire'}`}
-                        title="Répondre"
+                        aria-label={t('Répondre à {name}', { name: c.pseudo || t('ce commentaire') })}
+                        title={t('Répondre')}
                         className="flex items-center gap-1 text-[12px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 hover:text-brand hover:bg-[var(--brand-glow)] transition-colors"
                       >
                         <Reply size={13} />
-                        <span className="hidden sm:inline">Répondre</span>
+                        <span className="hidden sm:inline">{t('Répondre')}</span>
                       </button>
                       {c.uid === user?.uid && (
                         <button
                           type="button"
                           onClick={() => removeComment(c.id)}
-                          aria-label="Supprimer le commentaire"
+                          aria-label={t('Supprimer le commentaire')}
                           className="flex items-center gap-1 text-[12px] text-[var(--text-muted)] rounded-full border-none bg-transparent cursor-pointer px-2 py-0.5 hover:text-red-500 hover:bg-red-500/10 transition-colors"
                         >
                           <Trash2 size={13} />
@@ -464,13 +456,13 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-3 py-1.5">
             <Reply size={12} className="text-brand" />
             <span>
-              Réponse à{' '}
-              <span className="font-bold text-brand">{replyTo.handle || replyTo.pseudo || 'commentaire'}</span>
+              {t('Réponse à')}{' '}
+              <span className="font-bold text-brand">{replyTo.handle || replyTo.pseudo || t('commentaire')}</span>
             </span>
             <button
               type="button"
               onClick={clearReply}
-              aria-label="Annuler la réponse"
+              aria-label={t('Annuler la réponse')}
               className="ml-1 flex items-center justify-center w-4 h-4 rounded-full border-none bg-transparent cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             >
               <X size={12} />
@@ -494,9 +486,9 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
               if (mention.handleKeyDown(e)) return;
               if (e.key === 'Enter') submitComment();
             }}
-            placeholder="Répondre..."
+            placeholder={t('Répondre...')}
             maxLength={280}
-            aria-label="Répondre au post"
+            aria-label={t('Répondre au post')}
             className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-full px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] font-sans transition-colors"
           />
           <MentionSuggestions
@@ -513,7 +505,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           disabled={!text.trim() || sending}
           className="bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-white font-bold text-sm rounded-full px-4 py-2 border-none cursor-pointer"
         >
-          Répondre
+          {t('Répondre')}
         </button>
       </div>
       ;

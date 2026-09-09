@@ -10,6 +10,7 @@ import MobileLayout from './components/Layout/MobileLayout';
 import { useAuth } from './hooks/useAuth';
 import { useIsMobile } from './hooks/useIsMobile';
 import { ThemeProvider } from './hooks/useTheme';
+import { LanguageProvider } from './i18n/context';
 
 const IonicApp = lazy(() => import('./mobile/IonicApp'));
 const MobileShell = lazy(() => import('./mobile/MobileShell'));
@@ -430,26 +431,28 @@ export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <ThemeProvider>
-        <OpenSourceBanner />
-        <PwaInstallPrompt />
-        <CookieConsent />
-        <DiscordPresenceTracker />
-        <BannedGuard>
-          <div className="flex flex-col h-dvh">
-            <TitleBar />
-            <div className="flex-1 overflow-hidden">
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center h-dvh">
-                    <div className="spinner" />
-                  </div>
-                }
-              >
-                <AppRoutes />
-              </Suspense>
+        <LanguageProvider>
+          <OpenSourceBanner />
+          <PwaInstallPrompt />
+          <CookieConsent />
+          <DiscordPresenceTracker />
+          <BannedGuard>
+            <div className="flex flex-col h-dvh">
+              <TitleBar />
+              <div className="flex-1 overflow-hidden">
+                <Suspense
+                  fallback={
+                    <div className="flex items-center justify-center h-dvh">
+                      <div className="spinner" />
+                    </div>
+                  }
+                >
+                  <AppRoutes />
+                </Suspense>
+              </div>
             </div>
-          </div>
-        </BannedGuard>
+          </BannedGuard>
+        </LanguageProvider>
       </ThemeProvider>
     </BrowserRouter>
   );

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n } from '../../i18n/context';
 import type { PostPoll } from '../../types';
 
 interface PollProps {
@@ -7,6 +8,7 @@ interface PollProps {
 }
 
 export default function Poll({ poll, onVote }: PollProps) {
+  const { t } = useI18n();
   const [pendingVote, setPendingVote] = useState<number | null>(null);
   const total = poll.total || poll.votes.reduce((a, b) => a + b, 0);
   const voted = poll.votedIndex !== null && poll.votedIndex !== undefined;
@@ -73,9 +75,9 @@ export default function Poll({ poll, onVote }: PollProps) {
             className="w-full max-w-[340px] rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[0_18px_55px_rgba(0,0,0,0.45)] animate-[pollConfirmIn_0.22s_ease-out]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="text-[15px] font-bold text-[var(--text-primary)]">Changer ton vote ?</div>
+            <div className="text-[15px] font-bold text-[var(--text-primary)]">{t('Changer ton vote ?')}</div>
             <div className="mt-1.5 text-[13px] text-[var(--text-secondary)]">
-              Ton nouveau choix sera « {poll.options[pendingVote]} ».
+              {t('Ton nouveau choix sera « {option} ».', { option: poll.options[pendingVote] })}
             </div>
             <div className="mt-5 flex justify-end gap-3">
               <button
@@ -83,7 +85,7 @@ export default function Poll({ poll, onVote }: PollProps) {
                 className="border-0 bg-transparent px-2 py-1.5 text-[13px] font-bold text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-primary)]"
                 onClick={() => setPendingVote(null)}
               >
-                Annuler
+                {t('Annuler')}
               </button>
               <button
                 type="button"
@@ -93,7 +95,7 @@ export default function Poll({ poll, onVote }: PollProps) {
                   setPendingVote(null);
                 }}
               >
-                Confirmer
+                {t('Confirmer')}
               </button>
             </div>
           </div>
@@ -101,7 +103,7 @@ export default function Poll({ poll, onVote }: PollProps) {
       )}
 
       <div className="border-t border-brand/15 px-3.5 py-2 text-[11px] text-[var(--text-secondary)]">
-        {total} vote{total > 1 ? 's' : ''}
+        {total} {total > 1 ? t('votes') : t('vote')}
       </div>
     </div>
   );

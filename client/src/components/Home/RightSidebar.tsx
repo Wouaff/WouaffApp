@@ -1,6 +1,7 @@
 import { Lock, Search, Server, ShieldCheck, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useI18n } from '../../i18n/context';
 import { profiles, trends as trendsAPI } from '../../services/api';
 import type { TrendItem } from '../../types';
 
@@ -20,6 +21,7 @@ function toHandle(s: Suggestion): string {
 
 export default function RightSidebar() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [q, setQ] = useState('');
   const [following, setFollowing] = useState<Record<string, boolean>>({});
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -84,8 +86,8 @@ export default function RightSidebar() {
                   navigate(`/search?q=${encodeURIComponent(q.trim())}`);
                 }
               }}
-              placeholder="Rechercher sur Wouaff"
-              aria-label="Rechercher sur Wouaff"
+              placeholder={t('Rechercher sur Wouaff')}
+              aria-label={t('Rechercher sur Wouaff')}
               className="w-full bg-[var(--bg-input)] border border-transparent focus:border-[var(--brand)] outline-none rounded-full py-2.5 pl-11 pr-4 text-[15px] text-[var(--text-primary)] placeholder-[var(--text-muted)] font-sans transition-colors"
             />
           </div>
@@ -94,10 +96,10 @@ export default function RightSidebar() {
         <div className="side-card mt-2 rounded-2xl overflow-hidden">
           <div className="flex items-center gap-2 px-4 pt-4 pb-2">
             <TrendingUp size={18} className="text-brand" />
-            <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0">Tendances en France</h2>
+            <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0">{t('Tendances en France')}</h2>
           </div>
           {trendList.length === 0 ? (
-            <div className="px-4 py-4 text-[13px] text-[var(--text-muted)]">Aucune tendance pour le moment</div>
+            <div className="px-4 py-4 text-[13px] text-[var(--text-muted)]">{t('Aucune tendance pour le moment')}</div>
           ) : (
             trendList.map((t) => (
               <Link
@@ -107,16 +109,20 @@ export default function RightSidebar() {
               >
                 <span className="block text-[12px] text-[var(--text-muted)]">{t.category}</span>
                 <span className="block text-[15px] font-bold text-[var(--text-primary)]">#{t.tag}</span>
-                <span className="block text-[12px] text-[var(--text-muted)]">{t.posts} publications</span>
+                <span className="block text-[12px] text-[var(--text-muted)]">
+                  {t('{n} publications', { n: t.posts })}
+                </span>
               </Link>
             ))
           )}
         </div>
 
         <div className="side-card mt-4 rounded-2xl overflow-hidden">
-          <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0 px-4 pt-4 pb-2">À qui suivre</h2>
+          <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0 px-4 pt-4 pb-2">{t('À qui suivre')}</h2>
           {suggestions.length === 0 ? (
-            <div className="px-4 py-4 text-[13px] text-[var(--text-muted)]">Aucune suggestion pour le moment</div>
+            <div className="px-4 py-4 text-[13px] text-[var(--text-muted)]">
+              {t('Aucune suggestion pour le moment')}
+            </div>
           ) : (
             suggestions.map((s) => {
               const isFollowing = following[s.uid];
@@ -130,7 +136,7 @@ export default function RightSidebar() {
                     {s.avatar ? (
                       <img
                         src={s.avatar}
-                        alt={`Avatar de ${s.pseudo || "l'utilisateur"}`}
+                        alt={t('Avatar de {name}', { name: s.pseudo || t("l'utilisateur") })}
                         className="w-full h-full object-cover"
                         loading="lazy"
                         decoding="async"
@@ -151,9 +157,13 @@ export default function RightSidebar() {
                         ? 'bg-transparent text-[var(--text-primary)] border-[var(--border)] hover:border-[var(--text-muted)]'
                         : 'bg-[var(--text-primary)] text-[var(--bg-base)] border-transparent hover:opacity-90'
                     }`}
-                    aria-label={isFollowing ? `Ne plus suivre ${s.pseudo}` : `Suivre ${s.pseudo}`}
+                    aria-label={
+                      isFollowing
+                        ? t('Ne plus suivre {name}', { name: s.pseudo })
+                        : t('Suivre {name}', { name: s.pseudo })
+                    }
                   >
-                    {isFollowing ? 'Suivi' : 'Suivre'}
+                    {isFollowing ? t('Suivi') : t('Suivre')}
                   </button>
                 </div>
               );
@@ -162,15 +172,15 @@ export default function RightSidebar() {
         </div>
 
         <div className="side-card mt-4 rounded-2xl p-4">
-          <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0 mb-3">La souveraineté Wouaff</h2>
+          <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0 mb-3">{t('La souveraineté Wouaff')}</h2>
           <ul className="list-none p-0 m-0 flex flex-col gap-3">
             <li className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-[var(--brand-glow)] flex items-center justify-center flex-shrink-0">
                 <Server size={18} className="text-brand" />
               </div>
               <div>
-                <div className="text-sm font-bold text-[var(--text-primary)]">Hébergé en France</div>
-                <div className="text-xs text-[var(--text-muted)]">Aucune donnée à l'étranger</div>
+                <div className="text-sm font-bold text-[var(--text-primary)]">{t('Hébergé en France')}</div>
+                <div className="text-xs text-[var(--text-muted)]">{t("Aucune donnée à l'étranger")}</div>
               </div>
             </li>
             <li className="flex items-center gap-3">
@@ -178,8 +188,8 @@ export default function RightSidebar() {
                 <ShieldCheck size={18} className="text-brand" />
               </div>
               <div>
-                <div className="text-sm font-bold text-[var(--text-primary)]">RGPD &amp; lois européennes</div>
-                <div className="text-xs text-[var(--text-muted)]">Vos données sont protégées</div>
+                <div className="text-sm font-bold text-[var(--text-primary)]">{t('RGPD & lois européennes')}</div>
+                <div className="text-xs text-[var(--text-muted)]">{t('Vos données sont protégées')}</div>
               </div>
             </li>
             <li className="flex items-center gap-3">
@@ -187,8 +197,8 @@ export default function RightSidebar() {
                 <Lock size={18} className="text-brand" />
               </div>
               <div>
-                <div className="text-sm font-bold text-[var(--text-primary)]">Politique zéro log</div>
-                <div className="text-xs text-[var(--text-muted)]">Nous ne traçons pas vos activités</div>
+                <div className="text-sm font-bold text-[var(--text-primary)]">{t('Politique zéro log')}</div>
+                <div className="text-xs text-[var(--text-muted)]">{t('Nous ne traçons pas vos activités')}</div>
               </div>
             </li>
           </ul>
@@ -202,15 +212,15 @@ export default function RightSidebar() {
             to="/mentions-legales"
             className="no-underline text-inherit hover:underline hover:text-[var(--text-primary)] transition-colors"
           >
-            Mentions légales
+            {t('Mentions légales')}
           </Link>
           <Link
             to="/contact"
             className="no-underline text-inherit hover:underline hover:text-[var(--text-primary)] transition-colors"
           >
-            Contact
+            {t('Contact')}
           </Link>
-          <span className="cursor-default">Wouaff · Fait en France 🇫🇷</span>
+          <span className="cursor-default">{t('Wouaff · Fait en France 🇫🇷')}</span>
         </nav>
       </div>
     </aside>

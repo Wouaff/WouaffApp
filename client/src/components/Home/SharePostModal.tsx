@@ -1,5 +1,7 @@
 import { Check, Link2, Loader2, Share2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useI18n } from '../../i18n/context';
+import { useFormatTimeAgo } from '../../i18n/time';
 import type { SocialPost } from '../../types';
 import { showToast } from '../Common/Toast';
 
@@ -8,19 +10,9 @@ interface SharePostModalProps {
   onClose: () => void;
 }
 
-function formatTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const m = Math.floor(diff / 60_000);
-  if (m < 1) return "à l'instant";
-  if (m < 60) return `il y a ${m} min`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `il y a ${h} h`;
-  const d = Math.floor(h / 24);
-  if (d === 1) return 'hier';
-  return `il y a ${d} j`;
-}
-
 export default function SharePostModal({ post, onClose }: SharePostModalProps) {
+  const { t } = useI18n();
+  const formatTime = useFormatTimeAgo();
   const [url, setUrl] = useState('');
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -41,20 +33,20 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      showToast('Lien copié dans le presse-papiers', 'success');
+      showToast(t('Lien copié dans le presse-papiers'), 'success');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      showToast('Impossible de copier le lien', 'error');
+      showToast(t('Impossible de copier le lien'), 'error');
     }
-  }, [url]);
+  }, [url, t]);
 
   const nativeShare = useCallback(async () => {
     if (sharing) return;
     setSharing(true);
     try {
       await navigator.share({
-        title: `Post de ${post.pseudo} sur Wouaff`,
-        text: post.text || `Voir le post de ${post.pseudo} sur Wouaff`,
+        title: t('Post de {name} sur Wouaff', { name: post.pseudo }),
+        text: post.text || t('Voir le post de {name} sur Wouaff', { name: post.pseudo }),
         url,
       });
       onClose();
@@ -63,7 +55,7 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
     } finally {
       setSharing(false);
     }
-  }, [post.pseudo, post.text, url, onClose, sharing]);
+  }, [post.pseudo, post.text, url, onClose, sharing, t]);
 
   const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
   const initial = (post.pseudo || '?')[0]?.toUpperCase() || '?';
@@ -81,12 +73,12 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Fermer"
+            aria-label={t('Fermer')}
             className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-primary)] border-none bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
           >
             <X size={18} />
           </button>
-          <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">Partager le post</span>
+          <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">{t('Partager le post')}</span>
         </div>
 
         <div className="px-5 py-4">
@@ -95,7 +87,7 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
               {post.avatar ? (
                 <img
                   src={post.avatar}
-                  alt={`Avatar de ${post.pseudo || "l'utilisateur"}`}
+                  alt={t('Avatar de {name}', { name: post.pseudo || t("l'utilisateur") })}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -123,7 +115,7 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
               className="w-full flex items-center justify-center gap-2 mb-3 bg-brand hover:opacity-90 disabled:opacity-50 transition-opacity text-white font-bold text-sm rounded-full px-4 py-3 border-none cursor-pointer"
             >
               {sharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
-              Partager via l'application
+              {t("Partager via l'application")}
             </button>
           )}
 
@@ -134,15 +126,15 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
             <button
               type="button"
               onClick={copyLink}
-              aria-label="Copier le lien"
+              aria-label={t('Copier le lien')}
               className="flex items-center gap-1.5 bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-primary)] font-bold text-sm rounded-full px-4 py-2.5 border border-[var(--border)] cursor-pointer"
             >
               {copied ? <Check size={15} className="text-online" /> : <Link2 size={15} />}
-              {copied ? 'Copié' : 'Copier'}
+              {copied ? t('Copié') : t('Copier')}
             </button>
           </div>
           <p className="m-0 mt-3 text-[12px] text-[var(--text-muted)]">
-            Toute personne disposant du lien pourra consulter ce post.
+            {t('Toute personne disposant du lien pourra consulter ce post.')}
           </p>
         </div>
       </div>

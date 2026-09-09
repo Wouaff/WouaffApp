@@ -1,6 +1,7 @@
 import { Flag, Loader2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useI18n } from '../../i18n/context';
 import { posts as postsAPI } from '../../services/api';
 import { showToast } from '../Common/Toast';
 
@@ -20,6 +21,7 @@ interface ReportPostModalProps {
 }
 
 export default function ReportPostModal({ postId, onClose }: ReportPostModalProps) {
+  const { t } = useI18n();
   const [reason, setReason] = useState('');
   const [custom, setCustom] = useState('');
   const [sending, setSending] = useState(false);
@@ -36,16 +38,16 @@ export default function ReportPostModal({ postId, onClose }: ReportPostModalProp
     if (sending) return;
     const finalReason = reason === 'Autre' ? custom.trim() : reason;
     if (!finalReason) {
-      showToast('Veuillez choisir un motif de signalement', 'error');
+      showToast(t('Veuillez choisir un motif de signalement'), 'error');
       return;
     }
     setSending(true);
     try {
       await postsAPI.report(postId, finalReason);
-      showToast('Merci, votre signalement a été envoyé', 'success');
+      showToast(t('Merci, votre signalement a été envoyé'), 'success');
       onClose();
     } catch (e) {
-      showToast((e as Error).message || 'Erreur lors du signalement', 'error');
+      showToast((e as Error).message || t('Erreur lors du signalement'), 'error');
       setSending(false);
     }
   };
@@ -64,16 +66,16 @@ export default function ReportPostModal({ postId, onClose }: ReportPostModalProp
             type="button"
             onClick={onClose}
             disabled={sending}
-            aria-label="Fermer"
+            aria-label={t('Fermer')}
             className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-primary)] border-none bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <X size={18} />
           </button>
-          <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">Signaler le post</span>
+          <span className="font-bold text-[var(--text-primary)] text-[17px] m-0">{t('Signaler le post')}</span>
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 px-5 py-4">
-          <p className="m-0 mb-3 text-sm text-[var(--text-secondary)]">Pourquoi signalez-vous ce post ?</p>
+          <p className="m-0 mb-3 text-sm text-[var(--text-secondary)]">{t('Pourquoi signalez-vous ce post ?')}</p>
           <div className="flex flex-col gap-2">
             {REPORT_REASONS.map((r) => (
               <label
@@ -92,7 +94,7 @@ export default function ReportPostModal({ postId, onClose }: ReportPostModalProp
                   onChange={() => setReason(r)}
                   className="accent-[var(--brand)]"
                 />
-                {r}
+                {t(r)}
               </label>
             ))}
           </div>
@@ -101,10 +103,10 @@ export default function ReportPostModal({ postId, onClose }: ReportPostModalProp
             <textarea
               value={custom}
               onChange={(e) => setCustom(e.target.value)}
-              placeholder="Précisez le motif..."
+              placeholder={t('Précisez le motif...')}
               maxLength={300}
               rows={2}
-              aria-label="Précisez le motif"
+              aria-label={t('Précisez le motif')}
               className="w-full mt-3 bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] resize-none font-sans transition-colors"
             />
           )}
@@ -117,7 +119,7 @@ export default function ReportPostModal({ postId, onClose }: ReportPostModalProp
             disabled={sending}
             className="px-4 py-2 rounded-full text-sm font-bold text-[var(--text-secondary)] border border-[var(--border)] bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Annuler
+            {t('Annuler')}
           </button>
           <button
             type="button"
@@ -126,7 +128,7 @@ export default function ReportPostModal({ postId, onClose }: ReportPostModalProp
             className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors border-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {sending ? <Loader2 size={14} className="animate-spin" /> : <Flag size={14} />}
-            Signaler
+            {t('Signaler')}
           </button>
         </div>
       </div>

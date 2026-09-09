@@ -3,6 +3,8 @@ import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useBadges } from '../../hooks/useBadges';
+import { useI18n } from '../../i18n/context';
+import { useFormatTimeAgo } from '../../i18n/time';
 import type { RepostInfo, SocialPost } from '../../types';
 import BadgeIcons from '../Common/BadgeIcons';
 import VoiceMessage from '../Common/VoiceMessage';
@@ -23,20 +25,10 @@ interface PostCardProps {
   onOpen: (post: SocialPost) => void;
 }
 
-function formatTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const m = Math.floor(diff / 60_000);
-  if (m < 1) return "à l'instant";
-  if (m < 60) return `il y a ${m} min`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `il y a ${h} h`;
-  const d = Math.floor(h / 24);
-  if (d === 1) return 'hier';
-  return `il y a ${d} j`;
-}
-
 const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, onVote, onOpen }: PostCardProps) {
   const { user } = useAuth();
+  const { t } = useI18n();
+  const formatTime = useFormatTimeAgo();
   const badgeDefs = useBadges();
   const [reportOpen, setReportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -74,7 +66,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
           ) : (
             <span className="font-bold">{repostInfo.pseudo}</span>
           )}
-          <span>a repartagé</span>
+          <span>{t('a repartagé')}</span>
         </div>
       )}
 
@@ -83,12 +75,16 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
           <Link
             to={profileHref}
             className="flex-shrink-0 block"
-            aria-label={`Voir le profil de ${post.pseudo}`}
+            aria-label={t('Voir le profil de {name}', { name: post.pseudo })}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
               {post.avatar ? (
-                <img src={post.avatar} alt={`Avatar de ${post.pseudo}`} className="w-full h-full object-cover" />
+                <img
+                  src={post.avatar}
+                  alt={t('Avatar de {name}', { name: post.pseudo })}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <span>{initial}</span>
               )}
@@ -97,7 +93,11 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
         ) : (
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
             {post.avatar ? (
-              <img src={post.avatar} alt={`Avatar de ${post.pseudo}`} className="w-full h-full object-cover" />
+              <img
+                src={post.avatar}
+                alt={t('Avatar de {name}', { name: post.pseudo })}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <span>{initial}</span>
             )}
@@ -123,7 +123,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             <BadgeIcons ids={post.ownedBadges} defs={badgeDefs} size={16} />
             <span className="text-[var(--text-muted)] text-md">·</span>
             <span className="text-[var(--text-muted)] text-md">{formatTime(post.time)}</span>
-            {post.edited && <span className="text-[var(--text-muted)] text-xs">· modifié</span>}
+            {post.edited && <span className="text-[var(--text-muted)] text-xs">· {t('modifié')}</span>}
           </div>
 
           {post.text && (
@@ -139,7 +139,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
           {post.image && (
             <img
               src={post.image}
-              alt={`Post de ${post.pseudo}`}
+              alt={t('Post de {name}', { name: post.pseudo })}
               className="mt-2 rounded-2xl border border-[var(--border)] max-h-[480px] w-full object-cover"
               loading="lazy"
               decoding="async"
@@ -160,7 +160,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
               type="button"
               onClick={() => onOpen(post)}
               className="btn btn-ghost btn-pill flex items-center gap-1.5 text-sms px-2 py-1"
-              aria-label={`Commenter (${post.comments})`}
+              aria-label={t('Commenter ({n})', { n: post.comments })}
             >
               <MessageCircle size={17} />
               <span>{post.comments}</span>
@@ -172,7 +172,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
               className={`btn btn-pill flex items-center gap-1.5 text-sms px-2 py-1 ${
                 post.reposted ? 'text-online' : 'btn-ghost hover:text-online hover:bg-online/10'
               }`}
-              aria-label={`Repartager (${post.reposts})`}
+              aria-label={t('Repartager ({n})', { n: post.reposts })}
             >
               <Repeat2 size={17} />
               <span>{post.reposts}</span>
@@ -188,7 +188,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
                 className={`btn btn-pill flex items-center gap-1.5 text-sms px-2 py-1 ${
                   post.myReaction ? 'text-red-500' : 'btn-ghost hover:text-red-500 hover:bg-red-500/10'
                 }`}
-                aria-label={`Réagir (${post.likes})`}
+                aria-label={t('Réagir ({n})', { n: post.likes })}
               >
                 {post.myReaction ? (
                   <span className="text-lg leading-none">{post.myReaction}</span>
@@ -215,10 +215,10 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
                 setShareOpen(true);
               }}
               className="btn btn-ghost btn-pill flex items-center gap-1.5 text-sms px-2 py-1"
-              aria-label="Partager ce post"
+              aria-label={t('Partager ce post')}
             >
               <Share2 size={17} />
-              <span>Partager</span>
+              <span>{t('Partager')}</span>
             </button>
 
             {isOwn && (
@@ -229,9 +229,9 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
                   setEditOpen(true);
                 }}
                 className="btn btn-ghost btn-pill text-sms px-2 py-1"
-                aria-label="Modifier la publication"
+                aria-label={t('Modifier la publication')}
               >
-                Modifier
+                {t('Modifier')}
               </button>
             )}
 
@@ -243,10 +243,10 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
                   setReportOpen(true);
                 }}
                 className="btn btn-ghost-danger btn-pill flex items-center gap-1.5 text-sms px-2 py-1"
-                aria-label="Signaler ce post"
+                aria-label={t('Signaler ce post')}
               >
                 <Flag size={17} />
-                <span>Signaler</span>
+                <span>{t('Signaler')}</span>
               </button>
             )}
           </div>

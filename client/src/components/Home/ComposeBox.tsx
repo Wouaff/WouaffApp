@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useCap } from '../../hooks/useCap';
 import { useMentionAutocomplete } from '../../hooks/useMentionAutocomplete';
+import { useI18n } from '../../i18n/context';
 import type { MentionUser } from '../../types';
 import { compressImage } from '../../utils/audio';
 import { type MentionToken, replaceMentionAt } from '../../utils/mentions';
@@ -36,6 +37,7 @@ interface ComposeBoxProps {
 
 export default function ComposeBox({ onPost }: ComposeBoxProps) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [avatar, setAvatar] = useState('');
   const [text, setText] = useState('');
   const [image, setImage] = useState('');
@@ -171,7 +173,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
       }, 1000);
     } catch (e) {
       console.error('Mic access denied', e);
-      showToast('Accès au microphone refusé', 'error');
+      showToast(t('Accès au microphone refusé'), 'error');
     }
   };
 
@@ -223,11 +225,11 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
 
   const pickImage = (file: File) => {
     if (!file.type.startsWith('image/')) {
-      showToast('Veuillez sélectionner une image.', 'error');
+      showToast(t('Veuillez sélectionner une image.'), 'error');
       return;
     }
     if (file.size > MAX_IMAGE_SIZE) {
-      showToast('Image trop volumineuse (max 10 Mo).', 'error');
+      showToast(t('Image trop volumineuse (max 10 Mo).'), 'error');
       return;
     }
     /* Les GIF ne sont pas compressés pour conserver l'animation */
@@ -247,7 +249,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
         const compressed = await compressImage(e.target.result as string);
         setImage(compressed);
       } catch {
-        showToast("Impossible de traiter l'image.", 'error');
+        showToast(t("Impossible de traiter l'image."), 'error');
       } finally {
         setImageLoading(false);
       }
@@ -263,11 +265,11 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
 
   const pickAudio = (file: File) => {
     if (!file.type.startsWith('audio/')) {
-      showToast('Veuillez sélectionner un fichier audio.', 'error');
+      showToast(t('Veuillez sélectionner un fichier audio.'), 'error');
       return;
     }
     if (file.size > MAX_AUDIO_SIZE) {
-      showToast('Fichier audio trop volumineux (max 10 Mo).', 'error');
+      showToast(t('Fichier audio trop volumineux (max 10 Mo).'), 'error');
       return;
     }
     const reader = new FileReader();
@@ -292,7 +294,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
   const submit = () => {
     if (!canPost) return;
     if (cap.required && !cap.token) {
-      showToast('Veuillez confirmer que vous êtes humain.', 'error');
+      showToast(t('Veuillez confirmer que vous êtes humain.'), 'error');
       return;
     }
     const pollPayload =
@@ -318,7 +320,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
     <div className="feed-composer flex gap-3 p-4 border-b border-[var(--border)]">
       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
         {avatar ? (
-          <img src={avatar} alt="Votre avatar" className="w-full h-full object-cover" />
+          <img src={avatar} alt={t('Votre avatar')} className="w-full h-full object-cover" />
         ) : (
           <span>{initial}</span>
         )}
@@ -336,10 +338,10 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             onKeyDown={(e) => {
               if (mention.handleKeyDown(e)) return;
             }}
-            placeholder="Quoi de neuf ?"
+            placeholder={t('Quoi de neuf ?')}
             maxLength={MAX_LENGTH}
             rows={2}
-            aria-label="Rédiger un post"
+            aria-label={t('Rédiger un post')}
             className="w-full bg-transparent resize-none outline-none text-[19px] leading-snug text-[var(--text-primary)] placeholder-[var(--text-muted)] font-sans border-none py-1"
           />
           <MentionSuggestions
@@ -355,7 +357,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
           <div className="relative mt-2">
             <img
               src={image}
-              alt="Aperçu"
+              alt={t('Aperçu')}
               className="max-h-[320px] w-full object-cover rounded-2xl border border-[var(--border)]"
             />
             {(image.startsWith('data:image/gif') || /\.gif($|\?)/i.test(image)) && (
@@ -366,7 +368,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             <button
               type="button"
               onClick={() => setImage('')}
-              aria-label="Retirer l'image"
+              aria-label={t("Retirer l'image")}
               className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center border-none cursor-pointer hover:bg-black/80 transition-colors"
             >
               <X size={16} />
@@ -380,19 +382,19 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             <span className="text-[13px] font-bold text-red-500 tabular-nums">
               {Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, '0')}
             </span>
-            <span className="text-[13px] text-[var(--text-secondary)] flex-1">Enregistrement vocal...</span>
+            <span className="text-[13px] text-[var(--text-secondary)] flex-1">{t('Enregistrement vocal...')}</span>
             <button
               type="button"
               onClick={stopRecording}
               className="bg-red-500 text-white text-[12px] font-bold rounded-full px-3 py-1.5 border-none cursor-pointer flex items-center gap-1.5 hover:opacity-90 transition-opacity flex-shrink-0"
             >
               <Square size={12} />
-              Arrêter
+              {t('Arrêter')}
             </button>
             <button
               type="button"
               onClick={cancelRecording}
-              aria-label="Annuler l'enregistrement"
+              aria-label={t("Annuler l'enregistrement")}
               className="w-7 h-7 rounded-full flex items-center justify-center border-none bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] transition-colors flex-shrink-0"
             >
               <X size={15} />
@@ -409,7 +411,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
                 setAudio('');
                 setAudioDuration(0);
               }}
-              aria-label="Retirer l'audio"
+              aria-label={t("Retirer l'audio")}
               className="w-8 h-8 rounded-full flex items-center justify-center border-none bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] hover:text-red-500 transition-colors flex-shrink-0"
             >
               <X size={16} />
@@ -422,12 +424,12 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             <div className="flex items-center justify-between mb-3">
               <span className="flex items-center gap-1.5 text-[13px] font-bold text-brand">
                 <BarChart3 size={15} />
-                Sondage
+                {t('Sondage')}
               </span>
               <button
                 type="button"
                 onClick={togglePoll}
-                aria-label="Retirer le sondage"
+                aria-label={t('Retirer le sondage')}
                 className="w-7 h-7 rounded-full flex items-center justify-center border-0 bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] hover:text-red-500 transition-colors"
               >
                 <X size={15} />
@@ -437,7 +439,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
               type="text"
               value={poll.question}
               onChange={(e) => setPoll((p) => (p ? { ...p, question: e.target.value } : p))}
-              placeholder="Question (optionnel)"
+              placeholder={t('Question (optionnel)')}
               maxLength={140}
               className="w-full mb-3 bg-[var(--bg-input)] border-0 rounded-lg px-3 py-2.5 text-sm font-bold text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:bg-[var(--bg-hover)] font-sans transition-colors"
             />
@@ -449,7 +451,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
                     type="text"
                     value={opt}
                     onChange={(e) => setPollOption(i, e.target.value)}
-                    placeholder={`Option ${i + 1}`}
+                    placeholder={t('Option {n}', { n: i + 1 })}
                     maxLength={80}
                     className="flex-1 min-w-0 bg-[var(--bg-input)] border-0 rounded-lg px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:bg-[var(--bg-hover)] font-sans transition-colors"
                   />
@@ -457,7 +459,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
                     <button
                       type="button"
                       onClick={() => removePollOption(i)}
-                      aria-label={`Retirer l'option ${i + 1}`}
+                      aria-label={t("Retirer l'option")}
                       className="w-8 h-8 rounded-full flex items-center justify-center border-0 bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-hover)] hover:text-red-500 transition-colors flex-shrink-0"
                     >
                       <X size={15} />
@@ -472,7 +474,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
                 onClick={addPollOption}
                 className="mt-3 text-[13px] font-bold text-brand rounded-full border-0 bg-transparent cursor-pointer px-2 py-1 hover:text-brand-light transition-colors"
               >
-                + Ajouter une option
+                + {t('Ajouter une option')}
               </button>
             )}
           </div>
@@ -483,7 +485,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              title="Ajouter une image"
+              title={t('Ajouter une image')}
               className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-brand hover:bg-[var(--brand-glow)] transition-colors"
             >
               <Image size={19} />
@@ -491,7 +493,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             <button
               type="button"
               onClick={startRecording}
-              title="Message vocal"
+              title={t('Message vocal')}
               className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-brand hover:bg-[var(--brand-glow)] transition-colors"
             >
               <Mic size={19} />
@@ -499,7 +501,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             <button
               type="button"
               onClick={() => audioFileInputRef.current?.click()}
-              title="Ajouter un fichier audio"
+              title={t('Ajouter un fichier audio')}
               className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-brand hover:bg-[var(--brand-glow)] transition-colors"
             >
               <Music size={19} />
@@ -507,7 +509,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             <button
               type="button"
               onClick={togglePoll}
-              title="Sondage"
+              title={t('Sondage')}
               className={`w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer transition-colors ${
                 poll ? 'bg-[var(--brand-glow)] text-brand' : 'text-brand hover:bg-[var(--brand-glow)]'
               }`}
@@ -517,7 +519,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             <button
               type="button"
               onClick={() => setShowGifPicker(true)}
-              title="Ajouter un GIF"
+              title={t('Ajouter un GIF')}
               className="h-9 px-2 rounded-full border-none bg-transparent cursor-pointer text-brand font-extrabold text-[12px] hover:bg-[var(--brand-glow)] transition-colors"
             >
               GIF
@@ -542,7 +544,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
               <button
                 type="button"
                 onClick={() => setShowEmojiPicker((o) => !o)}
-                title="Émojis"
+                title={t('Émojis')}
                 className="w-9 h-9 flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer text-brand hover:bg-[var(--brand-glow)] transition-colors"
               >
                 <Smile size={19} />
@@ -551,7 +553,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
             </div>
             {imageLoading && (
               <span className="ml-1 text-xs text-[var(--text-muted)]" role="status">
-                Compression...
+                {t('Compression...')}
               </span>
             )}
           </div>
@@ -570,7 +572,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
               disabled={!canPost}
               className="btn btn-primary btn-pill text-md px-5 py-2"
             >
-              Poster
+              {t('Poster')}
             </button>
           </div>
         </div>

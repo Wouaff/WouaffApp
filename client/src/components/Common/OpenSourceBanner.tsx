@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useI18n } from '../../i18n/context';
 
 const STORAGE_KEY = 'wouaff_opensource_dismissed';
 
 export default function OpenSourceBanner() {
+  const { t } = useI18n();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -26,9 +28,11 @@ export default function OpenSourceBanner() {
         aria-label="Annonce open source WouaffApp"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold mb-3">WouaffApp est maintenant open source !</h2>
+        <h2 className="text-lg font-semibold mb-3">{t('WouaffApp est maintenant open source !')}</h2>
         <p className="text-sm leading-relaxed mb-3">
-          Nous sommes ravis de vous annoncer que le code source de WouaffApp est désormais ouvert à toutes et à tous sur{' '}
+          {t(
+            'Nous sommes ravis de vous annoncer que le code source de WouaffApp est désormais ouvert à toutes et à tous sur',
+          )}{' '}
           <a
             href="https://github.com/youtsuhodev/WouaffApp"
             target="_blank"
@@ -40,18 +44,19 @@ export default function OpenSourceBanner() {
           .
         </p>
         <p className="text-sm leading-relaxed mb-3">
-          Vous pouvez explorer le code, nous signaler des bugs via les <strong>Issues</strong>, et même proposer vos
-          propres améliorations en créant des <strong>Pull Requests</strong>.
+          {t(
+            'Vous pouvez explorer le code, nous signaler des bugs via les <strong>Issues</strong>, et même proposer vos propres améliorations en créant des <strong>Pull Requests</strong>.',
+          )}
         </p>
         <p className="text-sm leading-relaxed mb-4">
-          Chaque contribution, aussi petite soit-elle, est la bienvenue. Merci de faire partie de l'aventure !
+          {t("Chaque contribution, aussi petite soit-elle, est la bienvenue. Merci de faire partie de l'aventure !")}
         </p>
         <button
           type="button"
           onClick={handleClose}
           className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
         >
-          Compris !
+          {t('Compris !')}
         </button>
       </div>
     </div>

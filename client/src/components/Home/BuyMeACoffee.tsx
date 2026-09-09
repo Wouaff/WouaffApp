@@ -1,6 +1,8 @@
 import { Coffee } from 'lucide-react';
+import { useI18n } from '../../i18n/context';
 
 export default function BuyMeACoffee() {
+  const { t } = useI18n();
   return (
     <div className="flex justify-start py-3 border-b border-[var(--border)]">
       <a
@@ -15,7 +17,7 @@ export default function BuyMeACoffee() {
         }}
       >
         <Coffee size={18} />
-        <span>Achetez-moi des croquettes</span>
+        <span>{t('Achetez-moi des croquettes')}</span>
       </a>
     </div>
   );

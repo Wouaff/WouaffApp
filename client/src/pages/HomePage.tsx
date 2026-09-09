@@ -11,6 +11,7 @@ import PostModal from '../components/Home/PostModal';
 import RightSidebar from '../components/Home/RightSidebar';
 import WelcomeIntro from '../components/Home/WelcomeIntro';
 import { useAuth } from '../hooks/useAuth';
+import { useI18n } from '../i18n/context';
 import { posts as postsAPI } from '../services/api';
 import {
   offPostComment,
@@ -40,6 +41,7 @@ function toPostItem(post: SocialPost): FeedItem {
 
 export default function HomePage() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
   const [tab, setTab] = useState<FeedTab>('forYou');
@@ -66,11 +68,11 @@ export default function HomePage() {
       setItems(data);
     } catch (e) {
       console.error(e);
-      setError((e as Error).message || 'Impossible de charger le fil');
+      setError((e as Error).message || t('Impossible de charger le fil'));
     } finally {
       setLoading(false);
     }
-  }, [tab]);
+  }, [tab, t]);
 
   useEffect(() => {
     loadPosts();
@@ -226,12 +228,12 @@ export default function HomePage() {
           const item = toPostItem(post);
           return prev.some((i) => i.key === item.key) ? prev : [item, ...prev];
         });
-        showToast('Post publié !');
+        showToast(t('Post publié !'));
       } catch (e) {
-        showToast((e as Error).message || 'Erreur lors de la publication', 'error');
+        showToast((e as Error).message || t('Erreur lors de la publication'), 'error');
       }
     },
-    [],
+    [t],
   );
 
   const handleVote = useCallback(
@@ -321,8 +323,8 @@ export default function HomePage() {
   const visibleItems = useMemo(() => items, [items]);
 
   const tabs: Array<{ id: FeedTab; label: string }> = [
-    { id: 'forYou', label: 'Pour toi' },
-    { id: 'following', label: 'Abonnements' },
+    { id: 'forYou', label: t('Pour toi') },
+    { id: 'following', label: t('Abonnements') },
   ];
 
   return (
@@ -331,7 +333,7 @@ export default function HomePage() {
       <main className="feed-shell flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)] bg-[var(--bg-deep)]">
         <header className="feed-header sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
           <div className="w-full max-w-[720px] mx-auto flex items-center px-4 h-14">
-            <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">Accueil</h1>
+            <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">{t('Accueil')}</h1>
           </div>
           <div className="w-full max-w-[720px] mx-auto flex">
             {tabs.map((t) => (
@@ -358,7 +360,7 @@ export default function HomePage() {
           <BuyMeACoffee />
 
           {loading ? (
-            <div role="status" aria-label="Chargement du fil">
+            <div role="status" aria-label={t('Chargement du fil')}>
               {[0, 1, 2].map((i) => (
                 <div key={i} className="feed-skeleton border-b border-[var(--border)]">
                   <div className="sk-avatar" />
@@ -369,13 +371,13 @@ export default function HomePage() {
                   </div>
                 </div>
               ))}
-              <span className="sr-only">Chargement du fil...</span>
+              <span className="sr-only">{t('Chargement du fil...')}</span>
             </div>
           ) : error ? (
             <div className="py-16 px-6 text-center">
               <p className="m-0 text-[var(--text-secondary)]">{error}</p>
               <button type="button" onClick={loadPosts} className="mt-4 btn btn-primary btn-pill text-sm px-6 py-2.5">
-                Réessayer
+                {t('Réessayer')}
               </button>
             </div>
           ) : visibleItems.length === 0 ? (
@@ -385,8 +387,8 @@ export default function HomePage() {
               </div>
               <p className="m-0 text-[var(--text-secondary)]">
                 {tab === 'following'
-                  ? 'Aucun post de vos abonnements pour le moment. Suis des comptes pour voir leurs posts ici !'
-                  : 'Aucun post pour le moment. Publie le premier pour lancer la conversation !'}
+                  ? t('Aucun post de vos abonnements pour le moment. Suis des comptes pour voir leurs posts ici !')
+                  : t('Aucun post pour le moment. Publie le premier pour lancer la conversation !')}
               </p>
             </div>
           ) : (

@@ -1,7 +1,9 @@
 import { Lock } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { useI18n } from '../../i18n/context';
 
 export default function EmailVerificationBanner({ onVerified }: { onVerified: () => void }) {
+  const { t } = useI18n();
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -31,7 +33,7 @@ export default function EmailVerificationBanner({ onVerified }: { onVerified: ()
 
   const handleVerify = async () => {
     if (code.length !== 6) {
-      setError('Saisissez les 6 chiffres du code.');
+      setError(t('Saisissez les 6 chiffres du code.'));
       return;
     }
     setVerifying(true);
@@ -81,11 +83,11 @@ export default function EmailVerificationBanner({ onVerified }: { onVerified: ()
           <div className="mb-4 flex justify-center text-brand">
             <Lock size={48} />
           </div>
-          <h3 className="text-lg font-bold mb-2">Vérification de votre email</h3>
+          <h3 className="text-lg font-bold mb-2">{t('Vérification de votre email')}</h3>
           <p className="text-text-secondary text-sm mb-6">
             {sent
-              ? 'Saisissez le code à 6 chiffres envoyé à votre adresse email.'
-              : 'Un code de vérification à 6 chiffres va être envoyé à votre adresse email.'}
+              ? t('Saisissez le code à 6 chiffres envoyé à votre adresse email.')
+              : t('Un code de vérification à 6 chiffres va être envoyé à votre adresse email.')}
           </p>
 
           {error && (
@@ -96,7 +98,7 @@ export default function EmailVerificationBanner({ onVerified }: { onVerified: ()
 
           {sent ? (
             <>
-              <div className="flex justify-center gap-2 mb-6" role="group" aria-label="Code de vérification">
+              <div className="flex justify-center gap-2 mb-6" role="group" aria-label={t('Code de vérification')}>
                 {[0, 1, 2, 3, 4, 5].map((i) => (
                   <input
                     key={i}
@@ -110,7 +112,7 @@ export default function EmailVerificationBanner({ onVerified }: { onVerified: ()
                     onChange={(e) => handleDigit(i, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(i, e)}
                     maxLength={1}
-                    aria-label={`Chiffre ${i + 1}`}
+                    aria-label={t('Chiffre {n}', { n: i + 1 })}
                     className="w-12 h-14 text-center text-xl font-extrabold bg-[var(--bg-input)] border border-[var(--border)] rounded-xl text-[var(--text-primary)] outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-glow)] font-sans transition-colors"
                   />
                 ))}
@@ -122,14 +124,14 @@ export default function EmailVerificationBanner({ onVerified }: { onVerified: ()
                   onClick={handleVerify}
                   disabled={verifying}
                 >
-                  {verifying ? 'Vérification...' : 'Vérifier le code'}
+                  {verifying ? t('Vérification...') : t('Vérifier le code')}
                 </button>
                 <button
                   className="w-full bg-transparent text-text-muted px-6 py-3 rounded-xl font-bold text-sm border border-border cursor-pointer font-sans hover:text-brand transition-colors disabled:opacity-50"
                   onClick={handleSend}
                   disabled={sending}
                 >
-                  {sending ? 'Envoi...' : 'Renvoyer le code'}
+                  {sending ? t('Envoi...') : t('Renvoyer le code')}
                 </button>
               </div>
             </>
@@ -139,7 +141,7 @@ export default function EmailVerificationBanner({ onVerified }: { onVerified: ()
               onClick={handleSend}
               disabled={sending}
             >
-              {sending ? 'Envoi en cours...' : 'Envoyer le code de vérification'}
+              {sending ? t('Envoi en cours...') : t('Envoyer le code de vérification')}
             </button>
           )}
         </div>

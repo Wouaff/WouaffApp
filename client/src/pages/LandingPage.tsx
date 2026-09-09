@@ -18,6 +18,7 @@ import {
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DmcaBadge from '../components/Common/DmcaBadge';
+import { useI18n } from '../i18n/context';
 
 const DISCORD_URL = 'https://dsc.gg/wouaff';
 const GITHUB_URL = 'https://github.com/Wouaff/WouaffApp';
@@ -203,6 +204,7 @@ const FAQ = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const goRegister = () => navigate('/auth?mode=register');
@@ -214,7 +216,7 @@ export default function LandingPage() {
       onClick={goRegister}
       className="inline-flex items-center gap-2 rounded-full bg-brand-dark px-6 py-3 text-[15px] font-black text-white border-none cursor-pointer font-sans hover:bg-brand transition-colors"
     >
-      Rejoindre Wouaff
+      {t('Rejoindre Wouaff')}
       <ArrowRight size={16} />
     </button>
   );
@@ -243,7 +245,7 @@ export default function LandingPage() {
                   rel="noreferrer"
                   className="rounded-full px-4 py-2 text-[14px] font-bold text-[var(--text-muted)] no-underline hover:text-white transition-colors"
                 >
-                  {l.label}
+                  {t(l.label)}
                 </a>
               ) : (
                 <button
@@ -252,7 +254,7 @@ export default function LandingPage() {
                   onClick={() => scrollToId(l.id)}
                   className="rounded-full px-4 py-2 text-[14px] font-bold text-[var(--text-muted)] border-none bg-transparent cursor-pointer hover:text-white transition-colors"
                 >
-                  {l.label}
+                  {t(l.label)}
                 </button>
               ),
             )}
@@ -264,7 +266,7 @@ export default function LandingPage() {
               onClick={goLogin}
               className="border-none bg-transparent p-0 text-[14px] font-bold text-[var(--text-muted)] cursor-pointer hover:text-white transition-colors"
             >
-              Se connecter
+              {t('Se connecter')}
             </button>
             {CTA}
           </div>
@@ -273,7 +275,7 @@ export default function LandingPage() {
             type="button"
             className="lg:hidden border-none bg-transparent p-2 text-white cursor-pointer"
             onClick={() => setMenuOpen((o) => !o)}
-            aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-label={menuOpen ? t('Fermer le menu') : t('Ouvrir le menu')}
           >
             {menuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -290,7 +292,7 @@ export default function LandingPage() {
                   rel="noreferrer"
                   className="rounded-lg px-3 py-2.5 text-[15px] font-bold text-[var(--text-muted)] no-underline hover:text-white"
                 >
-                  {l.label}
+                  {t(l.label)}
                 </a>
               ) : (
                 <button
@@ -302,7 +304,7 @@ export default function LandingPage() {
                   }}
                   className="rounded-lg px-3 py-2.5 text-left text-[15px] font-bold text-[var(--text-muted)] border-none bg-transparent cursor-pointer hover:text-white"
                 >
-                  {l.label}
+                  {t(l.label)}
                 </button>
               ),
             )}
@@ -315,7 +317,7 @@ export default function LandingPage() {
                 }}
                 className="rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-6 py-3 text-[15px] font-bold text-white cursor-pointer"
               >
-                Se connecter
+                {t('Se connecter')}
               </button>
               <button
                 type="button"
@@ -325,7 +327,7 @@ export default function LandingPage() {
                 }}
                 className="rounded-full bg-brand-dark px-6 py-3 text-[15px] font-black text-white border-none cursor-pointer"
               >
-                Rejoindre Wouaff
+                {t('Rejoindre Wouaff')}
               </button>
             </div>
           </div>
@@ -345,20 +347,20 @@ export default function LandingPage() {
           <div className="relative mx-auto max-w-4xl px-4 pt-20 pb-16 text-center sm:px-6 sm:pt-28 sm:pb-20">
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-4 py-1.5 text-[13px] font-bold text-[var(--text-muted)]">
               <span className="h-1.5 w-1.5 rounded-full bg-brand" />
-              Réseau social · Fait en France
+              {t('Réseau social · Fait en France')}
             </div>
 
             <h1 className="mt-8 text-3xl font-black leading-[1.05] tracking-tight text-white sm:text-6xl mobile:text-[30px]">
-              Ton fil.{' '}
+              {t('Ton fil.')}{' '}
               <span className="bg-gradient-to-r from-brand to-brand-light bg-clip-text text-transparent">
-                Pas leur algo.
+                {t('Pas leur algo.')}
               </span>
             </h1>
 
             <p className="mx-auto mt-6 max-w-2xl text-[16px] leading-relaxed text-[var(--text-muted)] sm:text-lg">
-              Wouaff, c’est un vrai réseau social : tu postes, tu scrolles, tu réponds, tu DMs. Sans pub. Sans boost
-              payant. Sans un milliardaire qui décide ce que tu vois. Tes données restent en France. Tes MP sont
-              chiffrés.
+              {t(
+                'Wouaff, c’est un vrai réseau social : tu postes, tu scrolles, tu réponds, tu DMs. Sans pub. Sans boost payant. Sans un milliardaire qui décide ce que tu vois. Tes données restent en France. Tes MP sont chiffrés.',
+              )}
             </p>
 
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -367,7 +369,7 @@ export default function LandingPage() {
                 onClick={goRegister}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-dark px-8 py-4 text-[16px] font-black text-white border-none cursor-pointer font-sans hover:bg-brand transition-colors sm:w-auto"
               >
-                Rejoindre Wouaff, c’est gratuit
+                {t('Rejoindre Wouaff, c’est gratuit')}
                 <ArrowRight size={17} />
               </button>
               <button
@@ -375,15 +377,15 @@ export default function LandingPage() {
                 onClick={() => scrollToId('produit')}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-8 py-4 text-[16px] font-bold text-white cursor-pointer hover:border-[var(--border-light)] transition-colors sm:w-auto"
               >
-                Voir comment ça marche
+                {t('Voir comment ça marche')}
               </button>
             </div>
 
             <p className="mt-5 text-[13px] text-[var(--text-muted)]">
-              Aucune carte bancaire. Aucune pub. On ne revend pas tes posts.
+              {t('Aucune carte bancaire. Aucune pub. On ne revend pas tes posts.')}
             </p>
 
-            <div className="mt-12 text-[15px] font-black tracking-[0.35em] text-brand/80">T’AS CAPTÉ</div>
+            <div className="mt-12 text-[15px] font-black tracking-[0.35em] text-brand/80">{t('T’AS CAPTÉ')}</div>
           </div>
         </section>
 
@@ -398,8 +400,8 @@ export default function LandingPage() {
                     <Icon size={19} className="text-brand" />
                   </div>
                   <div>
-                    <div className="text-[15px] font-bold text-white">{p.title}</div>
-                    <div className="text-[13px] text-[var(--text-muted)]">{p.desc}</div>
+                    <div className="text-[15px] font-bold text-white">{t(p.title)}</div>
+                    <div className="text-[13px] text-[var(--text-muted)]">{t(p.desc)}</div>
                   </div>
                 </div>
               );
@@ -410,17 +412,20 @@ export default function LandingPage() {
         {/* ── Le problème ── */}
         <section id="pourquoi" className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 sm:py-24">
           <h2 className="text-3xl font-black leading-tight tracking-tight text-white sm:text-[40px]">
-            Le fil que t’ouvres tous les jours <span className="text-brand-light">n’est plus à toi.</span>
+            {t('Le fil que t’ouvres tous les jours')} <span className="text-brand-light">{t('n’est plus à toi.')}</span>
           </h2>
           <p className="mt-6 text-[15px] leading-relaxed text-[var(--text-muted)] sm:text-[17px]">
-            Tu voulais des posts. T’as eu de la pub, un algo qui t’énerve, des comptes payants pour exister, et tes DM
-            qui servent à entraîner je-sais-pas-quoi.
+            {t(
+              'Tu voulais des posts. T’as eu de la pub, un algo qui t’énerve, des comptes payants pour exister, et tes DM qui servent à entraîner je-sais-pas-quoi.',
+            )}
           </p>
           <p className="mt-4 text-[15px] leading-relaxed text-[var(--text-muted)] sm:text-[17px]">
-            Changer de réseau, c’est chiant. On le sait. Rester sur un truc qui te prend pour un inventaire, c’est pire.
+            {t(
+              'Changer de réseau, c’est chiant. On le sait. Rester sur un truc qui te prend pour un inventaire, c’est pire.',
+            )}
           </p>
           <p className="mt-8 text-lg font-black text-white">
-            Wouaff, c’est le même geste, poster, scroller, répondre, sans que tu sois le produit.
+            {t('Wouaff, c’est le même geste, poster, scroller, répondre, sans que tu sois le produit.')}
           </p>
         </section>
 
@@ -428,19 +433,20 @@ export default function LandingPage() {
         <section className="border-y border-[var(--border)] bg-[var(--bg-base)] py-20 sm:py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <h2 className="text-center text-3xl font-black tracking-tight text-white sm:text-[40px]">
-              Un réseau social. <span className="text-brand-light">Pas un substitut. Un meilleur fil.</span>
+              {t('Un réseau social.')}{' '}
+              <span className="text-brand-light">{t('Pas un substitut. Un meilleur fil.')}</span>
             </h2>
 
             <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-deep)] p-7">
-                <div className="text-[15px] font-black uppercase tracking-wider text-brand">Wouaff, c’est :</div>
+                <div className="text-[15px] font-black uppercase tracking-wider text-brand">{t('Wouaff, c’est :')}</div>
                 <ul className="mt-5 flex flex-col gap-3.5">
                   {IS_IT.map((item) => (
                     <li key={item} className="flex items-start gap-3 text-[15px] text-white">
                       <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#173c2a]">
                         <Check size={12} className="text-[#5fd38d]" strokeWidth={3} />
                       </span>
-                      {item}
+                      {t(item)}
                     </li>
                   ))}
                 </ul>
@@ -448,7 +454,7 @@ export default function LandingPage() {
 
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-deep)] p-7">
                 <div className="text-[15px] font-black uppercase tracking-wider text-[var(--text-muted)]">
-                  Wouaff, c’est pas :
+                  {t('Wouaff, c’est pas :')}
                 </div>
                 <ul className="mt-5 flex flex-col gap-3.5">
                   {IS_NOT.map((item) => (
@@ -456,7 +462,7 @@ export default function LandingPage() {
                       <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/10">
                         <X size={12} className="text-red-400" strokeWidth={3} />
                       </span>
-                      {item}
+                      {t(item)}
                     </li>
                   ))}
                 </ul>
@@ -465,9 +471,10 @@ export default function LandingPage() {
 
             <div className="mt-10 text-center text-[16px] leading-relaxed text-[var(--text-muted)]">
               <p>
-                Si tu veux un salon vocal à 21h, c’est pas ici.
+                {t('Si tu veux un salon vocal à 21h, c’est pas ici.')}
                 <br />
-                Si tu veux poster et que tes potes voient le post, <span className="font-black text-white">ici.</span>
+                {t('Si tu veux poster et que tes potes voient le post,')}{' '}
+                <span className="font-black text-white">{t('ici.')}</span>
               </p>
             </div>
           </div>
@@ -476,7 +483,7 @@ export default function LandingPage() {
         {/* ── Produit, 4 blocs ── */}
         <section id="produit" className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
           <h2 className="text-center text-3xl font-black tracking-tight text-white sm:text-[40px]">
-            Le produit. <span className="text-brand-light">Un réseau, en vrai.</span>
+            {t('Le produit.')} <span className="text-brand-light">{t('Un réseau, en vrai.')}</span>
           </h2>
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
             {PRODUCT_BLOCKS.map((b) => {
@@ -489,10 +496,10 @@ export default function LandingPage() {
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-glow">
                     <Icon size={20} className="text-brand" />
                   </div>
-                  <h3 className="mt-5 text-xl font-black text-white">{b.h3}</h3>
-                  <p className="mt-3 flex-1 text-[15px] leading-relaxed text-[var(--text-muted)]">{b.body}</p>
+                  <h3 className="mt-5 text-xl font-black text-white">{t(b.h3)}</h3>
+                  <p className="mt-3 flex-1 text-[15px] leading-relaxed text-[var(--text-muted)]">{t(b.body)}</p>
                   <p className="mt-5 border-t border-[var(--border)] pt-4 text-[13px] font-bold italic text-brand-light">
-                    {b.fine}
+                    {t(b.fine)}
                   </p>
                 </div>
               );
@@ -504,7 +511,7 @@ export default function LandingPage() {
         <section className="border-y border-[var(--border)] bg-[var(--bg-base)] py-20 sm:py-24">
           <div className="mx-auto max-w-4xl px-4 sm:px-6">
             <h2 className="text-center text-3xl font-black tracking-tight text-white sm:text-[40px]">
-              Pas « mieux » en slide. <span className="text-brand-light">Mieux en vrai.</span>
+              {t('Pas « mieux » en slide.')} <span className="text-brand-light">{t('Mieux en vrai.')}</span>
             </h2>
             <ul className="mx-auto mt-10 flex max-w-2xl flex-col gap-4">
               {WHY_BETTER.map((w) => (
@@ -513,13 +520,14 @@ export default function LandingPage() {
                   className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-deep)] p-4 text-[15px] text-white"
                 >
                   <Check size={18} className="mt-0.5 shrink-0 text-brand" strokeWidth={3} />
-                  {w}
+                  {t(w)}
                 </li>
               ))}
             </ul>
             <p className="mx-auto mt-10 max-w-2xl text-center text-[15px] leading-relaxed text-[var(--text-muted)]">
-              Ce qu’on ne promet pas : d’avoir déjà tout le monde. Un réseau, ça se remplit. On préfère un fil vivant
-              entre vous qu’un désert à 2 millions de comptes morts.
+              {t(
+                'Ce qu’on ne promet pas : d’avoir déjà tout le monde. Un réseau, ça se remplit. On préfère un fil vivant entre vous qu’un désert à 2 millions de comptes morts.',
+              )}
             </p>
           </div>
         </section>
@@ -527,7 +535,7 @@ export default function LandingPage() {
         {/* ── Comment ça marche ── */}
         <section className="mx-auto max-w-5xl px-4 py-20 text-center sm:px-6 sm:py-24">
           <h2 className="text-3xl font-black tracking-tight text-white sm:text-[40px]">
-            Comme t’imagines. <span className="text-brand-light">Sauf la pub.</span>
+            {t('Comme t’imagines.')} <span className="text-brand-light">{t('Sauf la pub.')}</span>
           </h2>
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
             {STEPS.map((s) => (
@@ -538,16 +546,17 @@ export default function LandingPage() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-dark text-lg font-black text-white">
                   {s.n}
                 </div>
-                <div className="mt-4 text-[17px] font-black text-white">{s.title}</div>
-                <div className="mt-2 text-[14px] leading-relaxed text-[var(--text-muted)]">{s.desc}</div>
+                <div className="mt-4 text-[17px] font-black text-white">{t(s.title)}</div>
+                <div className="mt-2 text-[14px] leading-relaxed text-[var(--text-muted)]">{t(s.desc)}</div>
               </div>
             ))}
           </div>
           <div className="mt-10 flex flex-col items-center gap-3">
             {CTA}
             <p className="text-[13px] text-[var(--text-muted)]">
-              On est encore petit. C’est le moment où tes posts se voient. Plus tard, ça sera plus bruyant. Maintenant,
-              c’est à vous.
+              {t(
+                'On est encore petit. C’est le moment où tes posts se voient. Plus tard, ça sera plus bruyant. Maintenant, c’est à vous.',
+              )}
             </p>
           </div>
         </section>
@@ -556,7 +565,7 @@ export default function LandingPage() {
         <section className="border-y border-[var(--border)] bg-[var(--bg-base)] py-20 sm:py-24">
           <div className="mx-auto max-w-4xl px-4 sm:px-6">
             <h2 className="text-center text-3xl font-black tracking-tight text-white sm:text-[40px]">
-              Si t’es là, <span className="text-brand-light">t’es probablement ça.</span>
+              {t('Si t’es là,')} <span className="text-brand-light">{t('t’es probablement ça.')}</span>
             </h2>
             <ul className="mx-auto mt-10 flex max-w-2xl flex-col gap-4">
               {WHO.map((w) => (
@@ -565,12 +574,12 @@ export default function LandingPage() {
                   className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-[15px] text-white"
                 >
                   <Check size={18} className="mt-0.5 shrink-0 text-brand" strokeWidth={3} />
-                  {w}
+                  {t(w)}
                 </li>
               ))}
             </ul>
             <div className="mx-auto mt-10 max-w-2xl rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-center text-[14px] text-[var(--text-muted)]">
-              Pas pour : {WHO_NOT.join(' · ')}.
+              {t('Pas pour :')} {WHO_NOT.map((w) => t(w)).join(' · ')}.
             </div>
           </div>
         </section>
@@ -579,7 +588,7 @@ export default function LandingPage() {
         <section id="securite" className="py-20 sm:py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <h2 className="text-center text-3xl font-black tracking-tight text-white sm:text-[40px]">
-              Ce qu’on promet, <span className="text-brand-light">concrètement.</span>
+              {t('Ce qu’on promet,')} <span className="text-brand-light">{t('concrètement.')}</span>
             </h2>
             <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {SECURITY.map((s) => {
@@ -589,8 +598,8 @@ export default function LandingPage() {
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-glow">
                       <Icon size={18} className="text-brand" />
                     </div>
-                    <div className="mt-4 text-[16px] font-black text-white">{s.title}</div>
-                    <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-muted)]">{s.body}</p>
+                    <div className="mt-4 text-[16px] font-black text-white">{t(s.title)}</div>
+                    <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-muted)]">{t(s.body)}</p>
                   </div>
                 );
               })}
@@ -601,7 +610,7 @@ export default function LandingPage() {
                 onClick={() => scrollToId('securite')}
                 className="border-none bg-transparent p-0 text-brand cursor-pointer hover:text-brand-light transition-colors"
               >
-                Sécurité &amp; confidentialité
+                {t('Sécurité & confidentialité')}
               </button>
               <span className="text-[var(--text-muted)]">·</span>
               <Link to="/mentions-legales" className="text-brand no-underline hover:text-brand-light transition-colors">
@@ -622,14 +631,15 @@ export default function LandingPage() {
           />
           <div className="relative mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 sm:py-24">
             <h2 className="text-3xl font-black tracking-tight text-white sm:text-[40px]">
-              On a 19 ans. <span className="text-brand-light">On le fait en France.</span>
+              {t('On a 19 ans.')} <span className="text-brand-light">{t('On le fait en France.')}</span>
             </h2>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--text-muted)] sm:text-[17px]">
-              Wouaff, c’est pas un fonds, pas une « alternative européenne » née dans un slide deck. C’est deux mecs, un
-              loup, et l’idée qu’un fil social n’a pas à appartenir à un milliardaire ni à servir de régie pub.
+              {t(
+                'Wouaff, c’est pas un fonds, pas une « alternative européenne » née dans un slide deck. C’est deux mecs, un loup, et l’idée qu’un fil social n’a pas à appartenir à un milliardaire ni à servir de régie pub.',
+              )}
             </p>
             <p className="mt-4 text-[15px] leading-relaxed text-[var(--text-muted)] sm:text-[17px]">
-              On se trompe, on corrige, on publie le changelog.
+              {t('On se trompe, on corrige, on publie le changelog.')}
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <a
@@ -639,7 +649,7 @@ export default function LandingPage() {
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-deep)] px-6 py-3 text-[14px] font-bold text-white no-underline hover:border-[var(--border-light)] transition-colors"
               >
                 <GithubIcon />
-                Voir le code
+                {t('Voir le code')}
               </a>
               <a
                 href={DISCORD_URL}
@@ -648,11 +658,11 @@ export default function LandingPage() {
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-deep)] px-6 py-3 text-[14px] font-bold text-white no-underline hover:border-[var(--border-light)] transition-colors"
               >
                 <MessageCircle size={17} />
-                Le Discord est ouvert
+                {t('Le Discord est ouvert')}
               </a>
             </div>
             <p className="mt-8 text-[13px] font-bold uppercase tracking-widest text-brand/70">
-              Fait avec les mains, en France. Pas avec un communiqué.
+              {t('Fait avec les mains, en France. Pas avec un communiqué.')}
             </p>
           </div>
         </section>
@@ -677,19 +687,19 @@ export default function LandingPage() {
             }}
           />
           <h2 className="text-center text-3xl font-black tracking-tight text-white sm:text-[40px]">
-            Les questions <span className="text-brand-light">qu’on se pose.</span>
+            {t('Les questions')} <span className="text-brand-light">{t('qu’on se pose.')}</span>
           </h2>
           <div className="mt-10 flex flex-col gap-3">
             {FAQ.map((f) => (
               <details key={f.q} className="group rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-6">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-[15px] font-bold text-white [&::-webkit-details-marker]:hidden">
-                  {f.q}
+                  {t(f.q)}
                   <ChevronDown
                     size={18}
                     className="shrink-0 text-[var(--text-muted)] transition-transform group-open:rotate-180"
                   />
                 </summary>
-                <p className="pb-5 text-[14px] leading-relaxed text-[var(--text-muted)]">{f.a}</p>
+                <p className="pb-5 text-[14px] leading-relaxed text-[var(--text-muted)]">{t(f.a)}</p>
               </details>
             ))}
           </div>
@@ -699,10 +709,10 @@ export default function LandingPage() {
         <section className="border-t border-[var(--border)] bg-[var(--bg-base)] py-20 sm:py-24">
           <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
             <h2 className="text-4xl font-black tracking-tight text-white sm:text-5xl">
-              Pose le <span className="text-brand-light">premier post.</span>
+              {t('Pose le')} <span className="text-brand-light">{t('premier post.')}</span>
             </h2>
             <p className="mt-4 text-[16px] text-[var(--text-muted)]">
-              Ton fil est vide tant que t’es pas dessus. Ça, au moins, c’est honnête.
+              {t('Ton fil est vide tant que t’es pas dessus. Ça, au moins, c’est honnête.')}
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <button
@@ -710,7 +720,7 @@ export default function LandingPage() {
                 onClick={goRegister}
                 className="inline-flex items-center gap-2 rounded-full bg-brand-dark px-8 py-4 text-[16px] font-black text-white border-none cursor-pointer font-sans hover:bg-brand transition-colors"
               >
-                Rejoindre Wouaff
+                {t('Rejoindre Wouaff')}
                 <ArrowRight size={17} />
               </button>
               <a
@@ -720,11 +730,11 @@ export default function LandingPage() {
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-deep)] px-8 py-4 text-[16px] font-bold text-white no-underline hover:border-[var(--border-light)] transition-colors"
               >
                 <MessageCircle size={17} />
-                Parler aux fondateurs
+                {t('Parler aux fondateurs')}
               </a>
             </div>
             <p className="mt-6 text-[13px] font-bold text-[var(--text-muted)]">
-              Gratuit · France · Pas de pub · MP chiffrés
+              {t('Gratuit · France · Pas de pub · MP chiffrés')}
             </p>
           </div>
         </section>
@@ -740,18 +750,20 @@ export default function LandingPage() {
                 <span className="text-lg font-black text-white">Wouaff</span>
               </div>
               <p className="mt-4 text-[13px] leading-relaxed text-[var(--text-muted)]">
-                Wouaff · ton fil, pas leur algo · Fait en France
+                {t('Wouaff · ton fil, pas leur algo · Fait en France')}
               </p>
             </div>
 
             <div>
-              <div className="text-[13px] font-black uppercase tracking-wider text-[var(--text-muted)]">Produit</div>
+              <div className="text-[13px] font-black uppercase tracking-wider text-[var(--text-muted)]">
+                {t('Produit')}
+              </div>
               <ul className="mt-4 flex flex-col gap-2.5">
                 {[
-                  ['Fonctionnalités', 'produit'],
-                  ['Sécurité', 'securite'],
-                  ['Changelog', GITHUB_URL],
-                  ['Status', '#'],
+                  [t('Fonctionnalités'), 'produit'],
+                  [t('Sécurité'), 'securite'],
+                  [t('Changelog'), GITHUB_URL],
+                  [t('Status'), '#'],
                 ].map(([label, target]) => (
                   <li key={String(label)}>
                     {target.startsWith('http') ? (
@@ -778,13 +790,15 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <div className="text-[13px] font-black uppercase tracking-wider text-[var(--text-muted)]">Meute</div>
+              <div className="text-[13px] font-black uppercase tracking-wider text-[var(--text-muted)]">
+                {t('Meute')}
+              </div>
               <ul className="mt-4 flex flex-col gap-2.5">
                 {[
                   ['Discord', DISCORD_URL],
                   ['GitHub', GITHUB_URL],
                   ['X', 'https://x.com/wouaff'],
-                  ['Contact', '/contact'],
+                  [t('Contact'), '/contact'],
                 ].map(([label, href]) => (
                   <li key={String(label)}>
                     {href.startsWith('http') ? (
@@ -810,14 +824,16 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <div className="text-[13px] font-black uppercase tracking-wider text-[var(--text-muted)]">Légal</div>
+              <div className="text-[13px] font-black uppercase tracking-wider text-[var(--text-muted)]">
+                {t('Légal')}
+              </div>
               <ul className="mt-4 flex flex-col gap-2.5">
                 <li>
                   <Link
                     to="/mentions-legales"
                     className="text-[14px] text-[var(--text-muted)] no-underline hover:text-white transition-colors"
                   >
-                    Mentions légales
+                    {t('Mentions légales')}
                   </Link>
                 </li>
                 <li>
@@ -825,7 +841,7 @@ export default function LandingPage() {
                     to="/mentions-legales#confidentialite"
                     className="text-[14px] text-[var(--text-muted)] no-underline hover:text-white transition-colors"
                   >
-                    Confidentialité
+                    {t('Confidentialité')}
                   </Link>
                 </li>
                 <li>
@@ -833,17 +849,17 @@ export default function LandingPage() {
                     to="/mentions-legales#cgu"
                     className="text-[14px] text-[var(--text-muted)] no-underline hover:text-white transition-colors"
                   >
-                    CGU
+                    {t('CGU')}
                   </Link>
                 </li>
-                <li className="text-[14px] text-[var(--text-muted)]">Pas de cookies de tracking</li>
+                <li className="text-[14px] text-[var(--text-muted)]">{t('Pas de cookies de tracking')}</li>
               </ul>
             </div>
           </div>
 
           <div className="mt-12 border-t border-[var(--border)] pt-6 text-center">
             <p className="text-[13px] text-[var(--text-muted)]">
-              © 2026 Wouaff. Pas de revente de données. Pas de pub.
+              {t('© 2026 Wouaff. Pas de revente de données. Pas de pub.')}
             </p>
             <div className="mt-5 flex justify-center">
               <DmcaBadge />
