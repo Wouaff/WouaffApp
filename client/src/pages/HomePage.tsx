@@ -340,13 +340,13 @@ export default function HomePage() {
                 type="button"
                 onClick={() => setTab(t.id)}
                 aria-current={tab === t.id ? 'page' : undefined}
-                className={`relative flex-1 flex items-center justify-center py-3.5 border-none bg-transparent cursor-pointer transition-colors font-sans ${
+                className={`feed-tab relative flex-1 flex items-center justify-center py-3.5 border-none bg-transparent cursor-pointer transition-colors font-sans ${
                   tab === t.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)]'
                 }`}
               >
                 <span className={tab === t.id ? 'text-md font-extrabold' : 'text-md font-medium'}>{t.label}</span>
                 {tab === t.id && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-brand rounded-full" />
+                  <span className="feed-tab-underline absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-brand rounded-full" />
                 )}
               </button>
             ))}
@@ -358,9 +358,18 @@ export default function HomePage() {
           <BuyMeACoffee />
 
           {loading ? (
-            <div className="py-16 px-6 flex flex-col items-center gap-3">
-              <div className="spinner" />
-              <p className="m-0 text-sm text-[var(--text-muted)]">Chargement du fil...</p>
+            <div role="status" aria-label="Chargement du fil">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="feed-skeleton border-b border-[var(--border)]">
+                  <div className="sk-avatar" />
+                  <div className="flex-1 min-w-0 pt-1">
+                    <div className="sk-line short" />
+                    <div className="sk-line mid" />
+                    <div className="sk-line long" />
+                  </div>
+                </div>
+              ))}
+              <span className="sr-only">Chargement du fil...</span>
             </div>
           ) : error ? (
             <div className="py-16 px-6 text-center">
@@ -371,8 +380,8 @@ export default function HomePage() {
             </div>
           ) : visibleItems.length === 0 ? (
             <div className="py-16 px-6 text-center">
-              <div className="text-4xl mb-3 text-brand" aria-hidden="true">
-                <Inbox size={36} />
+              <div className="feed-empty-icon mb-4" aria-hidden="true">
+                <Inbox size={30} />
               </div>
               <p className="m-0 text-[var(--text-secondary)]">
                 {tab === 'following'

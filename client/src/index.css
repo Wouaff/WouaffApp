@@ -35,6 +35,7 @@
   --radius-msg: 20px;
   --shadow: 0 12px 36px rgba(0, 0, 0, 0.34);
   --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --font-display: "Outfit", "Nunito", sans-serif;
   --safe-top: env(safe-area-inset-top, 5px);
   --safe-bottom: env(safe-area-inset-bottom, 5px);
   --safe-left: env(safe-area-inset-left, 0px);

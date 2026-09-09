@@ -1,68 +1,264 @@
-/* Modern feed layer: Wouaff orange identity with a calmer social-network rhythm. */
+/* ══════════════════════════════════════════════════════════
+   MODERN FEED — direction Web Design 2026
+   Cluster  : Polished Future (glassmorphism + kinetic type + dark)
+   Couleur  : système monochrome orange (marque Wouaff), halos d'ambiance
+   Layout   : colonne de feed type X/Bluesky, panneau verre flottant
+   Accessibilité : prefers-reduced-motion géré globalement dans index.css
+══════════════════════════════════════════════════════════ */
+
+/* ── Ambiance : halos de marque dans le fond du feed ── */
 .feed-shell {
   scrollbar-gutter: stable;
+  background:
+    radial-gradient(58rem 30rem at 12% -8%, var(--brand-glow) 0%, transparent 62%),
+    radial-gradient(46rem 26rem at 108% 10%, rgba(244, 122, 69, 0.07) 0%, transparent 56%),
+    radial-gradient(30rem 22rem at 50% 118%, rgba(244, 122, 69, 0.05) 0%, transparent 60%);
 }
 
+/* ── Colonne feed : panneau verre ── */
 .feed-column {
-  background: color-mix(in srgb, var(--bg-base) 28%, transparent);
+  background: color-mix(in srgb, var(--bg-base) 30%, transparent);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
 }
 
+/* ── Header : verre dépoli + typo cinétique ── */
 .feed-header {
-  background: color-mix(in srgb, var(--bg-base) 86%, transparent);
+  background: color-mix(in srgb, var(--bg-base) 76%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
 }
 
 .feed-header h1 {
-  letter-spacing: -0.04em;
+  font-family: var(--font-display, "Nunito", sans-serif);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  background: linear-gradient(100deg, var(--text-primary) 28%, var(--brand-light) 135%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
 }
 
+/* ── Onglets : indicateur animé à l'activation ── */
+.feed-tab-underline {
+  transform-origin: center;
+  animation: feedTabIn 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes feedTabIn {
+  from {
+    transform: translateX(-50%) scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) scaleX(1);
+    opacity: 1;
+  }
+}
+
+/* ── Composer : carte verre avec filet dégradé et halo au focus ── */
 .feed-composer {
-  background: color-mix(in srgb, var(--bg-card) 76%, transparent);
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-card) 84%, transparent),
+    color-mix(in srgb, var(--bg-card) 58%, transparent)
+  );
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   padding: 20px 18px;
+  transition: box-shadow 220ms ease;
 }
-
+.feed-composer::before {
+  content: "";
+  position: absolute;
+  inset: 0 14px auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--brand) 28%,
+    var(--brand-light) 50%,
+    var(--brand) 72%,
+    transparent
+  );
+  opacity: 0.5;
+  pointer-events: none;
+}
+.feed-composer:focus-within {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--brand) 26%, transparent),
+    0 18px 46px rgba(0, 0, 0, 0.28);
+}
 .feed-composer textarea {
   font-size: 19px;
   letter-spacing: -0.01em;
 }
+.feed-composer textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.85;
+}
 
+/* ── Posts : entrée douce + micro-lift au survol ── */
 .feed-post {
+  position: relative;
   background: color-mix(in srgb, var(--bg-base) 45%, transparent);
   padding: 18px;
   transition:
     background-color 180ms ease,
+    transform 180ms ease,
     box-shadow 180ms ease;
+  animation: feedPostIn 0.34s ease-out both;
 }
-
+@keyframes feedPostIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 .feed-post:hover {
   background: color-mix(in srgb, var(--bg-hover) 72%, transparent);
-  box-shadow: inset 3px 0 0 var(--brand);
+  box-shadow:
+    inset 3px 0 0 var(--brand),
+    0 6px 24px rgba(0, 0, 0, 0.16);
+  transform: translateY(-1px);
 }
 
 .feed-post-text {
   letter-spacing: -0.01em;
 }
 
+/* ── Images des posts : bordure lumineuse au survol ── */
+.feed-post img[alt^="Post"] {
+  transition:
+    box-shadow 200ms ease,
+    filter 200ms ease;
+}
+.feed-post:hover img[alt^="Post"] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 34%, transparent);
+  filter: brightness(1.04);
+}
+
+/* ── Actions : micro-interactions sur les boutons ── */
 .feed-post-actions {
   color: var(--text-muted);
 }
-
 .feed-post-actions .btn {
   min-height: 36px;
   padding-inline: 10px;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
 }
-
 .feed-post-actions .btn:hover {
   background: var(--brand-glow);
+  transform: translateY(-1px);
+}
+.feed-post-actions .btn:active {
+  transform: translateY(0) scale(0.96);
+}
+.feed-post-actions .btn svg {
+  transition: transform 180ms ease;
+}
+.feed-post-actions .btn:hover svg {
+  transform: scale(1.14);
 }
 
+/* ── Cartes de la colonne latérale : verre + titre display ── */
+.side-card {
+  position: relative;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--bg-card) 90%, var(--brand) 5%),
+    color-mix(in srgb, var(--bg-card) 74%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+.side-card:hover {
+  border-color: color-mix(in srgb, var(--brand) 36%, var(--border));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px);
+}
+.side-card h2 {
+  font-family: var(--font-display, "Nunito", sans-serif);
+  letter-spacing: -0.02em;
+}
+
+/* ── Skeleton de chargement du fil ── */
+.feed-skeleton {
+  padding: 18px;
+  display: flex;
+  gap: 12px;
+}
+.feed-skeleton .sk-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--bg-active) 37%, var(--bg-hover) 63%);
+  background-size: 200% 100%;
+  animation: skeleton 1.4s ease infinite;
+}
+.feed-skeleton .sk-line {
+  height: 13px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--bg-active) 37%, var(--bg-hover) 63%);
+  background-size: 200% 100%;
+  animation: skeleton 1.4s ease infinite;
+}
+.feed-skeleton .sk-line.short {
+  width: 34%;
+}
+.feed-skeleton .sk-line.mid {
+  width: 72%;
+  margin-top: 10px;
+}
+.feed-skeleton .sk-line.long {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* ── État vide : icône en halo de marque ── */
+.feed-empty-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 9999px;
+  background: var(--brand-glow);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--brand) 22%, transparent),
+    0 12px 34px rgba(0, 0, 0, 0.2);
+  color: var(--brand);
+}
+
+/* ── Desktop : panneau feed flottant ── */
 @media (min-width: 1024px) {
   .feed-shell {
     border-radius: 18px 18px 0 0;
     margin: 10px 0 0;
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--border) 65%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--border) 65%, transparent),
+      0 24px 60px rgba(0, 0, 0, 0.22);
   }
 }
 
+/* ── Mobile : espacement resserré ── */
 @media (max-width: 767px) {
   .feed-column {
     max-width: none;

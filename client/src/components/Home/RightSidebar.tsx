@@ -91,7 +91,7 @@ export default function RightSidebar() {
           </div>
         </div>
 
-        <div className="mt-2 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] overflow-hidden">
+        <div className="side-card mt-2 rounded-2xl overflow-hidden">
           <div className="flex items-center gap-2 px-4 pt-4 pb-2">
             <TrendingUp size={18} className="text-brand" />
             <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0">Tendances en France</h2>
@@ -113,7 +113,7 @@ export default function RightSidebar() {
           )}
         </div>
 
-        <div className="mt-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] overflow-hidden">
+        <div className="side-card mt-4 rounded-2xl overflow-hidden">
           <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0 px-4 pt-4 pb-2">À qui suivre</h2>
           {suggestions.length === 0 ? (
             <div className="px-4 py-4 text-[13px] text-[var(--text-muted)]">Aucune suggestion pour le moment</div>
@@ -162,7 +162,7 @@ export default function RightSidebar() {
           )}
         </div>
 
-        <div className="mt-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] p-4">
+        <div className="side-card mt-4 rounded-2xl p-4">
           <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0 mb-3">La souveraineté Wouaff</h2>
           <ul className="list-none p-0 m-0 flex flex-col gap-3">
             <li className="flex items-center gap-3">

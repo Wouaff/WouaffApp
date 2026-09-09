@@ -40,3 +40,4 @@ temp/
 # Test scripts with credentials
 __test_db*
 client/tsconfig.tsbuildinfo
+/.agents

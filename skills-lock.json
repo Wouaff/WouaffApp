@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "frontend-design-taste": {
+      "source": "bestdeejay-design/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design-taste/SKILL.md",
+      "computedHash": "09646104c41f80b9b4ab707d85efc706061c249e659c1780214c3d07070c870a"
+    },
+    "frontend-perfection": {
+      "source": "bestdeejay-design/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-perfection/SKILL.md",
+      "computedHash": "ce40d95b6f472f9ed4f5c83a4d0b000ee0e20b9e0ffe8b04acc2bc4f2e2a64e1"
+    },
+    "frontend-social-media": {
+      "source": "dikaizm/frontend-social-media-design",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "1882de321d9d531d893976dcafe37aa6612f6b20235c3dc18b4153debfc4607d"
+    },
+    "social-network-design": {
+      "source": "deepnoodle-ai/creddit",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/social-network-design/SKILL.md",
+      "computedHash": "91ffd0e8dbab4cae08bc7c6b15a087c9906b521eee883abb2734b6defbc129f8"
+    },
+    "tailwind-design-system": {
+      "source": "giuseppe-trisciuoglio/developer-kit",
+      "sourceType": "github",
+      "skillPath": "plugins/developer-kit-typescript/skills/tailwind-design-system/SKILL.md",
+      "computedHash": "b199f7c9b924cf059ce292b9c809accc18635a40a39db0e7b876f9df1d459950"
+    },
+    "tailwind-ui-patterns": {
+      "source": "autohandai/community-skills",
+      "sourceType": "github",
+      "skillPath": "tailwind-ui-patterns/SKILL.md",
+      "computedHash": "cb1cda0b646c7d81b545b94e9f27e61200f705b73369561bf331b4b362f7ddf1"
+    },
+    "web-design-2026": {
+      "source": "deepnoodle-ai/creddit",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/web-design-2026/SKILL.md",
+      "computedHash": "87104c731a8c9bd4097b3b9e81a26f376fda6e18ae00aac33dde070daa84d22e"
+    },
+    "webapp-ui-skill": {
+      "source": "sergekostenchuk/ui-ux-agent-skill-system",
+      "sourceType": "github",
+      "skillPath": "core/skills/webapp-ui-skill/SKILL.md",
+      "computedHash": "cd0f0a8a4052209d266ed6e743884622007929993cacacfa0ee8538357fe2eb8"
+    }
+  }
+}
