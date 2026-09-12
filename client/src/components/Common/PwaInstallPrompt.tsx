@@ -68,7 +68,7 @@ export default function PwaInstallPrompt() {
         <button
           type="button"
           onClick={handleInstall}
-          className="flex items-center gap-1.5 flex-shrink-0 rounded-full bg-brand hover:opacity-90 transition-opacity text-white text-[13px] font-bold px-4 py-2 border-none cursor-pointer"
+          className="flex items-center gap-1.5 flex-shrink-0 rounded-full bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] text-[13px] font-bold px-4 py-2 border-none cursor-pointer"
         >
           <Download size={15} />
           {t('Installer')}

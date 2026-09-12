@@ -83,7 +83,7 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
 
         <div className="px-5 py-4">
           <div className="flex gap-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] p-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
               {post.avatar ? (
                 <img
                   src={post.avatar}
@@ -112,7 +112,7 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
               type="button"
               onClick={nativeShare}
               disabled={sharing}
-              className="w-full flex items-center justify-center gap-2 mb-3 bg-brand hover:opacity-90 disabled:opacity-50 transition-opacity text-white font-bold text-sm rounded-full px-4 py-3 border-none cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 mb-3 bg-brand hover:opacity-90 disabled:opacity-50 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-4 py-3 border-none cursor-pointer"
             >
               {sharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
               {t("Partager via l'application")}

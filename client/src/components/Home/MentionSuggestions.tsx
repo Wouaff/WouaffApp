@@ -32,7 +32,7 @@ export default function MentionSuggestions({ open, query, results, activeIndex, 
                   i === activeIndex ? 'bg-[var(--bg-hover)]' : 'hover:bg-[var(--bg-hover)]'
                 }`}
               >
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-bold text-sm overflow-hidden flex-shrink-0">
+                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-bold text-sm overflow-hidden flex-shrink-0">
                   {user.avatar ? (
                     <img
                       src={user.avatar}

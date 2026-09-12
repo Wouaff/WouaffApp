@@ -214,7 +214,7 @@ export default function LandingPage() {
     <button
       type="button"
       onClick={goRegister}
-      className="inline-flex items-center gap-2 rounded-full bg-brand-dark px-6 py-3 text-[15px] font-black text-white border-none cursor-pointer font-sans hover:bg-brand transition-colors"
+      className="inline-flex items-center gap-2 rounded-full bg-brand-dark px-6 py-3 text-[15px] font-black text-[var(--brand-ink)] border-none cursor-pointer font-sans hover:bg-brand transition-colors"
     >
       {t('Rejoindre Wouaff')}
       <ArrowRight size={16} />
@@ -325,7 +325,7 @@ export default function LandingPage() {
                   setMenuOpen(false);
                   goRegister();
                 }}
-                className="rounded-full bg-brand-dark px-6 py-3 text-[15px] font-black text-white border-none cursor-pointer"
+                className="rounded-full bg-brand-dark px-6 py-3 text-[15px] font-black text-[var(--brand-ink)] border-none cursor-pointer"
               >
                 {t('Rejoindre Wouaff')}
               </button>
@@ -367,7 +367,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={goRegister}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-dark px-8 py-4 text-[16px] font-black text-white border-none cursor-pointer font-sans hover:bg-brand transition-colors sm:w-auto"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-dark px-8 py-4 text-[16px] font-black text-[var(--brand-ink)] border-none cursor-pointer font-sans hover:bg-brand transition-colors sm:w-auto"
               >
                 {t('Rejoindre Wouaff, c’est gratuit')}
                 <ArrowRight size={17} />
@@ -443,8 +443,8 @@ export default function LandingPage() {
                 <ul className="mt-5 flex flex-col gap-3.5">
                   {IS_IT.map((item) => (
                     <li key={item} className="flex items-start gap-3 text-[15px] text-white">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#173c2a]">
-                        <Check size={12} className="text-[#5fd38d]" strokeWidth={3} />
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--online)]/10">
+                        <Check size={12} className="text-[var(--online)]" strokeWidth={3} />
                       </span>
                       {t(item)}
                     </li>
@@ -543,7 +543,7 @@ export default function LandingPage() {
                 key={s.n}
                 className="flex flex-col items-center rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-7"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-dark text-lg font-black text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-dark text-lg font-black text-[var(--brand-ink)]">
                   {s.n}
                 </div>
                 <div className="mt-4 text-[17px] font-black text-white">{t(s.title)}</div>
@@ -718,7 +718,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={goRegister}
-                className="inline-flex items-center gap-2 rounded-full bg-brand-dark px-8 py-4 text-[16px] font-black text-white border-none cursor-pointer font-sans hover:bg-brand transition-colors"
+                className="inline-flex items-center gap-2 rounded-full bg-brand-dark px-8 py-4 text-[16px] font-black text-[var(--brand-ink)] border-none cursor-pointer font-sans hover:bg-brand transition-colors"
               >
                 {t('Rejoindre Wouaff')}
                 <ArrowRight size={17} />

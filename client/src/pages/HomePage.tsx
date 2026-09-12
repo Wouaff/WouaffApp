@@ -330,32 +330,33 @@ export default function HomePage() {
   return (
     <div className="flex h-full">
       <LeftNav />
-      <main className="feed-shell flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)] bg-[var(--bg-deep)]">
-        <header className="feed-header sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
-          <div className="w-full max-w-[720px] mx-auto flex items-center px-4 h-14">
-            <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">{t('Accueil')}</h1>
+      <main className="feed-shell flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)]">
+        <header className="feed-header sticky top-0 z-10">
+          <div className="feed-head-inner">
+            <div className="feed-head-top">
+              <h1 className="feed-head-title">{t('Accueil')}</h1>
+              <span className="feed-kicker">{t('ton fil, pas leur algo')}</span>
+            </div>
           </div>
-          <div className="w-full max-w-[720px] mx-auto flex">
+          <div className="feed-tabs" role="tablist">
             {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
+                role="tab"
                 onClick={() => setTab(t.id)}
+                aria-selected={tab === t.id}
                 aria-current={tab === t.id ? 'page' : undefined}
-                className={`feed-tab relative flex-1 flex items-center justify-center py-3.5 border-none bg-transparent cursor-pointer transition-colors font-sans ${
-                  tab === t.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)]'
-                }`}
+                className={`feed-tab ${tab === t.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
               >
                 <span className={tab === t.id ? 'text-md font-extrabold' : 'text-md font-medium'}>{t.label}</span>
-                {tab === t.id && (
-                  <span className="feed-tab-underline absolute bottom-0 left-0 w-full h-1 bg-brand rounded-full" />
-                )}
+                {tab === t.id && <span className="feed-tab-underline" />}
               </button>
             ))}
           </div>
         </header>
 
-        <div className="feed-column w-full max-w-[720px] mx-auto">
+        <div className="feed-column w-full max-w-[var(--feed-max)] mx-auto waffle-texture">
           <ComposeBox onPost={handlePost} />
           <BuyMeACoffee />
 

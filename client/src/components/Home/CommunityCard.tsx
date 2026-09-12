@@ -54,7 +54,7 @@ export default function CommunityCard({ community, onChanged, compact }: Communi
       onClick={() => navigate(`/c/${community.name}`)}
     >
       <div className="flex items-start gap-3">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-lg overflow-hidden flex-shrink-0">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-lg overflow-hidden flex-shrink-0">
           {community.avatar ? (
             <img src={community.avatar} alt={`Avatar de c/${community.name}`} className="w-full h-full object-cover" />
           ) : (
@@ -87,7 +87,7 @@ export default function CommunityCard({ community, onChanged, compact }: Communi
           className={`flex-shrink-0 font-bold text-[13px] rounded-full px-4 py-2 border cursor-pointer transition-colors disabled:opacity-50 ${
             subscribed
               ? 'bg-transparent border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--danger)] hover:text-[var(--danger)]'
-              : 'bg-brand hover:opacity-90 text-white border-transparent'
+              : 'bg-brand hover:opacity-90 text-[var(--brand-ink)] border-transparent'
           }`}
         >
           {subscribed ? 'Abonné' : "S'abonner"}

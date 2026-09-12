@@ -35,19 +35,23 @@ const BottomNav = memo(function BottomNav() {
             <button
               key={item.label}
               onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-colors ${item.active ? 'text-brand' : 'text-[var(--text-muted)]'}`}
+              className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors ${item.active ? 'text-[var(--brand)]' : 'text-[var(--text-muted)]'}`}
               aria-label={item.label}
               aria-current={item.active ? 'page' : undefined}
             >
-              <div className="relative">
+              <div
+                className={`relative flex items-center justify-center w-10 h-7 rounded-xl transition-colors ${
+                  item.active ? 'bg-brand text-[var(--brand-ink)]' : ''
+                }`}
+              >
                 <Icon size={20} />
                 {item.badge && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 bg-brand rounded-full text-white text-[9px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 bg-[var(--danger)] rounded-full text-white text-[9px] font-bold flex items-center justify-center">
                     {msgUnread > 0 ? (msgUnread > 9 ? '9+' : msgUnread) : ''}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className={`text-[10px] ${item.active ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
             </button>
           );
         })}

@@ -16,7 +16,7 @@ export default function Poll({ poll, onVote }: PollProps) {
 
   return (
     <div
-      className="mt-3 overflow-hidden rounded-xl border border-brand/35 bg-[#151b24]"
+      className="mt-3 overflow-hidden rounded-xl border border-brand/35 bg-[var(--bg-card)]"
       onClick={(event) => event.stopPropagation()}
     >
       {poll.question && (
@@ -41,8 +41,8 @@ export default function Poll({ poll, onVote }: PollProps) {
                 if (poll.votedIndex !== index) setPendingVote(index);
               }}
               className={`relative overflow-hidden rounded-lg border-0 px-3 py-2.5 text-left transition-colors ${
-                isVoted ? 'cursor-default' : 'cursor-pointer hover:bg-[#252d38]'
-              } ${isVoted ? 'bg-[var(--brand-glow)] animate-[pollChoice_0.25s_ease-out]' : 'bg-[#1c2430]'}`}
+                isVoted ? 'cursor-default' : 'cursor-pointer hover:bg-[var(--bg-hover)]'
+              } ${isVoted ? 'bg-[var(--brand-glow)] animate-[pollChoice_0.25s_ease-out]' : 'bg-[var(--bg-active)]'}`}
             >
               {voted && (
                 <span
@@ -52,7 +52,7 @@ export default function Poll({ poll, onVote }: PollProps) {
               )}
               <span className="relative flex items-center gap-2.5">
                 <span
-                  className={`flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors ${isVoted ? 'border-brand bg-brand/15' : 'border-[#f08a52] bg-[#f08a52]/10'}`}
+                  className={`flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors ${isVoted ? 'border-brand bg-brand/15' : 'border-[var(--brand)] bg-[var(--brand)]/10'}`}
                 >
                   {isVoted && <span className="h-2.5 w-2.5 rounded-full bg-brand" />}
                 </span>
@@ -89,7 +89,7 @@ export default function Poll({ poll, onVote }: PollProps) {
               </button>
               <button
                 type="button"
-                className="rounded-full border-0 bg-brand-dark px-4 py-1.5 text-[13px] font-bold text-white cursor-pointer hover:bg-[#c75a24]"
+                className="rounded-full border-0 bg-brand-dark px-4 py-1.5 text-[13px] font-bold text-[var(--brand-ink)] cursor-pointer hover:bg-[var(--brand)]"
                 onClick={() => {
                   onVote(pendingVote);
                   setPendingVote(null);

@@ -19,8 +19,8 @@ const ICONS = {
 };
 
 const TYPE_STYLE: Record<string, { icon: keyof typeof ICONS; accent: string }> = {
-  success: { icon: 'success', accent: 'text-[#43b581]' },
-  error: { icon: 'error', accent: 'text-[#ed4245]' },
+  success: { icon: 'success', accent: 'text-[var(--online)]' },
+  error: { icon: 'error', accent: 'text-[var(--danger)]' },
   info: { icon: 'info', accent: 'text-brand' },
 };
 

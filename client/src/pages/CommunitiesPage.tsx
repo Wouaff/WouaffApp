@@ -143,7 +143,7 @@ export default function CommunitiesPage() {
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="ml-auto flex items-center gap-1.5 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-4 py-2 border-none cursor-pointer"
+              className="ml-auto flex items-center gap-1.5 bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-4 py-2 border-none cursor-pointer"
             >
               <Plus size={16} /> Créer
             </button>
@@ -170,7 +170,7 @@ export default function CommunitiesPage() {
             <button
               type="button"
               onClick={() => navigate('/discover')}
-              className="mt-2 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
+              className="mt-2 bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
             >
               Découvrir des communautés
             </button>
@@ -225,7 +225,7 @@ export default function CommunitiesPage() {
               onClick={() => navigate(`/c/${c.name}`)}
               className="flex items-center gap-2.5 mx-2 mb-1 px-2.5 py-2 rounded-xl text-left cursor-pointer border-none bg-transparent hover:bg-[var(--bg-hover)] transition-colors"
             >
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
                 {c.avatar ? (
                   <img src={c.avatar} alt={`Avatar de c/${c.name}`} className="w-full h-full object-cover" />
                 ) : (

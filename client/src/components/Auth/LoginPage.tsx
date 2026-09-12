@@ -244,7 +244,7 @@ export default function LoginPage() {
           <div className="mt-6 flex flex-col gap-2">
             <Link
               to={`/verify-email`}
-              className="inline-block rounded-full bg-brand px-6 py-3 text-center text-[14px] font-bold text-white no-underline"
+              className="inline-block rounded-full bg-brand px-6 py-3 text-center text-[14px] font-bold text-[var(--brand-ink)] no-underline"
             >
               J'ai le code, vérifier mon email
             </Link>
@@ -311,12 +311,12 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto bg-[#11151b] px-6 py-10 sm:px-12 lg:my-3 lg:mr-3 lg:rounded-l-[28px] lg:border-y lg:border-l lg:border-[#303742] lg:px-16">
+      <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto bg-[var(--bg-base)] px-6 py-10 sm:px-12 lg:my-3 lg:mr-3 lg:rounded-l-[28px] lg:border-y lg:border-l lg:border-[var(--border)] lg:px-16">
         <div className="w-full max-w-[440px] animate-[fadeIn_0.4s_ease]">
           <div className="mb-10 lg:hidden">
             <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-14 h-14 mb-5" />
             <h1 className="text-2xl font-black m-0 text-white">Wouaff</h1>
-            <p className="text-[#8b98a5] text-sm mt-1 m-0">Ton fil, pas leur algo</p>
+            <p className="text-[var(--text-muted)] text-sm mt-1 m-0">Ton fil, pas leur algo</p>
           </div>
 
           <div key={isRegister ? 'register' : 'login'} className="w-full animate-[authModeIn_0.28s_ease-out]">
@@ -325,7 +325,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={backToPassword}
-                  className="flex items-center gap-1 border-none bg-transparent p-0 text-[13px] font-bold text-[#8b98a5] cursor-pointer hover:text-white transition-colors mb-8"
+                  className="flex items-center gap-1 border-none bg-transparent p-0 text-[13px] font-bold text-[var(--text-muted)] cursor-pointer hover:text-white transition-colors mb-8"
                 >
                   <ChevronLeft size={16} /> Retour à la connexion
                 </button>
@@ -333,12 +333,14 @@ export default function LoginPage() {
                 <div className="mb-9">
                   <div className="hidden lg:flex items-center gap-3 mb-10">
                     <span className="w-8 h-[3px] rounded-full bg-brand-dark" />
-                    <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#8b98a5]">Sécurité</span>
+                    <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                      Sécurité
+                    </span>
                   </div>
                   <h2 className="text-[32px] leading-tight font-black m-0 text-white tracking-[-0.02em]">
                     Double authentification
                   </h2>
-                  <p className="text-[#8b98a5] text-[15px] mt-2 m-0">
+                  <p className="text-[var(--text-muted)] text-[15px] mt-2 m-0">
                     Saisis le code de vérification pour valider ta connexion.
                   </p>
                 </div>
@@ -353,8 +355,8 @@ export default function LoginPage() {
                       }}
                       className={`flex-1 py-2.5 rounded-full text-[14px] font-bold border-none cursor-pointer font-sans transition-colors ${
                         twoFAMethod === 'totp'
-                          ? 'bg-brand-dark text-white'
-                          : 'bg-[#181d25] text-[#8b98a5] hover:text-white'
+                          ? 'bg-brand-dark text-[var(--brand-ink)]'
+                          : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-white'
                       }`}
                     >
                       Application
@@ -369,8 +371,8 @@ export default function LoginPage() {
                       }}
                       className={`flex-1 py-2.5 rounded-full text-[14px] font-bold border-none cursor-pointer font-sans transition-colors ${
                         twoFAMethod === 'email'
-                          ? 'bg-brand-dark text-white'
-                          : 'bg-[#181d25] text-[#8b98a5] hover:text-white'
+                          ? 'bg-brand-dark text-[var(--brand-ink)]'
+                          : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-white'
                       }`}
                     >
                       Email
@@ -385,8 +387,8 @@ export default function LoginPage() {
                       }}
                       className={`flex-1 py-2.5 rounded-full text-[14px] font-bold border-none cursor-pointer font-sans transition-colors ${
                         twoFAMethod === 'recovery'
-                          ? 'bg-brand-dark text-white'
-                          : 'bg-[#181d25] text-[#8b98a5] hover:text-white'
+                          ? 'bg-brand-dark text-[var(--brand-ink)]'
+                          : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-white'
                       }`}
                     >
                       Récupération
@@ -395,7 +397,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="mb-5">
-                  <label htmlFor="twofaCode" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
+                  <label htmlFor="twofaCode" className="block text-[13px] font-bold text-[var(--text-secondary)] mb-2">
                     {twoFAMethod === 'recovery'
                       ? 'Code de récupération'
                       : twoFAMethod === 'email'
@@ -413,7 +415,7 @@ export default function LoginPage() {
                     onFocus={(e) =>
                       setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
                     }
-                    className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d] tracking-[0.2em]"
+                    className="w-full h-[54px] bg-[var(--bg-input)] rounded-[10px] px-4 text-[15px] text-white placeholder-[var(--text-muted)] outline-none font-sans transition-colors border border-[var(--border)] hover:border-[var(--border-strong)] focus:border-[var(--brand)] tracking-[0.2em]"
                   />
                 </div>
 
@@ -422,14 +424,14 @@ export default function LoginPage() {
                     type="button"
                     onClick={handleSendEmail2FA}
                     disabled={sending2FA}
-                    className="w-full h-[44px] mb-4 rounded-full bg-[#181d25] border border-[#303742] text-[#d6d9db] text-[14px] font-bold cursor-pointer font-sans hover:border-[#59626e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full h-[44px] mb-4 rounded-full bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-secondary)] text-[14px] font-bold cursor-pointer font-sans hover:border-[var(--border-strong)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {sending2FA ? 'Envoi...' : 'Envoyer le code par email'}
                   </button>
                 )}
 
                 {twoFAInfo && (
-                  <div className="mb-4 text-sm text-[#5fd38d] bg-[#173c2a]/40 border border-[#3ca66a]/40 rounded-[10px] px-4 py-3">
+                  <div className="mb-4 text-sm text-[var(--online)] bg-[var(--online)]/10 border border-[var(--online)]/40 rounded-[10px] px-4 py-3">
                     {twoFAInfo}
                   </div>
                 )}
@@ -447,7 +449,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={handleSubmit2FA}
                   disabled={sending2FA || twoFACode.length < 4}
-                  className="w-full h-[52px] bg-brand-dark text-white px-6 rounded-full font-black text-[15px] border-none cursor-pointer font-sans hover:bg-[#c75a24] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full h-[52px] bg-brand-dark text-[var(--brand-ink)] px-6 rounded-full font-black text-[15px] border-none cursor-pointer font-sans hover:bg-[var(--brand)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {sending2FA ? 'Vérification...' : 'Vérifier'}
                 </button>
@@ -457,20 +459,20 @@ export default function LoginPage() {
                 <div className="mb-9">
                   <div className="hidden lg:flex items-center gap-3 mb-10">
                     <span className="w-8 h-[3px] rounded-full bg-brand-dark" />
-                    <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#8b98a5]">
+                    <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
                       Espace membre
                     </span>
                   </div>
                   <h2 className="text-[32px] leading-tight font-black m-0 text-white tracking-[-0.02em]">
                     {isRegister ? 'Crée ton compte.' : 'C’est toi ?'}
                   </h2>
-                  <p className="text-[#8b98a5] text-[15px] mt-2 m-0">
+                  <p className="text-[var(--text-muted)] text-[15px] mt-2 m-0">
                     {isRegister ? 'Un pseudo, un mail. Tes premiers abonnements, juste après.' : 'Ton fil t’attend.'}
                   </p>
                 </div>
 
                 <div className="mb-5">
-                  <label htmlFor="email" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
+                  <label htmlFor="email" className="block text-[13px] font-bold text-[var(--text-secondary)] mb-2">
                     Adresse email
                   </label>
                   <input
@@ -484,13 +486,13 @@ export default function LoginPage() {
                     onFocus={(e) =>
                       setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
                     }
-                    className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
+                    className="w-full h-[54px] bg-[var(--bg-input)] rounded-[10px] px-4 text-[15px] text-white placeholder-[var(--text-muted)] outline-none font-sans transition-colors border border-[var(--border)] hover:border-[var(--border-strong)] focus:border-[var(--brand)]"
                   />
                 </div>
 
                 {isRegister && (
                   <div className="mb-5">
-                    <label htmlFor="pseudo" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
+                    <label htmlFor="pseudo" className="block text-[13px] font-bold text-[var(--text-secondary)] mb-2">
                       Pseudo
                     </label>
                     <input
@@ -505,7 +507,7 @@ export default function LoginPage() {
                       onFocus={(e) =>
                         setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
                       }
-                      className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
+                      className="w-full h-[54px] bg-[var(--bg-input)] rounded-[10px] px-4 text-[15px] text-white placeholder-[var(--text-muted)] outline-none font-sans transition-colors border border-[var(--border)] hover:border-[var(--border-strong)] focus:border-[var(--brand)]"
                     />
                   </div>
                 )}
@@ -513,7 +515,7 @@ export default function LoginPage() {
                 <div className="mb-5">
                   <div className="relative">
                     <div className="flex items-center justify-between mb-2">
-                      <label htmlFor="password" className="block text-[13px] font-bold text-[#d6d9db]">
+                      <label htmlFor="password" className="block text-[13px] font-bold text-[var(--text-secondary)]">
                         Mot de passe
                       </label>
                       {isRegister && (
@@ -543,11 +545,11 @@ export default function LoginPage() {
                       onFocus={(e) =>
                         setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
                       }
-                      className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 pr-12 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
+                      className="w-full h-[54px] bg-[var(--bg-input)] rounded-[10px] px-4 pr-12 text-[15px] text-white placeholder-[var(--text-muted)] outline-none font-sans transition-colors border border-[var(--border)] hover:border-[var(--border-strong)] focus:border-[var(--brand)]"
                     />
                     <button
                       type="button"
-                      className="absolute right-4 bottom-[15px] bg-transparent border-none cursor-pointer p-1 text-[#71767b] hover:text-white transition-colors"
+                      className="absolute right-4 bottom-[15px] bg-transparent border-none cursor-pointer p-1 text-[var(--text-muted)] hover:text-white transition-colors"
                       onClick={() => setShowPassword((p) => !p)}
                       aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                     >
@@ -587,10 +589,10 @@ export default function LoginPage() {
                         ].map(([label, valid]) => (
                           <li
                             key={String(label)}
-                            className={`flex items-center gap-1.5 text-[11px] transition-all ${valid ? 'text-[#5fd38d]' : 'text-[#8b98a5] opacity-45'}`}
+                            className={`flex items-center gap-1.5 text-[11px] transition-all ${valid ? 'text-[var(--online)]' : 'text-[var(--text-muted)] opacity-45'}`}
                           >
                             <span
-                              className={`flex h-[14px] w-[14px] flex-shrink-0 items-center justify-center rounded-full border transition-colors ${valid ? 'border-[#3ca66a] bg-[#173c2a]' : 'border-[#66717d] bg-[#66717d]/20'}`}
+                              className={`flex h-[14px] w-[14px] flex-shrink-0 items-center justify-center rounded-full border transition-colors ${valid ? 'border-[var(--online)] bg-[var(--online)]/10' : 'border-[var(--border-strong)] bg-[var(--bg-active)]'}`}
                             >
                               {valid && <Check size={9} strokeWidth={3} />}
                             </span>
@@ -605,7 +607,10 @@ export default function LoginPage() {
                 {isRegister && (
                   <div className="mb-5">
                     <div className="relative">
-                      <label htmlFor="confirmPassword" className="block text-[13px] font-bold text-[#d6d9db] mb-2">
+                      <label
+                        htmlFor="confirmPassword"
+                        className="block text-[13px] font-bold text-[var(--text-secondary)] mb-2"
+                      >
                         Confirmer le mot de passe
                       </label>
                       <input
@@ -619,11 +624,11 @@ export default function LoginPage() {
                         onFocus={(e) =>
                           setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
                         }
-                        className="w-full h-[54px] bg-[#181d25] rounded-[10px] px-4 pr-12 text-[15px] text-white placeholder-[#68717d] outline-none font-sans transition-colors border border-[#303742] hover:border-[#59626e] focus:border-[#a9562d]"
+                        className="w-full h-[54px] bg-[var(--bg-input)] rounded-[10px] px-4 pr-12 text-[15px] text-white placeholder-[var(--text-muted)] outline-none font-sans transition-colors border border-[var(--border)] hover:border-[var(--border-strong)] focus:border-[var(--brand)]"
                       />
                       <button
                         type="button"
-                        className="absolute right-4 bottom-[15px] bg-transparent border-none cursor-pointer p-1 text-[#71767b] hover:text-white transition-colors"
+                        className="absolute right-4 bottom-[15px] bg-transparent border-none cursor-pointer p-1 text-[var(--text-muted)] hover:text-white transition-colors"
                         onClick={() => setShowConfirmPassword((p) => !p)}
                         aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                       >
@@ -658,7 +663,7 @@ export default function LoginPage() {
                   <div className="text-right -mt-2 mb-6">
                     <a
                       href="/forgot-password"
-                      className="text-[#8b98a5] hover:text-brand text-[13px] no-underline transition-colors"
+                      className="text-[var(--text-muted)] hover:text-brand text-[13px] no-underline transition-colors"
                       onClick={(e) => {
                         e.preventDefault();
                         navigate('/forgot-password');
@@ -707,7 +712,7 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  className="w-full h-[52px] bg-brand-dark text-white px-6 rounded-full font-black text-[15px] border-none cursor-pointer font-sans hover:bg-[#c75a24] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full h-[52px] bg-brand-dark text-[var(--brand-ink)] px-6 rounded-full font-black text-[15px] border-none cursor-pointer font-sans hover:bg-[var(--brand)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   onClick={handleSubmit}
                   disabled={isLoading}
                 >
@@ -715,7 +720,9 @@ export default function LoginPage() {
                 </button>
 
                 <div className="text-center text-sm mt-7">
-                  <span className="text-[#71767b]">{isRegister ? 'Déjà un compte ?' : 'Pas de compte ?'}</span>
+                  <span className="text-[var(--text-muted)]">
+                    {isRegister ? 'Déjà un compte ?' : 'Pas de compte ?'}
+                  </span>
                   <button
                     type="button"
                     className="bg-transparent border-none text-brand font-bold cursor-pointer text-sm ml-1 font-sans hover:underline"
@@ -730,7 +737,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={handlePasskeyLogin}
                     disabled={passkeyBusy}
-                    className="mt-6 w-full h-[52px] bg-[#181d25] border border-[#303742] text-white px-6 rounded-full font-black text-[15px] flex items-center justify-center gap-2.5 cursor-pointer font-sans hover:border-[#59626e] hover:bg-[#1d232c] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="mt-6 w-full h-[52px] bg-[var(--bg-input)] border border-[var(--border)] text-white px-6 rounded-full font-black text-[15px] flex items-center justify-center gap-2.5 cursor-pointer font-sans hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <KeyRound size={18} />
                     {passkeyBusy ? 'Vérification...' : 'Se connecter avec une clé d’accès'}
@@ -740,7 +747,7 @@ export default function LoginPage() {
             )}
           </div>
 
-          <div className="hidden lg:flex items-center justify-center gap-1.5 mt-10 text-[12px] text-[#536471]">
+          <div className="hidden lg:flex items-center justify-center gap-1.5 mt-10 text-[12px] text-[var(--text-muted)]">
             <span>🇫🇷</span>
             <span>Hébergé en France · Zéro log · RGPD &amp; lois européennes</span>
           </div>

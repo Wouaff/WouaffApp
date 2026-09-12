@@ -267,7 +267,7 @@ export default function ProfilePage() {
               <p className="m-0 mb-5 text-[var(--text-secondary)]">{errorMsg}</p>
               <Link
                 to="/"
-                className="inline-block bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 no-underline"
+                className="inline-block bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-6 py-2.5 no-underline"
               >
                 Retour à l'accueil
               </Link>
@@ -323,7 +323,7 @@ export default function ProfilePage() {
         className={`transition-colors font-bold text-sm rounded-full px-5 py-2 cursor-pointer border-none disabled:opacity-50 ${
           following
             ? 'bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border)]'
-            : 'bg-brand text-white hover:opacity-90'
+            : 'bg-brand text-[var(--brand-ink)] hover:opacity-90'
         }`}
       >
         {following ? 'Abonné' : 'Suivre'}
@@ -361,7 +361,7 @@ export default function ProfilePage() {
           />
 
           <div className="flex items-start justify-between px-4">
-            <div className="w-24 h-24 -mt-12 rounded-full border-4 border-[var(--bg-base)] bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-white font-extrabold text-3xl flex-shrink-0">
+            <div className="w-24 h-24 -mt-12 rounded-[28px] border-4 border-[var(--bg-base)] bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-3xl flex-shrink-0">
               {avatar ? (
                 <img src={avatar} alt={`Avatar de ${pseudo}`} className="w-full h-full object-cover" />
               ) : (

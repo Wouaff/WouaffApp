@@ -32,7 +32,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             <h2 className="mb-3 text-xl font-bold">Une erreur est survenue</h2>
             <p className="text-text-muted mb-5 text-sm">{this.state.error?.message || 'Erreur inattendue'}</p>
             <button
-              className="bg-brand text-white px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans"
+              className="bg-brand text-[var(--brand-ink)] px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans"
               onClick={() => window.location.reload()}
               aria-label="Recharger la page"
             >

@@ -205,7 +205,7 @@ export default function CommunityPage() {
           <button
             type="button"
             onClick={() => navigate('/communities')}
-            className="mt-2 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
+            className="mt-2 bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
           >
             Retour aux communautés
           </button>
@@ -238,7 +238,7 @@ export default function CommunityPage() {
             >
               <ArrowLeft size={18} />
             </button>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-lg overflow-hidden">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-lg overflow-hidden">
               {community?.avatar ? (
                 <img
                   src={community?.avatar}
@@ -287,7 +287,7 @@ export default function CommunityPage() {
               className={`flex-shrink-0 font-bold text-[13px] rounded-full px-4 py-2 border cursor-pointer transition-colors disabled:opacity-50 ${
                 community?.isSubscribed
                   ? 'bg-transparent border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--danger)] hover:text-[var(--danger)]'
-                  : 'bg-brand hover:opacity-90 text-white border-transparent'
+                  : 'bg-brand hover:opacity-90 text-[var(--brand-ink)] border-transparent'
               }`}
             >
               {community?.isSubscribed ? 'Abonné' : "S'abonner"}
@@ -358,7 +358,7 @@ export default function CommunityPage() {
               <button
                 type="button"
                 onClick={() => setShowComposer(true)}
-                className="ml-auto flex items-center gap-1.5 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-[13px] rounded-full px-4 py-2 border-none cursor-pointer"
+                className="ml-auto flex items-center gap-1.5 bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-[13px] rounded-full px-4 py-2 border-none cursor-pointer"
               >
                 <Plus size={15} /> Publier
               </button>
@@ -376,7 +376,7 @@ export default function CommunityPage() {
               <button
                 type="button"
                 onClick={() => setShowComposer(true)}
-                className="mt-1 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
+                className="mt-1 bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
               >
                 <PenSquare size={15} className="inline align-text-bottom mr-1" /> Publier un post
               </button>
@@ -502,7 +502,7 @@ function Composer({
                 onClick={() => setType(t)}
                 className={`px-4 py-1.5 rounded-full border text-[13px] font-bold cursor-pointer transition-colors ${
                   type === t
-                    ? 'bg-brand text-white border-transparent'
+                    ? 'bg-brand text-[var(--brand-ink)] border-transparent'
                     : 'bg-transparent border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
@@ -552,7 +552,7 @@ function Composer({
             type="button"
             onClick={submit}
             disabled={sending}
-            className="bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
+            className="bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
           >
             {sending ? 'Publication...' : 'Publier'}
           </button>

@@ -165,7 +165,7 @@ export default function TagPage() {
             <button
               type="button"
               onClick={loadPosts}
-              className="mt-4 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
+              className="mt-4 bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
             >
               Réessayer
             </button>

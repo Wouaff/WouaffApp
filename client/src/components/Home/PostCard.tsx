@@ -78,7 +78,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             aria-label={t('Voir le profil de {name}', { name: post.pseudo })}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden flex-shrink-0">
               {post.avatar ? (
                 <img
                   src={post.avatar}
@@ -91,7 +91,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             </div>
           </Link>
         ) : (
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden flex-shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden flex-shrink-0">
             {post.avatar ? (
               <img
                 src={post.avatar}

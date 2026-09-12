@@ -142,7 +142,7 @@ function NewConversationModal({ onClose, onStart }: { onClose: () => void; onSta
             type="button"
             onClick={submit}
             disabled={!q.trim() || busy}
-            className="px-5 py-2 rounded-full text-sm font-bold text-white bg-brand cursor-pointer hover:opacity-90 transition-opacity border-none disabled:opacity-40"
+            className="px-5 py-2 rounded-full text-sm font-bold text-[var(--brand-ink)] bg-brand cursor-pointer hover:opacity-90 transition-opacity border-none disabled:opacity-40"
           >
             {busy ? '…' : 'Démarrer'}
           </button>

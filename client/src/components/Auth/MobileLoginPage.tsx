@@ -34,11 +34,11 @@ function getPasswordReqs(password: string) {
 const inputCls =
   'w-full h-[52px] bg-[var(--bg-input)] border border-[var(--border)] rounded-[14px] px-4 text-[15px] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none font-sans transition-colors focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-glow)]';
 const primaryBtnCls =
-  'w-full h-[52px] bg-brand-dark text-white px-6 rounded-full font-black text-[15px] border-none cursor-pointer font-sans hover:bg-[#c75a24] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2';
+  'w-full h-[52px] bg-brand-dark text-[var(--brand-ink)] px-6 rounded-full font-black text-[15px] border-none cursor-pointer font-sans hover:bg-[var(--brand)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2';
 const ghostBtnCls =
   'w-full h-[52px] bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-primary)] px-6 rounded-full font-bold text-[15px] cursor-pointer font-sans hover:border-[var(--brand)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2';
 const labelCls = 'block text-[13px] font-bold text-[var(--text-secondary)] mb-1.5';
-const pillActive = 'bg-brand-dark text-white';
+const pillActive = 'bg-brand-dark text-[var(--brand-ink)]';
 const pillIdle = 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-primary)]';
 
 export default function MobileLoginPage() {
@@ -315,7 +315,7 @@ export default function MobileLoginPage() {
               )}
 
               {twoFAInfo && (
-                <div className="text-sm text-[#5fd38d] bg-[#173c2a]/40 border border-[#3ca66a]/40 rounded-[12px] px-4 py-3">
+                <div className="text-sm text-[var(--online)] bg-[var(--online)]/10 border border-[var(--online)]/40 rounded-[12px] px-4 py-3">
                   {twoFAInfo}
                 </div>
               )}
@@ -358,7 +358,9 @@ export default function MobileLoginPage() {
                     type="button"
                     onClick={() => toggleMode()}
                     className={`flex-1 py-2.5 rounded-full border-none cursor-pointer font-sans text-[14px] font-bold transition-colors ${
-                      isRegister === isReg ? 'bg-brand-dark text-white' : 'bg-transparent text-[var(--text-muted)]'
+                      isRegister === isReg
+                        ? 'bg-brand-dark text-[var(--brand-ink)]'
+                        : 'bg-transparent text-[var(--text-muted)]'
                     }`}
                   >
                     {label}
@@ -455,11 +457,13 @@ export default function MobileLoginPage() {
                     ].map(([label, valid]) => (
                       <li
                         key={String(label)}
-                        className={`flex items-center gap-1.5 text-[11px] ${valid ? 'text-[#5fd38d]' : 'text-[var(--text-muted)] opacity-50'}`}
+                        className={`flex items-center gap-1.5 text-[11px] ${valid ? 'text-[var(--online)]' : 'text-[var(--text-muted)] opacity-50'}`}
                       >
                         <span
                           className={`flex h-[14px] w-[14px] flex-shrink-0 items-center justify-center rounded-full border transition-colors ${
-                            valid ? 'border-[#3ca66a] bg-[#173c2a]' : 'border-[#66717d] bg-[#66717d]/20'
+                            valid
+                              ? 'border-[var(--online)] bg-[var(--online)]/10'
+                              : 'border-[var(--border-strong)] bg-[var(--bg-active)]'
                           }`}
                         >
                           {valid && <Check size={9} strokeWidth={3} />}

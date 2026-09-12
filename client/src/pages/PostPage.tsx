@@ -156,7 +156,7 @@ export default function PostPage() {
               <p className="m-0 mb-5 text-[var(--text-secondary)]">{errorMsg}</p>
               <Link
                 to="/"
-                className="inline-block bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 no-underline"
+                className="inline-block bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-6 py-2.5 no-underline"
               >
                 Retour à l'accueil
               </Link>

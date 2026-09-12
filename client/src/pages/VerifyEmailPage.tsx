@@ -119,7 +119,7 @@ export default function VerifyEmailPage() {
               <p className="text-text-secondary text-sm mt-2">{message}</p>
               <Link
                 to="/"
-                className="inline-block mt-4 bg-brand text-white px-6 py-3 rounded-xl font-bold text-sm no-underline"
+                className="inline-block mt-4 bg-brand text-[var(--brand-ink)] px-6 py-3 rounded-xl font-bold text-sm no-underline"
               >
                 Accéder à Wouaff
               </Link>
@@ -166,7 +166,7 @@ export default function VerifyEmailPage() {
               </div>
 
               <button
-                className="w-full bg-brand text-white px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans"
+                className="w-full bg-brand text-[var(--brand-ink)] px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans"
                 onClick={() => submit(code)}
               >
                 Vérifier

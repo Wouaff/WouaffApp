@@ -120,7 +120,7 @@ export default function EmailVerificationBanner({ onVerified }: { onVerified: ()
 
               <div className="flex flex-col gap-2">
                 <button
-                  className="w-full bg-brand text-white px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-brand text-[var(--brand-ink)] px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleVerify}
                   disabled={verifying}
                 >
@@ -137,7 +137,7 @@ export default function EmailVerificationBanner({ onVerified }: { onVerified: ()
             </>
           ) : (
             <button
-              className="w-full bg-brand text-white px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-brand text-[var(--brand-ink)] px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSend}
               disabled={sending}
             >

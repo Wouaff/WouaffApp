@@ -122,7 +122,7 @@ export default function FollowModal({ wouaffId, kind, onClose, onChange }: Follo
                     onClick={() => openProfile(u)}
                     className="flex items-center gap-3 min-w-0 flex-1 text-left border-none bg-transparent p-0 cursor-pointer"
                   >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
                       {u.avatar ? (
                         <img
                           src={u.avatar}
@@ -152,7 +152,7 @@ export default function FollowModal({ wouaffId, kind, onClose, onChange }: Follo
                       className={`flex-shrink-0 transition-colors font-bold text-[13px] rounded-full px-4 py-1.5 cursor-pointer ${
                         u.isFollowing
                           ? 'bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--bg-hover)]'
-                          : 'bg-brand text-white border-none hover:opacity-90'
+                          : 'bg-brand text-[var(--brand-ink)] border-none hover:opacity-90'
                       }`}
                     >
                       {u.isFollowing ? 'Abonné' : 'Suivre'}

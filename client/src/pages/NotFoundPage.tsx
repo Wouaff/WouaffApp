@@ -14,7 +14,7 @@ export default function NotFoundPage() {
         </p>
         <Link
           to="/"
-          className="inline-block mt-6 bg-brand text-white px-6 py-3 rounded-xl font-bold text-sm no-underline"
+          className="inline-block mt-6 bg-brand text-[var(--brand-ink)] px-6 py-3 rounded-xl font-bold text-sm no-underline"
         >
           Retour à l'accueil
         </Link>

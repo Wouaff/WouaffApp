@@ -154,7 +154,7 @@ export default function CommunityPostModal({
           <button
             type="button"
             onClick={onClose}
-            className="mt-2 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
+            className="mt-2 bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
           >
             Fermer
           </button>
@@ -276,7 +276,7 @@ export default function CommunityPostModal({
               <ul className="list-none m-0 p-0">
                 {comments.map((c) => (
                   <li key={c.id} className="flex gap-3 py-3 border-b border-[var(--border)] last:border-b-0">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
+                    <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
                       {c.authorAvatar ? (
                         <img
                           src={c.authorAvatar}
@@ -350,7 +350,7 @@ export default function CommunityPostModal({
             type="button"
             onClick={submitComment}
             disabled={!text.trim() || sending}
-            className="bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-white font-bold text-sm rounded-full px-4 py-2 border-none cursor-pointer"
+            className="bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-4 py-2 border-none cursor-pointer"
           >
             Répondre
           </button>

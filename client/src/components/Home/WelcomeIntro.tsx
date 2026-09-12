@@ -131,7 +131,7 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
               <button
                 type="button"
                 onClick={finish}
-                className="mt-2 flex items-center justify-center gap-2.5 rounded-full px-6 py-3.5 font-bold text-[15px] text-white bg-brand hover:opacity-90 transition-opacity border-none cursor-pointer"
+                className="mt-2 flex items-center justify-center gap-2.5 rounded-full px-6 py-3.5 font-bold text-[15px] text-[var(--brand-ink)] bg-brand hover:opacity-90 transition-opacity border-none cursor-pointer"
               >
                 <Rocket size={20} />
                 {t('Commencer l’aventure')}
@@ -152,7 +152,7 @@ export default function WelcomeIntro({ onDone }: WelcomeIntroProps) {
             <button
               type="button"
               onClick={next}
-              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold text-white bg-brand hover:opacity-90 transition-opacity border-none cursor-pointer"
+              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold text-[var(--brand-ink)] bg-brand hover:opacity-90 transition-opacity border-none cursor-pointer"
             >
               {t('Suivant')}
               <ArrowRight size={16} />

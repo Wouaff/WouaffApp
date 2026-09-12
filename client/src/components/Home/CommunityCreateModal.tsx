@@ -149,7 +149,7 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-xl overflow-hidden cursor-pointer border-none flex-shrink-0 group"
+              className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-xl overflow-hidden cursor-pointer border-none flex-shrink-0 group"
               aria-label="Ajouter une photo de profil"
             >
               {avatar ? (
@@ -324,7 +324,7 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
             type="button"
             onClick={submit}
             disabled={sending || !slug}
-            className="ml-auto bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
+            className="ml-auto bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
           >
             {sending ? 'Création...' : 'Créer la communauté'}
           </button>

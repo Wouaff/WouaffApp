@@ -362,12 +362,12 @@ export default function SettingsPage() {
               {/* Aperçu du profil */}
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden mb-4 shadow-[0_2px_12px_rgba(0,0,0,0.15)]">
                 <div
-                  className="h-24 sm:h-28 bg-gradient-to-br from-brand via-brand-dark to-[#8a3a1a] bg-cover bg-center"
+                  className="h-24 sm:h-28 bg-gradient-to-br from-brand via-brand-dark to-[var(--brand-dark)] bg-cover bg-center"
                   style={banner ? { backgroundImage: `url(${banner})` } : undefined}
                 />
                 <div className="px-4 sm:px-5 pb-4">
                   <div className="flex items-end justify-between">
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 -mt-10 sm:-mt-12 rounded-full bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-white font-extrabold text-2xl flex-shrink-0 shadow-[0_4px_16px_rgba(0,0,0,0.35)]">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 -mt-10 sm:-mt-12 rounded-2xl bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-2xl flex-shrink-0 shadow-[0_4px_16px_rgba(0,0,0,0.35)]">
                       {avatar ? (
                         <img src={avatar} alt="Votre avatar" className="w-full h-full object-cover" />
                       ) : (
@@ -574,7 +574,7 @@ export default function SettingsPage() {
                         setMusicError('');
                         setMusicModalOpen(true);
                       }}
-                      className="flex items-center justify-center gap-2 w-full rounded-full bg-brand-dark text-white font-bold text-sm py-3 cursor-pointer border-none hover:bg-[#c75a24] transition-colors"
+                      className="flex items-center justify-center gap-2 w-full rounded-full bg-brand-dark text-[var(--brand-ink)] font-bold text-sm py-3 cursor-pointer border-none hover:bg-[var(--brand)] transition-colors"
                     >
                       <Music2 size={16} /> Choisir une musique
                     </button>
@@ -787,8 +787,8 @@ export default function SettingsPage() {
                           : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                       }`}
                     >
-                      <span className="w-10 h-6 rounded-md bg-[#141921] flex items-center justify-center">
-                        <Moon size={13} className="text-[#e8ecf0]" />
+                      <span className="w-10 h-6 rounded-md bg-[#0e0b13] flex items-center justify-center">
+                        <Moon size={13} className="text-[#f5f0f7]" />
                       </span>
                       Sombre
                     </button>
@@ -801,8 +801,8 @@ export default function SettingsPage() {
                           : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                       }`}
                     >
-                      <span className="w-10 h-6 rounded-md bg-[#f2f3f7] flex items-center justify-center">
-                        <Sun size={13} className="text-[#1c1e24]" />
+                      <span className="w-10 h-6 rounded-md bg-[#f4f1ea] flex items-center justify-center">
+                        <Sun size={13} className="text-[#1c1420]" />
                       </span>
                       Clair
                     </button>
@@ -855,7 +855,7 @@ export default function SettingsPage() {
                       aria-pressed={lang === option.id}
                       className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold border cursor-pointer transition-colors ${
                         lang === option.id
-                          ? 'bg-[var(--brand)] text-white border-transparent'
+                          ? 'bg-[var(--brand)] text-[var(--brand-ink)] border-transparent'
                           : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--brand)]'
                       }`}
                     >
@@ -947,7 +947,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => navigate('/admin')}
-                    className="flex items-center justify-center gap-2 w-full rounded-full bg-brand-dark text-white font-bold text-sm py-3 cursor-pointer border-none hover:bg-[#c75a24] transition-colors"
+                    className="flex items-center justify-center gap-2 w-full rounded-full bg-brand-dark text-[var(--brand-ink)] font-bold text-sm py-3 cursor-pointer border-none hover:bg-[var(--brand)] transition-colors"
                   >
                     <ShieldCheck size={16} /> {t("Panneau d'administration")}
                   </button>
@@ -1097,7 +1097,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => void saveMusic()}
                 disabled={!musicUrl.trim() || musicBusy}
-                className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold text-white bg-brand cursor-pointer hover:opacity-90 transition-opacity border-none disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold text-[var(--brand-ink)] bg-brand cursor-pointer hover:opacity-90 transition-opacity border-none disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {musicBusy && <Loader2 size={15} className="animate-spin" />}
                 {music ? 'Mettre à jour' : 'Ajouter'}

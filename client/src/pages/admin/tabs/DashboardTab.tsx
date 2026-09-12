@@ -239,10 +239,10 @@ export function DashboardTab({ refreshSignal, isOwner }: { refreshSignal: number
             <BarChart data={analytics.registrations} />
           </Card>
           <Card title="Posts / jour" icon={<Edit3 size={15} />}>
-            <BarChart data={analytics.posts} color="#3b82f6" />
+            <BarChart data={analytics.posts} color="var(--brand)" />
           </Card>
           <Card title="Messages / jour" icon={<MessageSquare size={15} />}>
-            <BarChart data={analytics.messages} color="#06b6d4" />
+            <BarChart data={analytics.messages} color="var(--accent-2)" />
           </Card>
 
           <Card title="Top posts" icon={<Heart size={15} />}>

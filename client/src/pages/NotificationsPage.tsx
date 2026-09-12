@@ -269,7 +269,7 @@ export default function NotificationsPage() {
                     }`}
                   >
                     <div className="relative flex-shrink-0">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-base overflow-hidden">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden">
                         {item.actorAvatar ? (
                           <img
                             src={item.actorAvatar}

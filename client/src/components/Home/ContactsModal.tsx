@@ -177,7 +177,7 @@ export default function ContactsModal({ onDone, onClose }: ContactsModalProps) {
                 type="button"
                 onClick={() => sync(true)}
                 disabled={loading}
-                className="w-full mt-4 flex items-center justify-center gap-2 bg-brand hover:opacity-90 disabled:opacity-50 transition-opacity text-white font-bold text-sm rounded-full px-4 py-3 border-none cursor-pointer"
+                className="w-full mt-4 flex items-center justify-center gap-2 bg-brand hover:opacity-90 disabled:opacity-50 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-4 py-3 border-none cursor-pointer"
               >
                 {loading ? <span className="spinner spinner-sm" /> : <Phone size={16} />}
                 {loading ? 'Recherche de tes amis…' : 'Autoriser l’accès à mes contacts'}
@@ -242,7 +242,7 @@ export default function ContactsModal({ onDone, onClose }: ContactsModalProps) {
                         key={m.uid}
                         className="flex items-center gap-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2"
                       >
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
+                        <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
                           {m.avatar ? (
                             <img
                               src={m.avatar}
@@ -291,7 +291,7 @@ export default function ContactsModal({ onDone, onClose }: ContactsModalProps) {
                       <button
                         type="button"
                         onClick={() => invite(num)}
-                        className="flex items-center gap-1 rounded-full bg-brand hover:opacity-90 transition-opacity text-white font-bold text-[12px] px-3.5 py-1.5 border-none cursor-pointer"
+                        className="flex items-center gap-1 rounded-full bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-[12px] px-3.5 py-1.5 border-none cursor-pointer"
                       >
                         <Send size={13} /> Inviter
                       </button>
@@ -307,7 +307,7 @@ export default function ContactsModal({ onDone, onClose }: ContactsModalProps) {
             <button
               type="button"
               onClick={onDone}
-              className="w-full mt-5 flex items-center justify-center gap-2 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-4 py-3 border-none cursor-pointer"
+              className="w-full mt-5 flex items-center justify-center gap-2 bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-4 py-3 border-none cursor-pointer"
             >
               Terminer
             </button>

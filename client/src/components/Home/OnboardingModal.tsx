@@ -97,7 +97,7 @@ export default function OnboardingModal({ onDone, onSkip }: OnboardingModalProps
             : 'border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)]'
         }`}
       >
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
+        <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
           {u.avatar ? (
             <img
               src={u.avatar}
@@ -143,7 +143,7 @@ export default function OnboardingModal({ onDone, onSkip }: OnboardingModalProps
             : 'border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)]'
         }`}
       >
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
           {c.avatar ? (
             <img src={c.avatar} alt={`Avatar de ${c.displayName || c.name}`} className="w-full h-full object-cover" />
           ) : (
@@ -234,7 +234,7 @@ export default function OnboardingModal({ onDone, onSkip }: OnboardingModalProps
             type="button"
             onClick={submit}
             disabled={saving || loading || !canSubmit}
-            className="flex-shrink-0 bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
+            className="flex-shrink-0 bg-brand hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
           >
             {saving ? 'Abonnement...' : !canSubmit ? `Encore ${minimum - count} choix` : 'Commencer'}
           </button>

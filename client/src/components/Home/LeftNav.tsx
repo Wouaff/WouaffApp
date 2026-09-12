@@ -136,7 +136,7 @@ export default function LeftNav() {
   return (
     <aside
       className={`hidden lg:flex flex-col flex-shrink-0 h-full border-r border-[var(--border)] bg-[var(--bg-base)] transition-all duration-300 ease-in-out ${
-        collapsed ? 'w-[76px]' : 'w-[250px] xl:w-[270px]'
+        collapsed ? 'w-[88px]' : 'w-[248px] xl:w-[268px]'
       }`}
     >
       <div className={`flex flex-col flex-1 overflow-y-auto py-3 ${collapsed ? 'px-2' : 'px-3'}`}>
@@ -175,9 +175,9 @@ export default function LeftNav() {
             return (
               <button
                 key={item.label}
-                className={`flex items-center rounded-full py-2.5 cursor-pointer transition-colors border-none bg-transparent ${
-                  collapsed ? 'justify-center px-0' : 'gap-4 px-3 text-left'
-                } text-[var(--text-primary)] ${item.soon ? 'opacity-60' : 'hover:bg-[var(--bg-hover)]'}`}
+                className={`group flex items-center rounded-2xl cursor-pointer transition-colors border-none bg-transparent ${
+                  collapsed ? 'justify-center py-1' : 'gap-3 py-1 pr-3'
+                } ${item.soon ? 'opacity-60' : 'hover:bg-[var(--bg-hover)]'}`}
                 onClick={() => {
                   if (item.soon) return;
                   handleNav(item.path);
@@ -185,20 +185,26 @@ export default function LeftNav() {
                 aria-current={active ? 'page' : undefined}
                 title={item.soon ? `${t(item.label)}, ${t('bientôt disponible')}` : t(item.label)}
               >
-                <span className="relative flex-shrink-0">
-                  <Icon size={26} strokeWidth={active ? 2.6 : 2} />
+                <span
+                  className={`relative flex items-center justify-center w-11 h-11 rounded-2xl flex-shrink-0 transition-colors ${
+                    active
+                      ? 'bg-brand text-[var(--brand-ink)]'
+                      : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <Icon size={23} strokeWidth={active ? 2.6 : 2} />
                   {badge > 0 && (
-                    <span
-                      className={`absolute bg-brand text-white text-xss font-bold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center ${
-                        collapsed ? '-top-1.5 -right-2' : '-top-1 -right-2.5'
-                      }`}
-                    >
+                    <span className="absolute -top-1 -right-1 bg-[var(--danger)] text-white text-xss font-bold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center">
                       {badge > 99 ? '99+' : badge}
                     </span>
                   )}
                 </span>
                 {!collapsed && (
-                  <span className={`text-xl ${active ? 'font-extrabold' : 'font-medium'}`}>{t(item.label)}</span>
+                  <span
+                    className={`text-lg ${active ? 'font-extrabold text-[var(--text-primary)]' : 'font-medium text-[var(--text-secondary)]'}`}
+                  >
+                    {t(item.label)}
+                  </span>
                 )}
                 {!collapsed && item.soon && (
                   <span className="ml-auto inline-flex items-center text-xss font-bold text-[var(--text-muted)] border border-[var(--border)] rounded-full px-2 py-0.5">
@@ -215,7 +221,7 @@ export default function LeftNav() {
           onClick={focusCompose}
           aria-label={t('Poster un nouveau message')}
           title={collapsed ? t('Poster') : undefined}
-          className={`mt-4 flex items-center justify-center gap-2 rounded-full bg-brand text-white font-bold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer border-none ${
+          className={`mt-4 flex items-center justify-center gap-2 rounded-full bg-brand text-[var(--brand-ink)] font-bold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer border-none ${
             collapsed ? 'w-12 h-12 mx-auto' : 'w-full py-3 px-4 text-lg'
           }`}
         >
@@ -321,7 +327,7 @@ export default function LeftNav() {
               aria-label={t('Profil et paramètres')}
               title={collapsed ? t('Profil et paramètres') : undefined}
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-extrabold text-sm overflow-hidden flex-shrink-0">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
                 {avatar ? (
                   <img
                     src={avatar}

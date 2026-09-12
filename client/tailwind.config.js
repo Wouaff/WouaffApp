@@ -16,7 +16,9 @@ export default {
           DEFAULT: 'var(--brand)',
           dark: 'var(--brand-dark)',
           light: 'var(--brand-light)',
+          ink: 'var(--brand-ink)',
           glow: 'var(--brand-glow)',
+          soft: 'var(--brand-soft)',
         },
         bg: {
           deep: 'var(--bg-deep)',
@@ -54,7 +56,9 @@ export default {
         DEFAULT: 'var(--shadow)',
       },
       fontFamily: {
-        sans: ['Nunito', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['"Bricolage Grotesque"', 'Inter', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       fontSize: {
         xss: 'var(--text-xs)',

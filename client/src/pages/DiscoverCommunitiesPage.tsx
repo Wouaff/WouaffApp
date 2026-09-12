@@ -71,7 +71,7 @@ export default function DiscoverCommunitiesPage() {
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="ml-auto flex items-center gap-1.5 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-4 py-2 border-none cursor-pointer"
+              className="ml-auto flex items-center gap-1.5 bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-4 py-2 border-none cursor-pointer"
             >
               <Plus size={16} /> Créer
             </button>
@@ -110,7 +110,7 @@ export default function DiscoverCommunitiesPage() {
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="mt-1 bg-brand hover:opacity-90 transition-opacity text-white font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
+              className="mt-1 bg-brand hover:opacity-90 transition-opacity text-[var(--brand-ink)] font-bold text-sm rounded-full px-6 py-2.5 border-none cursor-pointer"
             >
               Créer la première
             </button>

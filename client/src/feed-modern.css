@@ -1,38 +1,121 @@
-/* ══════════════════════════════════════════════════════════
-   MODERN FEED — layout type Twitter (X), couleurs Wouaff
-   Surface plate, séparateurs fins, header translucide, cartes
-   latérales discrètes. Les couleurs de marque (orange) sont
-   conservées : CTA "Poster", badges, hovers d'action.
-   Accessibilité : prefers-reduced-motion géré dans index.css
-══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════
+   SURFACE SOCIALE — le fil
+   ─────────────────────────────────────────────────────────────────────
+   Rangée plate, en-tête éditorial solide, indicateur d'onglet en miel,
+   trame gaufre discrète en fond de colonne. Importé en dernier : cette
+   couche peut surcharger les utilitaires pour la colonne centrale.
+   ══════════════════════════════════════════════════════════════════════ */
 
-/* ── Surface du feed : plate, propre (Twitter-like) ── */
 .feed-shell {
   scrollbar-gutter: stable;
+  background: var(--bg-deep);
+  position: relative;
 }
 
 .feed-column {
   background: transparent;
+  position: relative;
 }
 
-/* ── Header : translucide + blur (comme Twitter) ── */
+/* ── En-tête : masthead éditorial ── */
 .feed-header {
-  background: color-mix(in srgb, var(--bg-base) 76%, transparent);
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.feed-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  background-image: linear-gradient(to right, var(--brand) 0 12px, transparent 12px 100%);
+  background-size: 18px 100%;
+  opacity: 0.55;
+  pointer-events: none;
 }
 
-.feed-header h1 {
-  font-family: var(--font-display, "Nunito", sans-serif);
+.feed-head-inner {
+  width: 100%;
+  max-width: var(--feed-max);
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.feed-head-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  height: var(--header-h);
+}
+
+.feed-head-title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
   font-weight: 800;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.045em;
+  color: var(--text-primary);
+  margin: 0;
 }
 
-/* ── Onglets : libellés gras + indicateur animé ── */
+.feed-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── Onglets ── */
+.feed-tabs {
+  display: flex;
+  width: 100%;
+  max-width: var(--feed-max);
+  margin: 0 auto;
+}
+.feed-tab {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-display);
+  transition:
+    color var(--transition),
+    background-color var(--transition);
+}
+.feed-tab:hover {
+  background: var(--bg-hover);
+}
 .feed-tab-underline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--brand);
+  border-radius: 9999px;
   transform-origin: center;
   animation: feedTabIn 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.feed-tab-underline::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translateX(-50%) rotate(45deg);
+  background: var(--brand);
+  border-radius: 1px;
 }
 @keyframes feedTabIn {
   from {
@@ -45,26 +128,51 @@
   }
 }
 
-/* ── Composer : rangée plate, séparateur fin ── */
+/* ── Composer ── */
 .feed-composer {
-  background: color-mix(in srgb, var(--bg-card) 42%, transparent);
-  padding: 20px 18px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  position: relative;
+  background: transparent;
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--border);
 }
 .feed-composer textarea {
-  font-size: 20px;
+  font-family: var(--font-body);
+  font-size: 19px;
   letter-spacing: -0.01em;
+  line-height: 1.4;
 }
 .feed-composer textarea::placeholder {
   color: var(--text-muted);
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 
-/* ── Posts : rangées plates séparées par un filet ── */
+/* ── Posts : rangées plates, liseré miel au survol ── */
 .feed-post {
+  position: relative;
   background: transparent;
-  padding: 18px;
+  padding: 18px 16px;
   transition: background-color 160ms ease;
   animation: feedPostIn 0.28s ease-out both;
+}
+.feed-post::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  border-radius: 9999px;
+  background: var(--brand);
+  opacity: 0;
+  transform: scaleY(0.4);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+.feed-post:hover::before {
+  opacity: 1;
+  transform: scaleY(1);
 }
 @keyframes feedPostIn {
   from {
@@ -77,18 +185,20 @@
   }
 }
 .feed-post:hover {
-  background: color-mix(in srgb, var(--bg-hover) 55%, transparent);
+  background: var(--bg-hover);
 }
 
 .feed-post-text {
-  letter-spacing: -0.01em;
+  letter-spacing: -0.008em;
+  font-size: var(--text-md);
+  line-height: 1.55;
 }
 
-/* ── Actions : couleurs de hover gérées par Tailwind
-      (commentaire→brand, repost→vert, like→rouge).
-      Ici : retour d'appui + scale d'icône uniquement. ── */
+/* ── Barre d'actions ── */
 .feed-post-actions {
   color: var(--text-muted);
+  gap: 2px;
+  justify-content: flex-start;
 }
 .feed-post-actions .btn {
   min-height: 36px;
@@ -108,31 +218,31 @@
   transform: scale(1.15);
 }
 
-/* ── Cartes latérales : cartes plates type Twitter ── */
+/* ── Cartes latérales ── */
 .side-card {
   background: var(--bg-card);
-  border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: none;
   transition:
     background-color 160ms ease,
     border-color 160ms ease;
 }
 .side-card h2 {
-  font-family: var(--font-display, "Nunito", sans-serif);
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
 }
 
-/* ── Skeleton de chargement du fil ── */
+/* ── Skeletons du fil ── */
 .feed-skeleton {
-  padding: 18px;
+  padding: 18px 16px;
   display: flex;
   gap: 12px;
 }
 .feed-skeleton .sk-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 9999px;
+  border-radius: 12px;
   flex-shrink: 0;
   background: linear-gradient(90deg, var(--bg-hover) 25%, var(--bg-active) 37%, var(--bg-hover) 63%);
   background-size: 200% 100%;
@@ -157,30 +267,41 @@
   margin-top: 8px;
 }
 
-/* ── État vide : icône en halo de marque ── */
+/* ── État vide : tuile gaufre ── */
 .feed-empty-icon {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 76px;
-  height: 76px;
-  border-radius: 9999px;
-  background: var(--brand-glow);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--brand) 22%, transparent),
-    0 12px 34px rgba(0, 0, 0, 0.2);
+  width: 74px;
+  height: 74px;
+  border-radius: 22px;
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
   color: var(--brand);
 }
+.feed-empty-icon::before {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 12px 12px;
+  opacity: 0.9;
+  border-radius: 12px;
+}
 
-/* ── Mobile : espacement resserré ── */
+/* ── Mobile ── */
 @media (max-width: 767px) {
   .feed-column {
     max-width: none;
   }
-
   .feed-composer,
   .feed-post {
     padding-inline: 14px;
+  }
+  .feed-head-title {
+    font-size: var(--text-xl);
   }
 }

@@ -14,7 +14,7 @@ const inputCls =
   'w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-glow)] font-sans transition-all duration-200';
 const hintCls = 'flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] mt-1.5';
 const primaryBtnCls =
-  'flex items-center justify-center gap-2 w-full rounded-full bg-brand-dark text-white font-bold text-sm py-3 cursor-pointer border-none hover:bg-[#c75a24] transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
+  'flex items-center justify-center gap-2 w-full rounded-full bg-brand-dark text-[var(--brand-ink)] font-bold text-sm py-3 cursor-pointer border-none hover:bg-[var(--brand)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
 const ghostBtnCls =
   'flex items-center justify-center gap-2 w-full rounded-full border border-[var(--border)] bg-transparent text-[var(--text-secondary)] font-bold text-sm py-3 cursor-pointer hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
 

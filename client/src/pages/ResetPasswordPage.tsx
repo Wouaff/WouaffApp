@@ -76,7 +76,7 @@ export default function ResetPasswordPage() {
           </p>
           <Link
             to="/auth"
-            className="inline-block mt-4 bg-brand text-white px-6 py-3 rounded-xl font-bold text-sm no-underline"
+            className="inline-block mt-4 bg-brand text-[var(--brand-ink)] px-6 py-3 rounded-xl font-bold text-sm no-underline"
           >
             Se connecter
           </Link>
@@ -159,7 +159,7 @@ export default function ResetPasswordPage() {
           </div>
 
           <button
-            className="w-full bg-brand text-white px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-brand text-[var(--brand-ink)] px-6 py-3 rounded-xl font-bold text-sm border-none cursor-pointer font-sans disabled:opacity-50 disabled:cursor-not-allowed"
             type="submit"
             disabled={loading}
           >
@@ -168,7 +168,7 @@ export default function ResetPasswordPage() {
         </form>
 
         {error && (
-          <div className="bg-red-500/10 border border-[#ea4335] rounded-lg px-3 py-2.5 mt-3 text-sm text-[#ea4335]">
+          <div className="bg-red-500/10 border border-[var(--danger)] rounded-lg px-3 py-2.5 mt-3 text-sm text-[var(--danger)]">
             {error}
           </div>
         )}
