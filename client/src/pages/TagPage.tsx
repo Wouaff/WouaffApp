@@ -1,10 +1,9 @@
 import { ChevronLeft, Hash, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import LeftNav from '../components/Home/LeftNav';
 import PostCard from '../components/Home/PostCard';
 import PostModal from '../components/Home/PostModal';
-import RightSidebar from '../components/Home/RightSidebar';
+import AppChrome from '../components/Layout/AppChrome';
 import { posts as postsAPI } from '../services/api';
 import type { FeedItem, SocialPost } from '../types';
 
@@ -130,8 +129,7 @@ export default function TagPage() {
   };
 
   return (
-    <div className="flex h-full">
-      <LeftNav />
+    <AppChrome>
       <main className="flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)] bg-[var(--bg-deep)]">
         <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
           <div className="flex items-center gap-5 px-2 h-14">
@@ -197,7 +195,6 @@ export default function TagPage() {
           ))
         )}
       </main>
-      <RightSidebar />
       {selectedPost && (
         <PostModal
           post={selectedPost}
@@ -208,6 +205,6 @@ export default function TagPage() {
           onCommentDelta={handleCommentDelta}
         />
       )}
-    </div>
+    </AppChrome>
   );
 }

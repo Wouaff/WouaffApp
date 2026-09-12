@@ -1,10 +1,9 @@
 import { ChevronLeft, FileQuestion, Share2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import LeftNav from '../components/Home/LeftNav';
 import PostCard from '../components/Home/PostCard';
-import RightSidebar from '../components/Home/RightSidebar';
 import SharePostModal from '../components/Home/SharePostModal';
+import AppChrome from '../components/Layout/AppChrome';
 import { useAuth } from '../hooks/useAuth';
 import { posts as postsAPI } from '../services/api';
 import type { SocialPost } from '../types';
@@ -130,22 +129,19 @@ export default function PostPage() {
 
   if (state === 'loading') {
     return (
-      <div className="flex h-full">
-        <LeftNav />
+      <AppChrome>
         <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
           <div className="h-full flex items-center justify-center">
             <div className="spinner" />
           </div>
         </main>
-        <RightSidebar />
-      </div>
+      </AppChrome>
     );
   }
 
   if (state === 'error' || !post) {
     return (
-      <div className="flex h-full">
-        <LeftNav />
+      <AppChrome>
         <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
           <div className="h-full flex items-center justify-center px-4">
             <div className="text-center">
@@ -163,14 +159,12 @@ export default function PostPage() {
             </div>
           </div>
         </main>
-        <RightSidebar />
-      </div>
+      </AppChrome>
     );
   }
 
   return (
-    <div className="flex h-full">
-      <LeftNav />
+    <AppChrome>
       <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
         <div className="mx-auto max-w-[720px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
           <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
@@ -206,8 +200,7 @@ export default function PostPage() {
           />
         </div>
       </main>
-      <RightSidebar />
       {shareOpen && <SharePostModal post={post} onClose={() => setShareOpen(false)} />}
-    </div>
+    </AppChrome>
   );
 }

@@ -2,10 +2,9 @@ import { ChevronLeft, FileText, MessageSquare, UserPlus, UserX } from 'lucide-re
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import FollowModal from '../components/Home/FollowModal';
-import LeftNav from '../components/Home/LeftNav';
 import PostCard from '../components/Home/PostCard';
 import PostModal from '../components/Home/PostModal';
-import RightSidebar from '../components/Home/RightSidebar';
+import AppChrome from '../components/Layout/AppChrome';
 import MusicCard, { parseProfileMusic } from '../components/Profile/MusicCard';
 import { useAuth } from '../hooks/useAuth';
 import { posts as postsAPI, profiles as profilesAPI } from '../services/api';
@@ -241,22 +240,19 @@ export default function ProfilePage() {
 
   if (state === 'loading') {
     return (
-      <div className="flex h-full">
-        <LeftNav />
+      <AppChrome>
         <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
           <div className="h-full flex items-center justify-center">
             <div className="spinner" />
           </div>
         </main>
-        <RightSidebar />
-      </div>
+      </AppChrome>
     );
   }
 
   if (state === 'error') {
     return (
-      <div className="flex h-full">
-        <LeftNav />
+      <AppChrome>
         <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
           <div className="h-full flex items-center justify-center px-4">
             <div className="text-center">
@@ -274,8 +270,7 @@ export default function ProfilePage() {
             </div>
           </div>
         </main>
-        <RightSidebar />
-      </div>
+      </AppChrome>
     );
   }
 
@@ -332,8 +327,7 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="flex h-full">
-      <LeftNav />
+    <AppChrome>
       <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
         <div className="mx-auto max-w-[720px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
           <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
@@ -490,7 +484,6 @@ export default function ProfilePage() {
           )}
         </div>
       </main>
-      <RightSidebar />
       {selectedPost && (
         <PostModal
           post={selectedPost}
@@ -509,6 +502,6 @@ export default function ProfilePage() {
           onChange={handleFollowCountChange}
         />
       )}
-    </div>
+    </AppChrome>
   );
 }

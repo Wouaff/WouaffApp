@@ -4,12 +4,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { showToast, default as Toast } from '../components/Common/Toast';
 import BuyMeACoffee from '../components/Home/BuyMeACoffee';
 import ComposeBox from '../components/Home/ComposeBox';
-import LeftNav from '../components/Home/LeftNav';
 import OnboardingController from '../components/Home/OnboardingController';
 import PostCard from '../components/Home/PostCard';
 import PostModal from '../components/Home/PostModal';
-import RightSidebar from '../components/Home/RightSidebar';
 import WelcomeIntro from '../components/Home/WelcomeIntro';
+import AppChrome from '../components/Layout/AppChrome';
 import { useAuth } from '../hooks/useAuth';
 import { useI18n } from '../i18n/context';
 import { posts as postsAPI } from '../services/api';
@@ -328,8 +327,7 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="flex h-full">
-      <LeftNav />
+    <AppChrome>
       <main className="feed-shell flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)]">
         <header className="feed-header sticky top-0 z-10">
           <div className="feed-head-inner">
@@ -407,7 +405,6 @@ export default function HomePage() {
           )}
         </div>
       </main>
-      <RightSidebar />
       {selectedPost && (
         <PostModal
           post={selectedPost}
@@ -421,6 +418,6 @@ export default function HomePage() {
       <Toast />
       {introOpen && <WelcomeIntro onDone={closeIntro} />}
       <OnboardingController />
-    </div>
+    </AppChrome>
   );
 }

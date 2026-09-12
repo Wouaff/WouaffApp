@@ -19,7 +19,7 @@ function toHandle(s: Suggestion): string {
   return `@${s.pseudo?.toLowerCase().replace(/\s+/g, '') || 'utilisateur'}`;
 }
 
-export default function RightSidebar() {
+export default function SidePanel() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const [q, setQ] = useState('');
@@ -39,7 +39,7 @@ export default function RightSidebar() {
 
   const loadTrends = useCallback(async () => {
     try {
-      setTrendList(await trendsAPI.list(10));
+      setTrendList(await trendsAPI.list(8));
     } catch (e) {
       console.error(e);
       setTrendList([]);
@@ -72,42 +72,42 @@ export default function RightSidebar() {
   };
 
   return (
-    <aside className="hidden lg:flex flex-col flex-shrink-0 h-full w-[320px] border-l border-[var(--border)] bg-[var(--bg-base)]">
-      <div className="flex-1 overflow-y-auto px-6 py-3">
-        <div className="sticky top-0 z-10 pb-2 -mx-2 px-2 bg-[var(--bg-base)]">
-          <div className="relative">
-            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-            <input
-              type="text"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && q.trim()) {
-                  navigate(`/search?q=${encodeURIComponent(q.trim())}`);
-                }
-              }}
-              placeholder={t('Rechercher sur Wouaff')}
-              aria-label={t('Rechercher sur Wouaff')}
-              className="w-full bg-[var(--bg-input)] border border-transparent focus:border-[var(--brand)] outline-none rounded-full py-2.5 pl-11 pr-4 text-[15px] text-[var(--text-primary)] placeholder-[var(--text-muted)] font-sans transition-colors"
-            />
-          </div>
+    <aside className="hidden lg:flex flex-col flex-shrink-0 h-full w-[304px] border-r border-[var(--border)] bg-[var(--bg-base)]">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="relative mb-4">
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+          <input
+            type="text"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && q.trim()) {
+                navigate(`/search?q=${encodeURIComponent(q.trim())}`);
+              }
+            }}
+            placeholder={t('Rechercher sur Wouaff')}
+            aria-label={t('Rechercher sur Wouaff')}
+            className="w-full bg-[var(--bg-input)] border border-transparent focus:border-[var(--brand)] outline-none rounded-full py-2.5 pl-11 pr-4 text-[15px] text-[var(--text-primary)] placeholder-[var(--text-muted)] font-sans transition-colors"
+          />
         </div>
 
-        <div className="side-card mt-2 rounded-2xl overflow-hidden">
+        <div className="side-card rounded-2xl overflow-hidden">
           <div className="flex items-center gap-2 px-4 pt-4 pb-2">
-            <TrendingUp size={18} className="text-brand" />
-            <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0">{t('Tendances en France')}</h2>
+            <TrendingUp size={17} className="text-brand" />
+            <h2 className="text-base font-extrabold text-[var(--text-primary)] m-0">{t('Tendances en France')}</h2>
           </div>
           {trendList.length === 0 ? (
             <div className="px-4 py-4 text-[13px] text-[var(--text-muted)]">{t('Aucune tendance pour le moment')}</div>
           ) : (
-            trendList.map((trend) => (
+            trendList.map((trend, i) => (
               <Link
                 key={trend.tag}
                 to={`/hashtag/${encodeURIComponent(trend.tag)}`}
-                className="block w-full text-left px-4 py-3 border-none bg-transparent no-underline cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+                className="block w-full text-left px-4 py-2.5 border-none bg-transparent no-underline cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
               >
-                <span className="block text-[12px] text-[var(--text-muted)]">{trend.category}</span>
+                <span className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                  {i + 1} · {trend.category}
+                </span>
                 <span className="block text-[15px] font-bold text-[var(--text-primary)]">#{trend.tag}</span>
                 <span className="block text-[12px] text-[var(--text-muted)]">
                   {t('{n} publications', { n: trend.posts })}
@@ -118,7 +118,9 @@ export default function RightSidebar() {
         </div>
 
         <div className="side-card mt-4 rounded-2xl overflow-hidden">
-          <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0 px-4 pt-4 pb-2">{t('À qui suivre')}</h2>
+          <h2 className="text-base font-extrabold text-[var(--text-primary)] m-0 px-4 pt-4 pb-2">
+            {t('À qui suivre')}
+          </h2>
           {suggestions.length === 0 ? (
             <div className="px-4 py-4 text-[13px] text-[var(--text-muted)]">
               {t('Aucune suggestion pour le moment')}
@@ -132,7 +134,7 @@ export default function RightSidebar() {
                   key={s.uid}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
                     {s.avatar ? (
                       <img
                         src={s.avatar}
@@ -146,22 +148,17 @@ export default function RightSidebar() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[15px] font-bold text-[var(--text-primary)] truncate">{s.pseudo}</div>
-                    <div className="text-[13px] text-[var(--text-muted)] truncate">{toHandle(s)}</div>
+                    <div className="text-[14px] font-bold text-[var(--text-primary)] truncate">{s.pseudo}</div>
+                    <div className="text-[12px] text-[var(--text-muted)] truncate">{toHandle(s)}</div>
                   </div>
                   <button
                     type="button"
                     onClick={() => toggleFollow(s)}
-                    className={`rounded-full px-4 py-1.5 text-[14px] font-bold border cursor-pointer transition-colors ${
+                    className={`rounded-full px-3.5 py-1.5 text-[13px] font-bold border cursor-pointer transition-colors ${
                       isFollowing
                         ? 'bg-transparent text-[var(--text-primary)] border-[var(--border)] hover:border-[var(--text-muted)]'
-                        : 'bg-[var(--text-primary)] text-[var(--bg-base)] border-transparent hover:opacity-90'
+                        : 'bg-[var(--brand)] text-[var(--brand-ink)] border-transparent hover:opacity-90'
                     }`}
-                    aria-label={
-                      isFollowing
-                        ? t('Ne plus suivre {name}', { name: s.pseudo })
-                        : t('Suivre {name}', { name: s.pseudo })
-                    }
                   >
                     {isFollowing ? t('Suivi') : t('Suivre')}
                   </button>
@@ -172,11 +169,13 @@ export default function RightSidebar() {
         </div>
 
         <div className="side-card mt-4 rounded-2xl p-4">
-          <h2 className="text-lg font-extrabold text-[var(--text-primary)] m-0 mb-3">{t('La souveraineté Wouaff')}</h2>
+          <h2 className="text-base font-extrabold text-[var(--text-primary)] m-0 mb-3">
+            {t('La souveraineté Wouaff')}
+          </h2>
           <ul className="list-none p-0 m-0 flex flex-col gap-3">
             <li className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[var(--brand-glow)] flex items-center justify-center flex-shrink-0">
-                <Server size={18} className="text-brand" />
+              <div className="w-9 h-9 rounded-xl bg-[var(--brand-soft)] flex items-center justify-center flex-shrink-0">
+                <Server size={17} className="text-brand" />
               </div>
               <div>
                 <div className="text-sm font-bold text-[var(--text-primary)]">{t('Hébergé en France')}</div>
@@ -184,8 +183,8 @@ export default function RightSidebar() {
               </div>
             </li>
             <li className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[var(--brand-glow)] flex items-center justify-center flex-shrink-0">
-                <ShieldCheck size={18} className="text-brand" />
+              <div className="w-9 h-9 rounded-xl bg-[var(--brand-soft)] flex items-center justify-center flex-shrink-0">
+                <ShieldCheck size={17} className="text-brand" />
               </div>
               <div>
                 <div className="text-sm font-bold text-[var(--text-primary)]">{t('RGPD & lois européennes')}</div>
@@ -193,8 +192,8 @@ export default function RightSidebar() {
               </div>
             </li>
             <li className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[var(--brand-glow)] flex items-center justify-center flex-shrink-0">
-                <Lock size={18} className="text-brand" />
+              <div className="w-9 h-9 rounded-xl bg-[var(--brand-soft)] flex items-center justify-center flex-shrink-0">
+                <Lock size={17} className="text-brand" />
               </div>
               <div>
                 <div className="text-sm font-bold text-[var(--text-primary)]">{t('Politique zéro log')}</div>

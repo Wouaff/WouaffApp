@@ -5,7 +5,7 @@ import { showToast } from '../components/Common/Toast';
 import CommunityCreateModal from '../components/Home/CommunityCreateModal';
 import CommunityPostCard from '../components/Home/CommunityPostCard';
 import CommunityPostModal from '../components/Home/CommunityPostModal';
-import LeftNav from '../components/Home/LeftNav';
+import AppChrome from '../components/Layout/AppChrome';
 import { communities as communitiesAPI } from '../services/api';
 import type { Community, CommunityPost } from '../types';
 
@@ -134,8 +134,7 @@ export default function CommunitiesPage() {
   }, [mine]);
 
   return (
-    <div className="flex h-full">
-      <LeftNav />
+    <AppChrome sidebar={false}>
       <main className="flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)] bg-[var(--bg-deep)]">
         <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
           <div className="flex items-center px-4 h-14">
@@ -252,6 +251,6 @@ export default function CommunitiesPage() {
           onPinned={handlePinned}
         />
       )}
-    </div>
+    </AppChrome>
   );
 }

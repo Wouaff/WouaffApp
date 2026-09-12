@@ -1,7 +1,7 @@
 import { MessageCircle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import LeftNav from '../components/Home/LeftNav';
+import AppChrome from '../components/Layout/AppChrome';
 import { type ChatTarget, ChatWindow } from '../components/Messages/ChatWindow';
 import ConversationList, { type ConvListItem } from '../components/Messages/ConversationList';
 import { useAuth } from '../hooks/useAuth';
@@ -364,8 +364,7 @@ export default function MessagesPage() {
   const typingLabel = typingFrom ? senderNames[typingFrom] || typingFrom : null;
 
   return (
-    <div className="flex h-full">
-      <LeftNav />
+    <AppChrome sidebar={false}>
       <main className="flex-1 min-w-0 h-full border-x border-[var(--border)] bg-[var(--bg-base)] flex overflow-hidden">
         <div
           className={`w-full md:w-[340px] md:flex-shrink-0 border-r border-[var(--border)] bg-[var(--bg-base)] flex-col ${
@@ -427,6 +426,6 @@ export default function MessagesPage() {
           )}
         </div>
       </main>
-    </div>
+    </AppChrome>
   );
 }

@@ -1,8 +1,7 @@
 import { ChevronLeft, Search, User } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import LeftNav from '../components/Home/LeftNav';
-import RightSidebar from '../components/Home/RightSidebar';
+import AppChrome from '../components/Layout/AppChrome';
 import { search as searchAPI } from '../services/api';
 import type { SearchResult } from '../types';
 
@@ -69,8 +68,7 @@ export default function SearchPage() {
     (s.profile?.pseudo || s.wouaffId?.replace(/^@/, '') || '?')[0]?.toUpperCase() || '?';
 
   return (
-    <div className="flex h-full">
-      <LeftNav />
+    <AppChrome>
       <main className="flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)] bg-[var(--bg-deep)]">
         <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
           <div className="flex items-center px-2 h-14">
@@ -163,7 +161,6 @@ export default function SearchPage() {
           </ul>
         )}
       </main>
-      <RightSidebar />
-    </div>
+    </AppChrome>
   );
 }

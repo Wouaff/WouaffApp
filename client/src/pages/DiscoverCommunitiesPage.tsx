@@ -2,7 +2,7 @@ import { Plus, Search } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import CommunityCard from '../components/Home/CommunityCard';
 import CommunityCreateModal from '../components/Home/CommunityCreateModal';
-import LeftNav from '../components/Home/LeftNav';
+import AppChrome from '../components/Layout/AppChrome';
 import { communities as communitiesAPI } from '../services/api';
 import type { Community } from '../types';
 
@@ -51,8 +51,7 @@ export default function DiscoverCommunitiesPage() {
   }, []);
 
   return (
-    <div className="flex h-full">
-      <LeftNav />
+    <AppChrome sidebar={false}>
       <main className="flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)] bg-[var(--bg-deep)]">
         <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
           <div className="flex items-center px-4 h-14 gap-3">
@@ -124,6 +123,6 @@ export default function DiscoverCommunitiesPage() {
         )}
       </main>
       {showCreate && <CommunityCreateModal onClose={() => setShowCreate(false)} />}
-    </div>
+    </AppChrome>
   );
 }

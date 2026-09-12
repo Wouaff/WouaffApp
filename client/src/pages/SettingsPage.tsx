@@ -25,8 +25,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Toast, { showToast } from '../components/Common/Toast';
-import LeftNav from '../components/Home/LeftNav';
-import RightSidebar from '../components/Home/RightSidebar';
+import AppChrome from '../components/Layout/AppChrome';
 import MusicCard, { type ProfileMusic, parseProfileMusic } from '../components/Profile/MusicCard';
 import SecurityTab from '../components/Settings/SecurityTab';
 import { useAuth } from '../hooks/useAuth';
@@ -284,8 +283,7 @@ export default function SettingsPage() {
   const visibleLinks = socialLinks.filter((l) => l.url.trim());
 
   return (
-    <div className="flex h-full">
-      <LeftNav />
+    <AppChrome>
       <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
         <div className="mx-auto max-w-[720px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
           <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
@@ -1031,7 +1029,6 @@ export default function SettingsPage() {
           )}
         </div>
       </main>
-      <RightSidebar />
 
       {musicModalOpen && (
         <div
@@ -1163,6 +1160,6 @@ export default function SettingsPage() {
       )}
 
       <Toast />
-    </div>
+    </AppChrome>
   );
 }
