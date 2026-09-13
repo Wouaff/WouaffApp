@@ -243,6 +243,11 @@ router.delete('/:gid/members/:uid', async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Action réservée aux admins' });
     return;
   }
+  const targetRole = (group.members as Record<string, { role: string }>)?.[targetUid]?.role;
+  if (targetRole === 'owner') {
+    res.status(403).json({ error: 'Impossible d’exclure le propriétaire du groupe' });
+    return;
+  }
   await removeGroupMember(req.params.gid, targetUid);
   const io: Server = req.app.get('io');
   if (io) {
@@ -266,6 +271,11 @@ router.put('/:gid/members/:uid/role', async (req: Request, res: Response) => {
     return;
   }
   const { role } = req.body as { role: string };
+  const targetRole = (group.members as Record<string, { role: string }>)?.[req.params.uid]?.role;
+  if (!targetRole) {
+    res.status(400).json({ error: 'Ce membre ne fait pas partie du groupe' });
+    return;
+  }
   if (role === 'owner') {
     await setGroupMemberRole(req.params.gid, authReq.uid!, 'member');
     await setGroupMemberRole(req.params.gid, req.params.uid, 'owner');

@@ -40,7 +40,7 @@
 
 - 🇫🇷 **Hébergement 100 % français** — toutes les données restent sur le territoire national.
 - ⚖️ **RGPD & lois européennes** — le droit français et européen s'appliquent, sans compromis.
-- 🔒 **Politique zéro log** — nous ne traçons pas votre activité.
+- 🔒 **Confidentialité par défaut** — pas de traçage d'activité, pas de revente de données.
 
 Le projet suit une approche **« privacy by design »** : la souveraineté numérique n'est pas une option, c'est le socle du produit.
 
@@ -172,12 +172,11 @@ wouaff/
 
 ## 🔐 Sécurité
 
-- 🔒 **E2EE** : Messages chiffrés côté client avec échange de clés ECDH et AES-256-GCM.
-- 🍪 **Auth par session** : cookies httpOnly, aucun JWT exposé au JavaScript.
+- 🍪 **Auth par session** : cookies httpOnly, sessions expirantes et révocables.
 - 🚦 **Rate limiting** : protection par endpoint contre les abus.
-- 🧼 **Prévention XSS** : sanitization HTML sur le contenu affiché.
+- 🧱 **Requêtes SQL paramétrées** et validation des entrées sensibles côté serveur.
 - 🛡️ **CSRF** : cookies SameSite.
-- 🕵️ **Zéro log** : aucune donnée d'activité n'est conservée ni partagée.
+- 🕵️ **Journalisation minimale** : pas de traçage d'activité dans l'application ; les journaux techniques et alertes de sécurité sont envoyés vers un canal privé de l'équipe.
 
 ---
 

@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
+import { rateLimitByKey } from '../middleware/rateLimitByKey.js';
 import {
   chatId,
   getGroupMessageBlob,
@@ -23,9 +24,36 @@ const MSG_COLS =
   'msgKey, fromUid, text, type, time, seen, encrypted, ct, iv, fileName, duration, pendingFrom, senderName, replyTo, messageTheme, forwardedFrom, ephemeralDuration, pinned, reactions, id';
 const MSG_GROUP_COLS =
   'msgKey, fromUid, text, type, time, deleted, edited, encrypted, ct, iv, fileName, duration, senderName, replyTo, messageTheme, forwardedFrom, seenBy, ephemeralDuration, pinned, id';
+const MAX_MESSAGE_MEDIA_LENGTH = 5 * 1024 * 1024;
+const MAX_MESSAGE_TEXT_LENGTH = 10000;
 
 const router: Router = Router();
 router.use(verifyToken);
+router.use(
+  rateLimitByKey({
+    windowMs: 60000,
+    max: 30,
+    keyFn: (req) => (req as AuthRequest).uid || '',
+    message: 'Trop de messages envoyés, réessayez plus tard',
+  }),
+);
+
+function mediaLength(body: Record<string, unknown>): number {
+  let total = 0;
+  for (const key of ['imageData', 'fileData', 'audioData'] as const) {
+    const value = body[key];
+    if (typeof value === 'string') total += value.length;
+  }
+  return total;
+}
+
+function rejectOversizedMessage(body: Record<string, unknown>): string | null {
+  if (mediaLength(body) > MAX_MESSAGE_MEDIA_LENGTH) return 'Pièce jointe trop volumineuse (5 Mo maximum)';
+  if (typeof body.text === 'string' && body.text.length > MAX_MESSAGE_TEXT_LENGTH) {
+    return 'Message trop long';
+  }
+  return null;
+}
 
 async function requireGroupMember(req: Request, res: Response): Promise<boolean> {
   const authReq = req as AuthRequest;
@@ -103,6 +131,12 @@ router.post('/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const targetUid = req.params.uid;
 
+  const recipient = await getOne<{ uid: string }>('SELECT uid FROM users WHERE uid=?', [targetUid]);
+  if (!recipient) {
+    res.status(404).json({ error: 'Destinataire introuvable' });
+    return;
+  }
+
   /* Blocage symétrique : ni l'un ni l'autre ne peut écrire à l'autre */
   if (await isBlockedBetween(authReq.uid!, targetUid)) {
     res.status(403).json({ error: 'Vous ne pouvez pas envoyer de message à cet utilisateur' });
@@ -111,6 +145,11 @@ router.post('/:uid', async (req: Request, res: Response) => {
 
   const cid = chatId(authReq.uid!, targetUid);
   const b = req.body as Record<string, unknown>;
+  const sizeError = rejectOversizedMessage(b);
+  if (sizeError) {
+    res.status(413).json({ error: sizeError });
+    return;
+  }
   const mediaError = rejectUnsafeMedia(b);
   if (mediaError) {
     res.status(400).json({ error: mediaError });
@@ -150,6 +189,11 @@ router.post('/group/:gid', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
   const authReq = req as AuthRequest;
   const b = req.body as Record<string, unknown>;
+  const sizeError = rejectOversizedMessage(b);
+  if (sizeError) {
+    res.status(413).json({ error: sizeError });
+    return;
+  }
   const mediaError = rejectUnsafeMedia(b);
   if (mediaError) {
     res.status(400).json({ error: mediaError });
@@ -254,12 +298,11 @@ router.patch('/:uid/:msgKey', async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Vous ne pouvez pas modifier ce message' });
     return;
   }
-  const { text, edited, reactions, pinned, type, encrypted, ct, iv, fileName, duration, replyTo, messageTheme } =
+  const { text, edited, pinned, type, encrypted, ct, iv, fileName, duration, replyTo, messageTheme } =
     req.body as Record<string, unknown>;
   const patch: Record<string, unknown> = {};
   if (text !== undefined) patch.text = text;
   if (edited !== undefined) patch.edited = edited;
-  if (reactions !== undefined) patch.reactions = reactions;
   if (pinned !== undefined) patch.pinned = pinned;
   if (type !== undefined) patch.type = type;
   if (encrypted !== undefined) patch.encrypted = encrypted;
@@ -283,12 +326,11 @@ router.patch('/group/:gid/:msgKey', async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Vous ne pouvez pas modifier ce message' });
     return;
   }
-  const { text, edited, reactions, pinned, type, encrypted, ct, iv, fileName, duration, replyTo, messageTheme } =
+  const { text, edited, pinned, type, encrypted, ct, iv, fileName, duration, replyTo, messageTheme } =
     req.body as Record<string, unknown>;
   const patch: Record<string, unknown> = {};
   if (text !== undefined) patch.text = text;
   if (edited !== undefined) patch.edited = edited;
-  if (reactions !== undefined) patch.reactions = reactions;
   if (pinned !== undefined) patch.pinned = pinned;
   if (type !== undefined) patch.type = type;
   if (encrypted !== undefined) patch.encrypted = encrypted;

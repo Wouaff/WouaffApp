@@ -245,6 +245,7 @@ router.put('/badges/:uid', async (req: Request, res: Response) => {
     if (!(await requireRole(req, res, 'owner'))) return;
   }
   await setUserBadges(req.params.uid, list);
+  await logAdminAction((req as AuthRequest).uid!, 'badges_update', 'user', req.params.uid, list.join(', '));
   res.json({ success: true });
 });
 
@@ -255,6 +256,7 @@ router.post('/badges/:uid/add/:badgeId', async (req: Request, res: Response) => 
     if (!(await requireRole(req, res, 'owner'))) return;
   }
   await addBadgeToUser(req.params.uid, req.params.badgeId);
+  await logAdminAction((req as AuthRequest).uid!, 'badge_add', 'user', req.params.uid, req.params.badgeId);
   res.json({ success: true });
 });
 
@@ -283,10 +285,11 @@ router.put('/profile/:uid', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-/* POST /admin/profile/:uid/reset-wouaffid, réinitialiser le wouaffId */
+/* POST /admin/profile/:uid/reset-wouaffid, réinitialiser le wouaffId (owner) */
 router.post('/profile/:uid/reset-wouaffid', async (req: Request, res: Response) => {
-  if (!(await requireRole(req, res, 'moderator'))) return;
+  if (!(await requireRole(req, res, 'owner'))) return;
   await resetUserWouaffId(req.params.uid);
+  await logAdminAction((req as AuthRequest).uid!, 'wouaffid_reset', 'user', req.params.uid);
   res.json({ success: true });
 });
 
@@ -314,24 +317,12 @@ router.get('/logs', async (req: Request, res: Response) => {
   res.json(logs);
 });
 
-/* GET /admin/login-history/:uid, historique des connexions d'un utilisateur */
+/* GET /admin/login-history/:uid, historique des connexions d'un utilisateur (owner) */
 router.get('/login-history/:uid', async (req: Request, res: Response) => {
-  if (!(await requireRole(req, res, 'moderator'))) return;
+  if (!(await requireRole(req, res, 'owner'))) return;
   const history = await getLoginHistory(req.params.uid, 100);
+  await logAdminAction((req as AuthRequest).uid!, 'login_history_read', 'user', req.params.uid);
   res.json(history);
-});
-
-/* POST /admin/log-action, logger une action depuis le frontend */
-router.post('/log-action', async (req: Request, res: Response) => {
-  if (!(await requireRole(req, res, 'moderator'))) return;
-  const { action, targetType, targetId, details } = req.body as {
-    action: string;
-    targetType?: string;
-    targetId?: string;
-    details?: string;
-  };
-  await logAdminAction((req as AuthRequest).uid!, action, targetType, targetId, details);
-  res.json({ success: true });
 });
 
 /* ── Bannissements (owner) ── */
@@ -514,6 +505,7 @@ router.get('/groups/:gid', async (req: Request, res: Response) => {
     res.status(404).json({ error: 'Groupe introuvable' });
     return;
   }
+  delete group.inviteId;
   res.json(group);
 });
 
@@ -523,7 +515,12 @@ router.put('/groups/:gid', async (req: Request, res: Response) => {
   const allowed = ['name', 'description', 'icon', 'banner', 'privacy'];
   const data: Record<string, unknown> = {};
   for (const key of allowed) {
-    if (req.body[key] !== undefined) data[key] = req.body[key];
+    if (req.body[key] === undefined) continue;
+    if (key === 'privacy' && !['public', 'private'].includes(String(req.body[key]))) {
+      res.status(400).json({ error: 'Visibilité invalide' });
+      return;
+    }
+    data[key] = req.body[key];
   }
   await updateGroup(req.params.gid, data);
   const io: Server = req.app.get('io');
@@ -542,12 +539,23 @@ router.put('/groups/:gid', async (req: Request, res: Response) => {
 router.put('/groups/:gid/members/:uid/role', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const { role } = req.body as { role?: string };
+  const group = await getGroup(req.params.gid);
+  if (!group) {
+    res.status(404).json({ error: 'Groupe introuvable' });
+    return;
+  }
+  const members = group.members as Record<string, { role: string }> | undefined;
+  if (!members?.[req.params.uid]) {
+    res.status(400).json({ error: 'Ce membre ne fait pas partie du groupe' });
+    return;
+  }
   if (role === 'owner') {
     await setGroupMemberRole(req.params.gid, (req as AuthRequest).uid!, 'member');
     await setGroupMemberRole(req.params.gid, req.params.uid, 'owner');
   } else {
     await setGroupMemberRole(req.params.gid, req.params.uid, role || 'member');
   }
+  await logAdminAction((req as AuthRequest).uid!, 'group_member_role', 'group', req.params.gid, req.params.uid);
   const io: Server = req.app.get('io');
   if (io) {
     io.to(`group:${req.params.gid}`).emit('group:role:changed', { gid: req.params.gid, uid: req.params.uid, role });
@@ -558,7 +566,18 @@ router.put('/groups/:gid/members/:uid/role', async (req: Request, res: Response)
 /* DELETE /admin/groups/:gid/members/:uid, exclure un membre */
 router.delete('/groups/:gid/members/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
+  const group = await getGroup(req.params.gid);
+  if (!group) {
+    res.status(404).json({ error: 'Groupe introuvable' });
+    return;
+  }
+  const members = group.members as Record<string, { role: string }> | undefined;
+  if (members?.[req.params.uid]?.role === 'owner') {
+    res.status(403).json({ error: 'Impossible d’exclure le propriétaire du groupe' });
+    return;
+  }
   await removeGroupMember(req.params.gid, req.params.uid);
+  await logAdminAction((req as AuthRequest).uid!, 'group_member_remove', 'group', req.params.gid, req.params.uid);
   const io: Server = req.app.get('io');
   if (io) {
     io.to(`user:${req.params.uid}`).emit('group:member:removed', { gid: req.params.gid, kicked: true });

@@ -47,7 +47,12 @@ import videosRouter from './routes/videos.js';
 import { INDEXNOW_KEY, indexNowKeyFileContent } from './services/indexnow.js';
 import { startQueueWorker } from './services/queue.js';
 import { registerQueueHandlers, setQueueIo } from './services/queueHandlers.js';
-import { cleanExpiredEphemeralMessages, getMaintenanceMode } from './services/rtdb.js';
+import {
+  cleanExpiredEphemeralMessages,
+  getMaintenanceMode,
+  purgeExpiredCommunityBans,
+  purgeOldLoginHistory,
+} from './services/rtdb.js';
 import { buildSeo, defaultSeo, SITE_URL, seoMetaTags } from './services/seo.js';
 import { buildSitemap, robotsTxt } from './services/sitemap.js';
 import { setupSocket } from './socket/index.js';
@@ -111,6 +116,7 @@ app.use('/api/auth/register', rateLimit({ windowMs: 60000, max: 10 }));
 app.use('/api/auth/forgot-password', rateLimit({ windowMs: 60000, max: 5 }));
 app.use('/api/contacts', rateLimit({ windowMs: 60000, max: 60 }));
 app.use('/api/messages', rateLimit({ windowMs: 60000, max: 120 }));
+app.use('/api/conversations', rateLimit({ windowMs: 60000, max: 60 }));
 app.use('/api/search', rateLimit({ windowMs: 60000, max: 30 }));
 app.use('/api/videos', rateLimit({ windowMs: 60000, max: 60 }));
 app.use('/api/posts', rateLimit({ windowMs: 60000, max: 120 }));
@@ -309,6 +315,8 @@ runMigrations()
     setInterval(
       () => {
         purgeExpiredSessions().catch(() => {});
+        purgeOldLoginHistory().catch(() => {});
+        purgeExpiredCommunityBans().catch(() => {});
       },
       60 * 60 * 1000,
     ).unref();
