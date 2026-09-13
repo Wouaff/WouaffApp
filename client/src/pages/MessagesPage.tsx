@@ -365,7 +365,7 @@ export default function MessagesPage() {
 
   return (
     <AppChrome sidebar={false}>
-      <main className="flex-1 min-w-0 h-full border-x border-[var(--border)] bg-[var(--bg-base)] flex overflow-hidden">
+      <main className="flex-1 min-w-0 h-full bg-[var(--bg-base)] flex overflow-hidden">
         <div
           className={`w-full md:w-[340px] md:flex-shrink-0 border-r border-[var(--border)] bg-[var(--bg-base)] flex-col ${
             isMobile && active ? 'hidden md:flex' : 'flex'

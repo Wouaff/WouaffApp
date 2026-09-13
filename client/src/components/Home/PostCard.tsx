@@ -1,4 +1,4 @@
-import { Flag, Heart, MessageCircle, Repeat2, Share2 } from 'lucide-react';
+import { Flag, Heart, MessageCircle, Pencil, Repeat2, Share2 } from 'lucide-react';
 import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -78,7 +78,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             aria-label={t('Voir le profil de {name}', { name: post.pseudo })}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden flex-shrink-0">
               {post.avatar ? (
                 <img
                   src={post.avatar}
@@ -91,7 +91,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             </div>
           </Link>
         ) : (
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden flex-shrink-0">
             {post.avatar ? (
               <img
                 src={post.avatar}
@@ -159,7 +159,7 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
             <button
               type="button"
               onClick={() => onOpen(post)}
-              className="btn btn-ghost btn-pill flex items-center gap-1.5 text-sms px-2 py-1"
+              className="btn btn-ghost btn-pill flex items-center gap-1.5 text-sms px-2 py-1 hover:text-[var(--brand)]"
               aria-label={t('Commenter ({n})', { n: post.comments })}
             >
               <MessageCircle size={17} />
@@ -186,7 +186,9 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
                   setReactionOpen((o) => !o);
                 }}
                 className={`btn btn-pill flex items-center gap-1.5 text-sms px-2 py-1 ${
-                  post.myReaction ? 'text-red-500' : 'btn-ghost hover:text-red-500 hover:bg-red-500/10'
+                  post.myReaction
+                    ? 'text-[var(--like)]'
+                    : 'btn-ghost hover:text-[var(--like)] hover:bg-[var(--like)]/10'
                 }`}
                 aria-label={t('Réagir ({n})', { n: post.likes })}
               >
@@ -216,9 +218,9 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
               }}
               className="btn btn-ghost btn-pill flex items-center gap-1.5 text-sms px-2 py-1"
               aria-label={t('Partager ce post')}
+              title={t('Partager')}
             >
               <Share2 size={17} />
-              <span>{t('Partager')}</span>
             </button>
 
             {isOwn && (
@@ -228,10 +230,11 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
                   e.stopPropagation();
                   setEditOpen(true);
                 }}
-                className="btn btn-ghost btn-pill text-sms px-2 py-1"
+                className="btn btn-ghost btn-pill flex items-center gap-1.5 text-sms px-2 py-1"
                 aria-label={t('Modifier la publication')}
+                title={t('Modifier')}
               >
-                {t('Modifier')}
+                <Pencil size={16} />
               </button>
             )}
 
@@ -244,9 +247,9 @@ const PostCard = memo(function PostCard({ post, repostInfo, onReact, onRepost, o
                 }}
                 className="btn btn-ghost-danger btn-pill flex items-center gap-1.5 text-sms px-2 py-1"
                 aria-label={t('Signaler ce post')}
+                title={t('Signaler')}
               >
-                <Flag size={17} />
-                <span>{t('Signaler')}</span>
+                <Flag size={16} />
               </button>
             )}
           </div>

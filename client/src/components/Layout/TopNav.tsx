@@ -123,7 +123,7 @@ export default function TopNav() {
   const isStaff = user?.staffRole === 'owner' || user?.staffRole === 'moderator';
 
   return (
-    <header className="topbar hidden lg:flex items-center gap-2 px-4 h-16 shrink-0 border-b border-[var(--border)] bg-[var(--bg-base)] sticky top-0 z-40">
+    <header className="topbar hidden lg:flex items-center gap-2 px-4 h-14 shrink-0 border-b border-[var(--border)] bg-[var(--bg-base)] sticky top-0 z-40">
       <button
         type="button"
         className="topbar-brand"

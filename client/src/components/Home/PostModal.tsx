@@ -236,7 +236,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
         className="post-modal-post px-4 pt-4 pb-2 flex gap-3"
         style={{ flexShrink: 1, minHeight: 0, maxHeight: '40vh', overflowY: 'auto' }}
       >
-        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden flex-shrink-0">
+        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden flex-shrink-0">
           {post.avatar ? (
             <img
               src={post.avatar}
@@ -379,7 +379,7 @@ export default function PostModal({ post, onClose, onReact, onRepost, onVote, on
           <ul className="list-none m-0 p-0">
             {comments.map((c) => (
               <li key={c.id} className="flex gap-3 py-3 border-b border-[var(--border)] last:border-b-0">
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
                   {c.avatar ? (
                     <img
                       src={c.avatar}

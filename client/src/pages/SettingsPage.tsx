@@ -285,7 +285,7 @@ export default function SettingsPage() {
   return (
     <AppChrome>
       <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
-        <div className="mx-auto max-w-[720px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
+        <div className="mx-auto max-w-[var(--feed-max)] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
           <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
             <div className="flex items-center gap-3 px-3 h-14">
               <button
@@ -365,7 +365,7 @@ export default function SettingsPage() {
                 />
                 <div className="px-4 sm:px-5 pb-4">
                   <div className="flex items-end justify-between">
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 -mt-10 sm:-mt-12 rounded-2xl bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-2xl flex-shrink-0 shadow-[0_4px_16px_rgba(0,0,0,0.35)]">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 -mt-10 sm:-mt-12 rounded-full bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-2xl flex-shrink-0 shadow-[0_4px_16px_rgba(0,0,0,0.35)]">
                       {avatar ? (
                         <img src={avatar} alt="Votre avatar" className="w-full h-full object-cover" />
                       ) : (

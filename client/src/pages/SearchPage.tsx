@@ -69,7 +69,7 @@ export default function SearchPage() {
 
   return (
     <AppChrome>
-      <main className="flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)] bg-[var(--bg-deep)]">
+      <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
         <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
           <div className="flex items-center px-2 h-14">
             <button
@@ -130,7 +130,7 @@ export default function SearchPage() {
                     onClick={() => openProfile(r)}
                     className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-[var(--border)] bg-transparent cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
                   >
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden flex-shrink-0">
                       {r.profile?.avatar ? (
                         <img
                           src={r.profile.avatar}

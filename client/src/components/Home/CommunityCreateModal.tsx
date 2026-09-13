@@ -149,7 +149,7 @@ export default function CommunityCreateModal({ onClose, onCreated }: CommunityCr
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-xl overflow-hidden cursor-pointer border-none flex-shrink-0 group"
+              className="relative w-16 h-16 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-xl overflow-hidden cursor-pointer border-none flex-shrink-0 group"
               aria-label="Ajouter une photo de profil"
             >
               {avatar ? (

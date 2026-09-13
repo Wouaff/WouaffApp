@@ -1,39 +1,29 @@
 /* ══════════════════════════════════════════════════════════════════════
    SURFACE SOCIALE — le fil
    ─────────────────────────────────────────────────────────────────────
-   Rangée plate, en-tête éditorial solide, indicateur d'onglet en miel,
-   trame gaufre discrète en fond de colonne. Importé en dernier : cette
-   couche peut surcharger les utilitaires pour la colonne centrale.
+   Rangée plate, séparateurs 1px, fond dense. Aucune décoration :
+   pas de texture, pas de liseré animé, pas d'ombre. L'onglet actif se
+   marque par un trait d'accent, comme sur X.
    ══════════════════════════════════════════════════════════════════════ */
 
 .feed-shell {
   scrollbar-gutter: stable;
-  background: var(--bg-deep);
-  position: relative;
+  background: var(--bg-base);
 }
 
 .feed-column {
   background: transparent;
-  position: relative;
 }
 
-/* ── En-tête : masthead éditorial ── */
+/* ── En-tête ── */
 .feed-header {
-  background: var(--bg-deep);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
-  position: relative;
 }
-.feed-header::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 3px;
-  background-image: linear-gradient(to right, var(--brand) 0 12px, transparent 12px 100%);
-  background-size: 18px 100%;
-  opacity: 0.55;
-  pointer-events: none;
+[data-theme="light"] .feed-header {
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .feed-head-inner {
@@ -45,27 +35,23 @@
 
 .feed-head-top {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   height: var(--header-h);
 }
 
 .feed-head-title {
-  font-family: var(--font-display);
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: 800;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
   margin: 0;
 }
 
 .feed-kicker {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--text-muted);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -82,15 +68,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 14px 8px;
+  padding: 16px 8px;
   border: none;
   background: transparent;
   cursor: pointer;
-  font-family: var(--font-display);
   transition:
-    color var(--transition),
-    background-color var(--transition);
+    background-color var(--transition),
+    color var(--transition);
+  font-size: var(--text-md);
+  font-weight: 700;
 }
 .feed-tab:hover {
   background: var(--bg-hover);
@@ -98,160 +84,104 @@
 .feed-tab-underline {
   position: absolute;
   bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 4px;
   background: var(--brand);
   border-radius: 9999px;
-  transform-origin: center;
-  animation: feedTabIn 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.feed-tab-underline::before {
-  content: "";
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  width: 6px;
-  height: 6px;
-  transform: translateX(-50%) rotate(45deg);
-  background: var(--brand);
-  border-radius: 1px;
-}
-@keyframes feedTabIn {
-  from {
-    transform: scaleX(0);
-    opacity: 0;
-  }
-  to {
-    transform: scaleX(1);
-    opacity: 1;
-  }
 }
 
 /* ── Composer ── */
 .feed-composer {
-  position: relative;
-  background: transparent;
-  padding: 18px 16px;
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
 }
 .feed-composer textarea {
   font-family: var(--font-body);
-  font-size: 19px;
-  letter-spacing: -0.01em;
-  line-height: 1.4;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 400;
 }
 .feed-composer textarea::placeholder {
-  color: var(--text-muted);
-  font-family: var(--font-display);
-  letter-spacing: -0.02em;
+  color: var(--text-secondary);
 }
 
-/* ── Posts : rangées plates, liseré miel au survol ── */
+/* ── Posts ── */
 .feed-post {
-  position: relative;
   background: transparent;
-  padding: 18px 16px;
-  transition: background-color 160ms ease;
-  animation: feedPostIn 0.28s ease-out both;
-}
-.feed-post::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 10px;
-  bottom: 10px;
-  width: 2px;
-  border-radius: 9999px;
-  background: var(--brand);
-  opacity: 0;
-  transform: scaleY(0.4);
-  transition:
-    opacity 160ms ease,
-    transform 160ms ease;
-}
-.feed-post:hover::before {
-  opacity: 1;
-  transform: scaleY(1);
-}
-@keyframes feedPostIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  padding: 12px 16px;
+  transition: background-color var(--transition);
 }
 .feed-post:hover {
   background: var(--bg-hover);
 }
 
 .feed-post-text {
-  letter-spacing: -0.008em;
   font-size: var(--text-md);
-  line-height: 1.55;
+  line-height: 20px;
+  letter-spacing: 0;
 }
 
 /* ── Barre d'actions ── */
 .feed-post-actions {
-  color: var(--text-muted);
-  gap: 2px;
-  justify-content: flex-start;
+  color: var(--text-secondary);
+  justify-content: space-between;
+  max-width: 460px;
 }
 .feed-post-actions .btn {
-  min-height: 36px;
-  padding-inline: 10px;
+  min-height: 34px;
+  min-width: 34px;
+  padding-inline: 8px;
   transition:
-    color 160ms ease,
-    background-color 160ms ease,
-    transform 160ms ease;
+    color var(--transition),
+    background-color var(--transition);
 }
-.feed-post-actions .btn:active {
-  transform: scale(0.94);
+.feed-post-actions .btn:hover {
+  background: transparent;
 }
 .feed-post-actions .btn svg {
-  transition: transform 160ms ease;
+  transition: transform var(--transition);
 }
 .feed-post-actions .btn:hover svg {
-  transform: scale(1.15);
+  transform: scale(1.1);
 }
 
-/* ── Cartes latérales ── */
+/* ── Colonne contextuelle : cartes plates ── */
 .side-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: none;
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease;
+  overflow: hidden;
 }
 .side-card h2 {
-  font-family: var(--font-display);
-  letter-spacing: -0.03em;
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
-/* ── Skeletons du fil ── */
+/* ── Squelettes du fil ── */
 .feed-skeleton {
-  padding: 18px 16px;
+  padding: 12px 16px;
   display: flex;
   gap: 12px;
 }
 .feed-skeleton .sk-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: 9999px;
   flex-shrink: 0;
-  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--bg-active) 37%, var(--bg-hover) 63%);
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-active) 37%, var(--bg-card) 63%);
   background-size: 200% 100%;
   animation: skeleton 1.4s ease infinite;
 }
 .feed-skeleton .sk-line {
-  height: 13px;
-  border-radius: 8px;
-  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--bg-active) 37%, var(--bg-hover) 63%);
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-active) 37%, var(--bg-card) 63%);
   background-size: 200% 100%;
   animation: skeleton 1.4s ease infinite;
 }
@@ -267,29 +197,16 @@
   margin-top: 8px;
 }
 
-/* ── État vide : tuile gaufre ── */
+/* ── État vide ── */
 .feed-empty-icon {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 74px;
-  height: 74px;
-  border-radius: 22px;
-  background: var(--brand-soft);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-  color: var(--brand);
-}
-.feed-empty-icon::before {
-  content: "";
-  position: absolute;
-  inset: 10px;
-  background-image:
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: 12px 12px;
-  opacity: 0.9;
-  border-radius: 12px;
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
 }
 
 /* ── Mobile ── */
@@ -299,7 +216,7 @@
   }
   .feed-composer,
   .feed-post {
-    padding-inline: 14px;
+    padding-inline: 16px;
   }
   .feed-head-title {
     font-size: var(--text-xl);

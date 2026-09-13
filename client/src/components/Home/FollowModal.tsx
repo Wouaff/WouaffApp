@@ -122,7 +122,7 @@ export default function FollowModal({ wouaffId, kind, onClose, onChange }: Follo
                     onClick={() => openProfile(u)}
                     className="flex items-center gap-3 min-w-0 flex-1 text-left border-none bg-transparent p-0 cursor-pointer"
                   >
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
                       {u.avatar ? (
                         <img
                           src={u.avatar}

@@ -238,7 +238,7 @@ export default function CommunityPage() {
             >
               <ArrowLeft size={18} />
             </button>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-lg overflow-hidden">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-lg overflow-hidden">
               {community?.avatar ? (
                 <img
                   src={community?.avatar}

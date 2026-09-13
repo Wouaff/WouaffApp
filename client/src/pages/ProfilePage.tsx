@@ -329,7 +329,7 @@ export default function ProfilePage() {
   return (
     <AppChrome>
       <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
-        <div className="mx-auto max-w-[720px] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
+        <div className="mx-auto max-w-[var(--feed-max)] min-h-full border-x border-[var(--border)] bg-[var(--bg-base)]">
           <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
             <div className="flex items-center gap-5 px-2 h-14">
               <button
@@ -355,7 +355,7 @@ export default function ProfilePage() {
           />
 
           <div className="flex items-start justify-between px-4">
-            <div className="w-24 h-24 -mt-12 rounded-[28px] border-4 border-[var(--bg-base)] bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-3xl flex-shrink-0">
+            <div className="w-24 h-24 -mt-12 rounded-full border-4 border-[var(--bg-base)] bg-gradient-to-br from-brand to-brand-dark overflow-hidden flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-3xl flex-shrink-0">
               {avatar ? (
                 <img src={avatar} alt={`Avatar de ${pseudo}`} className="w-full h-full object-cover" />
               ) : (

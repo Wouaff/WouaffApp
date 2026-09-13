@@ -179,7 +179,7 @@ export default function NotificationsPage() {
 
   return (
     <AppChrome>
-      <main className="flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)] bg-[var(--bg-deep)]">
+      <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
         <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
           <div className="flex items-center justify-between px-4 h-14">
             <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">
@@ -267,7 +267,7 @@ export default function NotificationsPage() {
                     }`}
                   >
                     <div className="relative flex-shrink-0">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden">
                         {item.actorAvatar ? (
                           <img
                             src={item.actorAvatar}

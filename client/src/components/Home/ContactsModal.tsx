@@ -242,7 +242,7 @@ export default function ContactsModal({ onDone, onClose }: ContactsModalProps) {
                         key={m.uid}
                         className="flex items-center gap-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2"
                       >
-                        <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
                           {m.avatar ? (
                             <img
                               src={m.avatar}

@@ -54,7 +54,7 @@ export default function CommunityCard({ community, onChanged, compact }: Communi
       onClick={() => navigate(`/c/${community.name}`)}
     >
       <div className="flex items-start gap-3">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-lg overflow-hidden flex-shrink-0">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-lg overflow-hidden flex-shrink-0">
           {community.avatar ? (
             <img src={community.avatar} alt={`Avatar de c/${community.name}`} className="w-full h-full object-cover" />
           ) : (

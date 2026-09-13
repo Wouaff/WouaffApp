@@ -130,7 +130,7 @@ export default function TagPage() {
 
   return (
     <AppChrome>
-      <main className="flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)] bg-[var(--bg-deep)]">
+      <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
         <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
           <div className="flex items-center gap-5 px-2 h-14">
             <button

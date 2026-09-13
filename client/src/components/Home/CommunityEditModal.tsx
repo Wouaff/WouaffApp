@@ -171,7 +171,7 @@ export default function CommunityEditModal({ community, onClose, onUpdated }: Co
             <button
               type="button"
               onClick={() => avatarInputRef.current?.click()}
-              className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-xl overflow-hidden cursor-pointer border-none flex-shrink-0 group"
+              className="relative w-16 h-16 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-xl overflow-hidden cursor-pointer border-none flex-shrink-0 group"
               aria-label="Changer la photo de profil"
             >
               {avatar ? (

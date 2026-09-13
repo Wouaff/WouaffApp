@@ -328,8 +328,8 @@ export default function HomePage() {
 
   return (
     <AppChrome>
-      <main className="feed-shell flex-1 min-w-0 h-full overflow-y-auto border-x border-[var(--border)]">
-        <header className="feed-header sticky top-0 z-10">
+      <main className="feed-shell flex-1 min-w-0 h-full overflow-y-auto">
+        <header className="feed-header sticky top-0 z-10 w-full max-w-[var(--feed-max)] mx-auto border-x border-[var(--border)]">
           <div className="feed-head-inner">
             <div className="feed-head-top">
               <h1 className="feed-head-title">{t('Accueil')}</h1>
@@ -354,7 +354,7 @@ export default function HomePage() {
           </div>
         </header>
 
-        <div className="feed-column w-full max-w-[var(--feed-max)] mx-auto waffle-texture">
+        <div className="feed-column w-full max-w-[var(--feed-max)] mx-auto border-x border-[var(--border)]">
           <ComposeBox onPost={handlePost} />
           <BuyMeACoffee />
 

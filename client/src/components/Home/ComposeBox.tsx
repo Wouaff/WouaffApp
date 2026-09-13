@@ -318,7 +318,7 @@ export default function ComposeBox({ onPost }: ComposeBoxProps) {
 
   return (
     <div className="feed-composer flex gap-3 p-4 border-b border-[var(--border)]">
-      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden flex-shrink-0">
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden flex-shrink-0">
         {avatar ? (
           <img src={avatar} alt={t('Votre avatar')} className="w-full h-full object-cover" />
         ) : (

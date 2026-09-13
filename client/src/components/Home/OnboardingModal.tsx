@@ -97,7 +97,7 @@ export default function OnboardingModal({ onDone, onSkip }: OnboardingModalProps
             : 'border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)]'
         }`}
       >
-        <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
           {u.avatar ? (
             <img
               src={u.avatar}
@@ -167,7 +167,7 @@ export default function OnboardingModal({ onDone, onSkip }: OnboardingModalProps
 
   return (
     <div className="modal-overlay active">
-      <div className="flex flex-col w-full max-w-[720px] max-h-[92dvh] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
+      <div className="flex flex-col w-full max-w-[var(--feed-max)] max-h-[92dvh] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
         <div className="flex items-center gap-4 px-6 py-4 border-b border-[var(--border)] flex-shrink-0">
           <div
             className="w-10 h-10 rounded-xl bg-[var(--brand-glow)] flex items-center justify-center text-xl text-brand"

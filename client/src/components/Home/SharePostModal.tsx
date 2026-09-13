@@ -83,7 +83,7 @@ export default function SharePostModal({ post, onClose }: SharePostModalProps) {
 
         <div className="px-5 py-4">
           <div className="flex gap-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] p-3 mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
               {post.avatar ? (
                 <img
                   src={post.avatar}

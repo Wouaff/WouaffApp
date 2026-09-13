@@ -26,7 +26,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('wouaff-theme', theme);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
-      meta.setAttribute('content', theme === 'light' ? '#f4f1ea' : '#0e0b13');
+      meta.setAttribute('content', theme === 'light' ? '#ffffff' : '#000000');
     }
   }, [theme]);
 

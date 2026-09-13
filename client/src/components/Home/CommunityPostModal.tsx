@@ -276,7 +276,7 @@ export default function CommunityPostModal({
               <ul className="list-none m-0 p-0">
                 {comments.map((c) => (
                   <li key={c.id} className="flex gap-3 py-3 border-b border-[var(--border)] last:border-b-0">
-                    <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-sm overflow-hidden flex-shrink-0">
                       {c.authorAvatar ? (
                         <img
                           src={c.authorAvatar}
