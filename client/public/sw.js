@@ -78,7 +78,14 @@ self.addEventListener('fetch', (event) => {
 /* Clic sur une notification système */
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || '/';
+  const rawUrl = event.notification.data?.url || '/';
+  let url = '/';
+  try {
+    const parsed = new URL(rawUrl, self.location.origin);
+    if (parsed.origin === self.location.origin) url = parsed.pathname + parsed.search + parsed.hash;
+  } catch {
+    url = '/';
+  }
   event.waitUntil(
     (async () => {
       const windowClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });

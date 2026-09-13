@@ -7,7 +7,7 @@ import { verifyToken } from '../middleware/auth.js';
 import { verifyCaptchaIfNewAccount } from '../middleware/captcha.js';
 import { notifyIndexNow } from '../services/indexnow.js';
 import { enqueueJob } from '../services/queue.js';
-import { getProfile, reportPost } from '../services/rtdb.js';
+import { deletePostById, getProfile, reportPost } from '../services/rtdb.js';
 import type { AuthRequest, PostComment, PostData, PostFeedItem, PostPoll, PostReaction } from '../types/index.js';
 import { fetchBadgesMap } from '../utils/badges.js';
 import { extractHashtags } from '../utils/hashtags.js';
@@ -550,18 +550,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Interdit' });
     return;
   }
-  await query('DELETE FROM posts WHERE id = ?', [req.params.id]);
-  await query('DELETE FROM post_likes WHERE postId = ?', [req.params.id]);
-  await query('DELETE FROM post_reposts WHERE postId = ?', [req.params.id]);
-  await query('DELETE FROM post_comments WHERE postId = ?', [req.params.id]);
-  await query('DELETE FROM hashtag_occurrences WHERE postId = ?', [req.params.id]);
-  await query('DELETE FROM post_mentions WHERE postId = ?', [req.params.id]);
-  const comments = await query<Array<{ id: number }>>('SELECT id FROM post_comments WHERE postId = ?', [req.params.id]);
-  if (comments.length > 0) {
-    const ids = comments.map((c) => c.id);
-    const placeholders = ids.map(() => '?').join(',');
-    await query(`DELETE FROM comment_mentions WHERE commentId IN (${placeholders})`, ids);
-  }
+  await deletePostById(req.params.id);
   const io: Server = req.app.get('io');
   if (io) io.emit('post:deleted', { postId: req.params.id });
   notifyIndexNow(`/post/${req.params.id}`);

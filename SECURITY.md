@@ -31,9 +31,11 @@ We ask that you:
 
 This project implements:
 
-- **End-to-end encryption** (ECDH P-256 + AES-256-GCM)
-- **Session-based authentication** with httpOnly cookies
+- **Session-based authentication** with httpOnly cookies (expiration + revocation)
 - **Rate limiting** on authentication and messaging endpoints
-- **XSS prevention** through HTML sanitization
-- **Input validation** on all API endpoints
+- **Parameterized SQL queries** everywhere (no string-built queries)
+- **Input validation** on sensitive endpoints (media, links, identifiers, sizes)
 - **Dependency scanning** (review dependencies regularly)
+
+Please note: messages are **not** end-to-end encrypted at this time, and no HTML
+sanitizer is used — content is rendered as text by the client framework.

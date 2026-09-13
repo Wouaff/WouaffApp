@@ -577,8 +577,6 @@ export const admin = {
         createdAt: number;
       }>
     >('GET', '/admin/logs'),
-  logAction: (action: string, targetType?: string, targetId?: string, details?: string) =>
-    request<{ success: boolean }>('POST', '/admin/log-action', { action, targetType, targetId, details }),
   loginHistory: (uid: string) => request<AdminLoginHistoryRow[]>('GET', `/admin/login-history/${uid}`),
   posts: {
     list: (limit = 30, uid?: string) =>

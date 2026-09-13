@@ -1,9 +1,16 @@
+import { timingSafeEqual } from 'node:crypto';
 import { isIP } from 'node:net';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
-import { clearBanCache, clearIpBanCache, verifyToken } from '../middleware/auth.js';
+import {
+  clearAllCachedSessions,
+  clearBanCache,
+  clearCachedSessionsForUid,
+  clearIpBanCache,
+  verifyToken,
+} from '../middleware/auth.js';
 import {
   addBadgeToUser,
   banIp,
@@ -62,6 +69,8 @@ router.use(verifyToken);
 
 type StaffLevel = 'moderator' | 'owner';
 
+const SENSITIVE_BADGES = new Set(['founder', 'dieu', 'staff', 'chef-security', 'v.i.p', 'vip']);
+
 async function requireRole(req: Request, res: Response, min: StaffLevel): Promise<boolean> {
   const authReq = req as AuthRequest;
   const role = await getStaffRole(authReq.uid!);
@@ -79,6 +88,18 @@ async function requireRole(req: Request, res: Response, min: StaffLevel): Promis
 /* POST /admin/bootstrap, premier admin si la liste staff est vide */
 router.post('/bootstrap', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
+  const expectedSecret = (process.env.ADMIN_BOOTSTRAP_SECRET || '').trim();
+  if (!expectedSecret) {
+    res.status(503).json({ error: 'Bootstrap désactivé : ADMIN_BOOTSTRAP_SECRET non configuré' });
+    return;
+  }
+  const provided = String((req.body as { secret?: string } | undefined)?.secret || '').trim();
+  const providedBuf = Buffer.from(provided);
+  const expectedBuf = Buffer.from(expectedSecret);
+  if (providedBuf.length !== expectedBuf.length || !timingSafeEqual(providedBuf, expectedBuf)) {
+    res.status(403).json({ error: 'Code de démarrage invalide' });
+    return;
+  }
   const allStaff = await getAllStaff();
   if (Object.keys(allStaff).length > 0) {
     res.status(403).json({ error: 'Un staff existe déjà, contactez un admin' });
@@ -129,6 +150,14 @@ router.put('/staff/:uid/role', async (req: Request, res: Response) => {
 /* DELETE /admin/staff/:uid, retirer du staff (owner) */
 router.delete('/staff/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
+  const allStaff = await getAllStaff();
+  if (allStaff[req.params.uid]?.role === 'owner') {
+    const owners = Object.values(allStaff).filter((s) => s.role === 'owner');
+    if (owners.length <= 1) {
+      res.status(400).json({ error: 'Impossible de retirer le dernier propriétaire' });
+      return;
+    }
+  }
   await setStaff(req.params.uid, false);
   await logAdminAction((req as AuthRequest).uid!, 'staff_remove', 'user', req.params.uid);
   res.json({ success: true });
@@ -152,7 +181,7 @@ router.get('/analytics', async (req: Request, res: Response) => {
 /* GET /admin/search, recherche globale */
 router.get('/search', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
-  const q = ((req.query.q as string) || '').trim();
+  const q = ((req.query.q as string) || '').trim().slice(0, 100);
   if (!q) {
     res.json({ users: [], posts: [], videos: [], groups: [], messages: [] });
     return;
@@ -194,7 +223,8 @@ router.get('/users/recent', async (_req: Request, res: Response) => {
 });
 
 /* GET /admin/badges, liste des badges disponibles */
-router.get('/badges', async (_req: Request, res: Response) => {
+router.get('/badges', async (req: Request, res: Response) => {
+  if (!(await requireRole(req, res, 'moderator'))) return;
   const badges = await getBadges();
   res.json(badges);
 });
@@ -210,14 +240,23 @@ router.post('/badges/seed', async (req: Request, res: Response) => {
 router.put('/badges/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const { badgeIds } = req.body as { badgeIds: string[] };
-  await setUserBadges(req.params.uid, badgeIds || []);
+  const list = Array.isArray(badgeIds) ? badgeIds : [];
+  if (list.some((id) => SENSITIVE_BADGES.has(String(id).toLowerCase()))) {
+    if (!(await requireRole(req, res, 'owner'))) return;
+  }
+  await setUserBadges(req.params.uid, list);
+  await logAdminAction((req as AuthRequest).uid!, 'badges_update', 'user', req.params.uid, list.join(', '));
   res.json({ success: true });
 });
 
 /* POST /admin/badges/:uid/add/:badgeId, ajouter un badge à un utilisateur */
 router.post('/badges/:uid/add/:badgeId', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
+  if (SENSITIVE_BADGES.has(String(req.params.badgeId).toLowerCase())) {
+    if (!(await requireRole(req, res, 'owner'))) return;
+  }
   await addBadgeToUser(req.params.uid, req.params.badgeId);
+  await logAdminAction((req as AuthRequest).uid!, 'badge_add', 'user', req.params.uid, req.params.badgeId);
   res.json({ success: true });
 });
 
@@ -230,17 +269,27 @@ router.get('/profile/:uid/email', async (req: Request, res: Response) => {
 
 /* PUT /admin/profile/:uid, modifier le profil d'un utilisateur */
 router.put('/profile/:uid', async (req: Request, res: Response) => {
-  if (req.body && req.body.email !== undefined) {
+  const body = (req.body || {}) as Record<string, unknown>;
+  const needsOwner = body.email !== undefined || body.wouaffId !== undefined;
+  if (needsOwner) {
     if (!(await requireRole(req, res, 'owner'))) return;
   } else if (!(await requireRole(req, res, 'moderator'))) return;
-  await updateProfileByAdmin(req.params.uid, req.body);
+  await updateProfileByAdmin(req.params.uid, body);
+  await logAdminAction(
+    (req as AuthRequest).uid!,
+    'profile_update',
+    'user',
+    req.params.uid,
+    Object.keys(body).join(', '),
+  );
   res.json({ success: true });
 });
 
-/* POST /admin/profile/:uid/reset-wouaffid, réinitialiser le wouaffId */
+/* POST /admin/profile/:uid/reset-wouaffid, réinitialiser le wouaffId (owner) */
 router.post('/profile/:uid/reset-wouaffid', async (req: Request, res: Response) => {
-  if (!(await requireRole(req, res, 'moderator'))) return;
+  if (!(await requireRole(req, res, 'owner'))) return;
   await resetUserWouaffId(req.params.uid);
+  await logAdminAction((req as AuthRequest).uid!, 'wouaffid_reset', 'user', req.params.uid);
   res.json({ success: true });
 });
 
@@ -248,6 +297,7 @@ router.post('/profile/:uid/reset-wouaffid', async (req: Request, res: Response) 
 router.delete('/profile/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   await deleteUserProfile(req.params.uid);
+  clearCachedSessionsForUid(req.params.uid);
   await logAdminAction((req as AuthRequest).uid!, 'account_delete', 'user', req.params.uid);
   res.json({ success: true });
 });
@@ -267,24 +317,12 @@ router.get('/logs', async (req: Request, res: Response) => {
   res.json(logs);
 });
 
-/* GET /admin/login-history/:uid, historique des connexions d'un utilisateur */
+/* GET /admin/login-history/:uid, historique des connexions d'un utilisateur (owner) */
 router.get('/login-history/:uid', async (req: Request, res: Response) => {
-  if (!(await requireRole(req, res, 'moderator'))) return;
+  if (!(await requireRole(req, res, 'owner'))) return;
   const history = await getLoginHistory(req.params.uid, 100);
+  await logAdminAction((req as AuthRequest).uid!, 'login_history_read', 'user', req.params.uid);
   res.json(history);
-});
-
-/* POST /admin/log-action, logger une action depuis le frontend */
-router.post('/log-action', async (req: Request, res: Response) => {
-  if (!(await requireRole(req, res, 'moderator'))) return;
-  const { action, targetType, targetId, details } = req.body as {
-    action: string;
-    targetType?: string;
-    targetId?: string;
-    details?: string;
-  };
-  await logAdminAction((req as AuthRequest).uid!, action, targetType, targetId, details);
-  res.json({ success: true });
 });
 
 /* ── Bannissements (owner) ── */
@@ -314,7 +352,10 @@ router.post('/bans', async (req: Request, res: Response) => {
   await banUser(uid, reason, authReq.uid!, expiresAt);
   await clearBanCache(uid);
   const io: Server = req.app.get('io');
-  if (io) io.to(`user:${uid}`).emit('account:banned', { reason: reason || null, expiresAt: expiresAt ?? null });
+  if (io) {
+    io.to(`user:${uid}`).emit('account:banned', { reason: reason || null, expiresAt: expiresAt ?? null });
+    io.in(`user:${uid}`).disconnectSockets(true);
+  }
   await logAdminAction(authReq.uid!, 'user_ban', 'user', uid, reason || '');
   res.json({ success: true });
 });
@@ -451,7 +492,7 @@ router.get('/groups', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
   const offset = Math.max(0, parseInt(req.query.offset as string, 10) || 0);
-  const q = (req.query.q as string) || undefined;
+  const q = ((req.query.q as string) || '').trim().slice(0, 100) || undefined;
   const groups = await listAllGroups(limit, offset, q);
   res.json(groups);
 });
@@ -464,6 +505,7 @@ router.get('/groups/:gid', async (req: Request, res: Response) => {
     res.status(404).json({ error: 'Groupe introuvable' });
     return;
   }
+  delete group.inviteId;
   res.json(group);
 });
 
@@ -473,7 +515,12 @@ router.put('/groups/:gid', async (req: Request, res: Response) => {
   const allowed = ['name', 'description', 'icon', 'banner', 'privacy'];
   const data: Record<string, unknown> = {};
   for (const key of allowed) {
-    if (req.body[key] !== undefined) data[key] = req.body[key];
+    if (req.body[key] === undefined) continue;
+    if (key === 'privacy' && !['public', 'private'].includes(String(req.body[key]))) {
+      res.status(400).json({ error: 'Visibilité invalide' });
+      return;
+    }
+    data[key] = req.body[key];
   }
   await updateGroup(req.params.gid, data);
   const io: Server = req.app.get('io');
@@ -492,12 +539,23 @@ router.put('/groups/:gid', async (req: Request, res: Response) => {
 router.put('/groups/:gid/members/:uid/role', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const { role } = req.body as { role?: string };
+  const group = await getGroup(req.params.gid);
+  if (!group) {
+    res.status(404).json({ error: 'Groupe introuvable' });
+    return;
+  }
+  const members = group.members as Record<string, { role: string }> | undefined;
+  if (!members?.[req.params.uid]) {
+    res.status(400).json({ error: 'Ce membre ne fait pas partie du groupe' });
+    return;
+  }
   if (role === 'owner') {
     await setGroupMemberRole(req.params.gid, (req as AuthRequest).uid!, 'member');
     await setGroupMemberRole(req.params.gid, req.params.uid, 'owner');
   } else {
     await setGroupMemberRole(req.params.gid, req.params.uid, role || 'member');
   }
+  await logAdminAction((req as AuthRequest).uid!, 'group_member_role', 'group', req.params.gid, req.params.uid);
   const io: Server = req.app.get('io');
   if (io) {
     io.to(`group:${req.params.gid}`).emit('group:role:changed', { gid: req.params.gid, uid: req.params.uid, role });
@@ -508,7 +566,18 @@ router.put('/groups/:gid/members/:uid/role', async (req: Request, res: Response)
 /* DELETE /admin/groups/:gid/members/:uid, exclure un membre */
 router.delete('/groups/:gid/members/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
+  const group = await getGroup(req.params.gid);
+  if (!group) {
+    res.status(404).json({ error: 'Groupe introuvable' });
+    return;
+  }
+  const members = group.members as Record<string, { role: string }> | undefined;
+  if (members?.[req.params.uid]?.role === 'owner') {
+    res.status(403).json({ error: 'Impossible d’exclure le propriétaire du groupe' });
+    return;
+  }
   await removeGroupMember(req.params.gid, req.params.uid);
+  await logAdminAction((req as AuthRequest).uid!, 'group_member_remove', 'group', req.params.gid, req.params.uid);
   const io: Server = req.app.get('io');
   if (io) {
     io.to(`user:${req.params.uid}`).emit('group:member:removed', { gid: req.params.gid, kicked: true });
@@ -632,6 +701,7 @@ router.post('/maintenance', async (req: Request, res: Response) => {
 router.post('/purge-unverified', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   const result = await purgeUnverifiedAccounts();
+  clearAllCachedSessions();
   await logAdminAction((req as AuthRequest).uid!, 'purge_unverified', 'system', undefined, `${result.deleted} comptes`);
   res.json(result);
 });

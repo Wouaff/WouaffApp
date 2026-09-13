@@ -37,6 +37,18 @@ export async function login(email: string, password: string): Promise<LoginResul
 export async function logout() {
   await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
   clearE2EE();
+  await clearAppCaches();
+}
+
+async function clearAppCaches(): Promise<void> {
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function getSessionId(): string | null {

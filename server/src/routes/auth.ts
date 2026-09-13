@@ -1,11 +1,18 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
-import { createSession, verifyToken } from '../middleware/auth.js';
+import {
+  clearCachedSessionsForUid,
+  createSession,
+  destroySession,
+  getSessionUid,
+  verifyToken,
+} from '../middleware/auth.js';
 import { verifyCaptcha } from '../middleware/captcha.js';
 import { rateLimitByKey } from '../middleware/rateLimitByKey.js';
+import { clearAttempts, registerAttemptFailure, tooManyAttempts } from '../services/attemptLimiter.js';
 import { enqueueNewUserAlert } from '../services/discordWebhook.js';
 import { genCode, sendVerificationEmail } from '../services/email.js';
 import { enqueueJob } from '../services/queue.js';
@@ -13,9 +20,14 @@ import { getStaffRole, isStaff, isUserBanned } from '../services/rtdb.js';
 import { createLoginChallenge, get2FAStatus } from '../services/twoFA.js';
 import { createWelcomePost } from '../services/welcomePost.js';
 import type { AuthRequest } from '../types/index.js';
+import { getClientIp } from '../utils/clientIp.js';
 import { isValidEmail } from '../utils/emailValidation.js';
 
 const router: Router = Router();
+
+const DUMMY_PASSWORD_HASH = '$2b$10$SmCAEr8elAW0mz77ER94/OQ85aQX2MM8HrmitAy7zIHM/uEtIVKNu';
+const VERIFY_CODE_WINDOW_MS = 15 * 60 * 1000;
+const VERIFY_CODE_MAX_ATTEMPTS = 10;
 
 function genUid(): string {
   return randomUUID().replace(/-/g, '').substring(0, 28);
@@ -23,6 +35,10 @@ function genUid(): string {
 
 function genToken(): string {
   return randomUUID().replace(/-/g, '') + randomUUID().replace(/-/g, '');
+}
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }
 
 function setSessionCookie(res: Response, sessionId: string): void {
@@ -48,7 +64,7 @@ const registerEmailLimit = rateLimitByKey({
 });
 
 /* POST /auth/register */
-router.post('/register', registerEmailLimit, async (req: Request, res: Response) => {
+router.post('/register', registerEmailLimit, verifyCaptcha, async (req: Request, res: Response) => {
   try {
     /* Honeypot : si rempli par un bot, on fait semblant de marcher mais on rejette */
     const honeypot = (req.body as Record<string, unknown>).website as string | undefined;
@@ -57,7 +73,8 @@ router.post('/register', registerEmailLimit, async (req: Request, res: Response)
       return;
     }
 
-    const { email, password, pseudo } = req.body as { email?: string; password?: string; pseudo?: string };
+    const { email: rawEmail, password, pseudo } = req.body as { email?: string; password?: string; pseudo?: string };
+    const email = (rawEmail || '').trim();
     if (!email || !password) {
       res.status(400).json({ error: 'Email et mot de passe requis' });
       return;
@@ -70,9 +87,14 @@ router.post('/register', registerEmailLimit, async (req: Request, res: Response)
       res.status(400).json({ error: 'Mot de passe trop court (8 caractères minimum)' });
       return;
     }
+    if (password.length > 72) {
+      res.status(400).json({ error: 'Mot de passe trop long (72 caractères maximum)' });
+      return;
+    }
     const existing = await getOne<{ uid: string }>('SELECT uid FROM users WHERE email = ?', [email]);
     if (existing) {
-      res.status(409).json({ error: 'Cet email est déjà utilisé' });
+      await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+      res.status(400).json({ error: 'Impossible de créer le compte. Si vous avez déjà un compte, connectez-vous.' });
       return;
     }
     if (pseudo && /[A-Z]/.test(pseudo)) {
@@ -119,7 +141,7 @@ router.post('/register', registerEmailLimit, async (req: Request, res: Response)
     enqueueNewUserAlert({ pseudo: finalPseudo, wouaffId, uid }).catch(() => {});
 
     const { sessionId } = await createSession(uid, {
-      ip: req.ip,
+      ip: getClientIp(req),
       userAgent: req.headers['user-agent'] as string | undefined,
     });
     setSessionCookie(res, sessionId);
@@ -145,7 +167,8 @@ router.post('/register', registerEmailLimit, async (req: Request, res: Response)
 /* POST /auth/login */
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body as { email?: string; password?: string };
+    const { email: rawEmail, password } = req.body as { email?: string; password?: string };
+    const email = (rawEmail || '').trim();
     if (!email || !password) {
       res.status(400).json({ error: 'Email et mot de passe requis' });
       return;
@@ -155,18 +178,27 @@ router.post('/login', async (req: Request, res: Response) => {
       [email],
     );
     if (!profile) {
+      await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
       res.status(401).json({ error: 'Email ou mot de passe incorrect' });
       return;
     }
+    const attemptKey = `login-account:${profile.uid}`;
+    if (tooManyAttempts(attemptKey, 8)) {
+      res.status(429).json({ error: 'Trop de tentatives pour ce compte, réessayez plus tard' });
+      return;
+    }
     if (!profile.passwordHash) {
-      res.status(401).json({ error: 'Compte migré, connexion temporairement indisponible' });
+      await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+      res.status(401).json({ error: 'Email ou mot de passe incorrect' });
       return;
     }
     const valid = await bcrypt.compare(password, profile.passwordHash);
     if (!valid) {
+      registerAttemptFailure(attemptKey, 15 * 60 * 1000);
       res.status(401).json({ error: 'Email ou mot de passe incorrect' });
       return;
     }
+    clearAttempts(attemptKey);
     const banned = await isUserBanned(profile.uid);
     if (banned) {
       res.status(403).json({ error: 'Ce compte est banni.' });
@@ -187,7 +219,7 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
     const { sessionId } = await createSession(profile.uid, {
-      ip: req.ip,
+      ip: getClientIp(req),
       userAgent: req.headers['user-agent'] as string | undefined,
     });
     setSessionCookie(res, sessionId);
@@ -222,7 +254,7 @@ router.post('/logout', async (req: Request, res: Response) => {
     if (session) {
       await query("UPDATE users SET status='offline', lastSeen=? WHERE uid=?", [Date.now(), session.uid]);
     }
-    await query('DELETE FROM sessions WHERE sessionId = ?', [sessionId]);
+    await destroySession(sessionId);
   }
   res.clearCookie('session_id');
   res.json({ success: true });
@@ -231,7 +263,8 @@ router.post('/logout', async (req: Request, res: Response) => {
 /* POST /auth/forgot-password */
 router.post('/forgot-password', verifyCaptcha, async (req: Request, res: Response) => {
   try {
-    const { email } = req.body as { email?: string };
+    const { email: rawEmail } = req.body as { email?: string };
+    const email = (rawEmail || '').trim();
     if (!email) {
       res.status(400).json({ error: 'Email requis' });
       return;
@@ -242,10 +275,11 @@ router.post('/forgot-password', verifyCaptcha, async (req: Request, res: Respons
       res.json({ success: true });
       return;
     }
+    await query("UPDATE email_tokens SET used=1 WHERE uid=? AND type='reset' AND used=0", [profile.uid]);
     const token = genToken();
     await query('INSERT INTO email_tokens (uid, token, type, expiresAt, createdAt) VALUES (?,?,?,?,?)', [
       profile.uid,
-      token,
+      hashToken(token),
       'reset',
       Date.now() + 3600000,
       Date.now(),
@@ -271,9 +305,13 @@ router.post('/reset-password', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Mot de passe trop court (8 caractères minimum)' });
       return;
     }
+    if (password.length > 72) {
+      res.status(400).json({ error: 'Mot de passe trop long (72 caractères maximum)' });
+      return;
+    }
     const row = await getOne<{ uid: string; id: number }>(
       'SELECT uid, id FROM email_tokens WHERE token=? AND type=? AND used=0 AND expiresAt>?',
-      [token, 'reset', Date.now()],
+      [hashToken(token), 'reset', Date.now()],
     );
     if (!row) {
       res.status(400).json({ error: 'Token invalide ou expiré' });
@@ -281,9 +319,10 @@ router.post('/reset-password', async (req: Request, res: Response) => {
     }
     const passwordHash = await bcrypt.hash(password, 10);
     await query('UPDATE users SET passwordHash=? WHERE uid=?', [passwordHash, row.uid]);
-    await query('UPDATE email_tokens SET used=1 WHERE id=?', [row.id]);
+    await query("UPDATE email_tokens SET used=1 WHERE uid=? AND type='reset'", [row.uid]);
     /* Destroy all existing sessions for security */
     await query('DELETE FROM sessions WHERE uid=?', [row.uid]);
+    clearCachedSessionsForUid(row.uid);
     res.json({ success: true });
   } catch (err) {
     console.error('Reset-password error:', err);
@@ -308,6 +347,7 @@ router.post('/send-verification', verifyToken, async (req: Request, res: Respons
       return;
     }
     const code = genCode();
+    await query("UPDATE email_tokens SET used=1 WHERE uid=? AND type='verify' AND used=0", [authReq.uid!]);
     await query('INSERT INTO email_tokens (uid, token, type, expiresAt, createdAt) VALUES (?,?,?,?,?)', [
       authReq.uid!,
       code,
@@ -338,11 +378,23 @@ router.post('/verify-email', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Code requis' });
       return;
     }
-    const row = await getOne<{ uid: string; id: number; used: number; expiresAt: number }>(
-      'SELECT uid, id, used, expiresAt FROM email_tokens WHERE token=? AND type=? ORDER BY id DESC LIMIT 1',
-      [value, 'verify'],
-    );
+    const sessionUid = await getSessionUid(req);
+    const attemptKey = sessionUid ? `verify-code:${sessionUid}` : `verify-code:ip:${getClientIp(req)}`;
+    if (tooManyAttempts(attemptKey, VERIFY_CODE_MAX_ATTEMPTS)) {
+      res.status(429).json({ error: 'Trop de tentatives. Demandez un nouveau code.' });
+      return;
+    }
+    const row = sessionUid
+      ? await getOne<{ uid: string; id: number; used: number; expiresAt: number }>(
+          'SELECT uid, id, used, expiresAt FROM email_tokens WHERE token=? AND type=? AND uid=? ORDER BY id DESC LIMIT 1',
+          [value, 'verify', sessionUid],
+        )
+      : await getOne<{ uid: string; id: number; used: number; expiresAt: number }>(
+          'SELECT uid, id, used, expiresAt FROM email_tokens WHERE token=? AND type=? ORDER BY id DESC LIMIT 1',
+          [value, 'verify'],
+        );
     if (!row) {
+      registerAttemptFailure(attemptKey, VERIFY_CODE_WINDOW_MS);
       res.status(400).json({ error: 'Code invalide' });
       return;
     }
@@ -353,12 +405,15 @@ router.post('/verify-email', async (req: Request, res: Response) => {
     if (row.used) {
       const user = await getOne<{ emailVerified: number }>('SELECT emailVerified FROM users WHERE uid=?', [row.uid]);
       if (user?.emailVerified) {
+        clearAttempts(attemptKey);
         res.json({ success: true, alreadyVerified: true });
         return;
       }
+      registerAttemptFailure(attemptKey, VERIFY_CODE_WINDOW_MS);
       res.status(400).json({ error: 'Code déjà utilisé' });
       return;
     }
+    clearAttempts(attemptKey);
     await query('UPDATE users SET emailVerified=1 WHERE uid=?', [row.uid]);
     await query('UPDATE email_tokens SET used=1 WHERE id=?', [row.id]);
 

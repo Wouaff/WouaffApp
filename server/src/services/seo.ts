@@ -82,7 +82,7 @@ export async function profileSeo(handle: string, url: string): Promise<SeoData |
 
 export async function communitySeo(name: string, url: string): Promise<SeoData | null> {
   const row = await getOne<Record<string, unknown>>(
-    'SELECT displayName, description, avatar FROM communities WHERE name = ?',
+    'SELECT displayName, description, avatar FROM communities WHERE name = ? AND isPrivate = 0',
     [name],
   );
   if (!row) return null;

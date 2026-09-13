@@ -60,7 +60,7 @@ async function loadEntries(): Promise<UrlEntry[]> {
       [PROFILES_LIMIT],
     ),
     query<Array<{ name: string; createdAt: number }>>(
-      'SELECT name, createdAt FROM communities ORDER BY createdAt DESC LIMIT 5000',
+      'SELECT name, createdAt FROM communities WHERE isPrivate = 0 ORDER BY createdAt DESC LIMIT 5000',
       [],
     ),
   ]);

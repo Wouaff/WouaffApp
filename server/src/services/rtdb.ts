@@ -43,12 +43,8 @@ function buildConvEntry(row: Record<string, unknown>): Record<string, unknown> {
       deleted: row.deleted,
       edited: row.edited,
       encrypted: row.encrypted,
-      imageData: row.imageData,
-      fileData: row.fileData,
       fileName: row.fileName,
-      audioData: row.audioData,
       duration: row.duration,
-      contactData: row.contactData,
       replyTo: row.replyTo,
       messageTheme: row.messageTheme,
       forwardedFrom: row.forwardedFrom,
@@ -70,8 +66,7 @@ export async function getConversationsForUser(uid: string): Promise<Record<strin
             p.pseudo, p.avatar, p.status, p.lastSeen, p.bio, p.wouaffId,
             p.social_links, p.createdAt, p.banner,
             m.msgKey, m.text, m.fromUid, m.time, m.deleted, m.edited,
-            m.encrypted, m.imageData, m.fileData, m.fileName,
-            m.audioData, m.duration, m.contactData, m.replyTo, m.messageTheme,
+            m.encrypted, m.fileName, m.duration, m.replyTo, m.messageTheme,
             m.forwardedFrom, m.ephemeralDuration, m.reactions, m.type,
             m.pendingFrom, m.senderName, m.seen
      FROM contacts c
@@ -113,8 +108,8 @@ export async function getConversationsForUser(uid: string): Promise<Record<strin
               p.pseudo, p.avatar, p.status, p.lastSeen, p.bio, p.wouaffId,
               p.social_links, p.createdAt, p.banner,
               m.msgKey, m.text, m.fromUid, m.time, m.deleted, m.edited,
-              m.encrypted, m.imageData, m.fileData, m.fileName,
-              m.audioData, m.duration, m.contactData, m.replyTo, m.messageTheme,
+              m.encrypted, m.fileName,
+              m.duration, m.replyTo, m.messageTheme,
               m.forwardedFrom, m.ephemeralDuration, m.reactions, m.type,
               m.pendingFrom, m.senderName, m.seen
        FROM users p
@@ -515,21 +510,51 @@ export async function searchGroupMessages(gid: string, searchQuery: string): Pro
 
 /* ── Profiles ── */
 
+const PUBLIC_PROFILE_COLUMNS = [
+  'uid',
+  'pseudo',
+  'bio',
+  'avatar',
+  'banner',
+  'wouaffId',
+  'status',
+  'lastSeen',
+  'createdAt',
+  'social_links',
+  'musicProvider',
+  'musicUrl',
+  'musicTitle',
+  'musicArtist',
+  'musicThumbnail',
+  'publicKey',
+] as const;
+
+const PUBLIC_PROFILE_SELECT = PUBLIC_PROFILE_COLUMNS.join(', ');
+
+function parsePublicKey(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
 function sanitizeProfile(row: Record<string, unknown>): Record<string, unknown> {
-  const { publicKey, passwordHash, email, phone, ...profile } = row;
-  const result = profile as Record<string, unknown>;
-  if (publicKey) {
-    try {
-      result.publicKey = JSON.parse(publicKey as string);
-    } catch {
-      result.publicKey = publicKey;
-    }
+  const result: Record<string, unknown> = {};
+  for (const column of PUBLIC_PROFILE_COLUMNS) {
+    if (row[column] !== undefined) result[column] = row[column];
+  }
+  if (result.publicKey) {
+    result.publicKey = parsePublicKey(result.publicKey);
+  } else {
+    delete result.publicKey;
   }
   return result;
 }
 
 export async function getProfile(uid: string): Promise<Record<string, unknown> | null> {
-  const row = await getOne<Record<string, unknown>>('SELECT * FROM users WHERE uid = ?', [uid]);
+  const row = await getOne<Record<string, unknown>>(`SELECT ${PUBLIC_PROFILE_SELECT} FROM users WHERE uid = ?`, [uid]);
   if (!row) return null;
   const result = sanitizeProfile(row);
   const badgeRows = await query<Array<{ badgeId: string }>>(
@@ -548,7 +573,7 @@ export async function getProfiles(uids: string[]): Promise<Map<string, Record<st
   if (unique.length === 0) return map;
   const placeholders = unique.map(() => '?').join(',');
   const rows = await query<Array<Record<string, unknown>>>(
-    `SELECT * FROM users WHERE uid IN (${placeholders})`,
+    `SELECT ${PUBLIC_PROFILE_SELECT} FROM users WHERE uid IN (${placeholders})`,
     unique,
   );
   for (const row of rows) {
@@ -573,14 +598,10 @@ const PROFILE_COLUMNS = new Set([
   'pseudo',
   'bio',
   'email',
-  'passwordHash',
   'avatar',
   'banner',
   'wouaffId',
   'publicKey',
-  'status',
-  'lastSeen',
-  'createdAt',
   'social_links',
   'musicProvider',
   'musicUrl',
@@ -621,12 +642,14 @@ export async function updateProfile(uid: string, data: Record<string, unknown>):
     const oldRow = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM users WHERE uid = ?', [uid]);
     const oldId = oldRow?.wouaffId || '';
     if (newId !== oldId) {
-      if (oldId) await query('DELETE FROM wouaff_id_index WHERE wouaffId = ?', [oldId]);
-      if (newId)
-        await query(
-          'INSERT INTO wouaff_id_index (wouaffId, uid) VALUES (?,?) ON DUPLICATE KEY UPDATE uid=VALUES(uid)',
-          [newId, uid],
-        );
+      const indexOwner = await getOne<{ uid: string }>('SELECT uid FROM wouaff_id_index WHERE wouaffId = ?', [newId]);
+      if (indexOwner && indexOwner.uid !== uid) {
+        const conflict = new Error('Cet identifiant est déjà utilisé');
+        (conflict as Error & { status: number }).status = 409;
+        throw conflict;
+      }
+      if (oldId) await query('DELETE FROM wouaff_id_index WHERE wouaffId = ? AND uid = ?', [oldId, uid]);
+      if (newId && !indexOwner) await query('INSERT INTO wouaff_id_index (wouaffId, uid) VALUES (?,?)', [newId, uid]);
     }
   }
   const fields: string[] = [];
@@ -835,6 +858,22 @@ export async function removeContact(uid: string, contactUid: string): Promise<vo
   await query('DELETE FROM contacts WHERE uid=? AND contactUid=?', [uid, contactUid]);
 }
 
+export async function getMutualContactUids(uid: string, candidates: string[]): Promise<Set<string>> {
+  const unique = [
+    ...new Set(candidates.filter((c): c is string => typeof c === 'string' && c.length > 0 && c !== uid)),
+  ].slice(0, 500);
+  if (unique.length === 0) return new Set();
+  const placeholders = unique.map(() => '?').join(',');
+  const rows = await query<Array<{ uid: string }>>(
+    `SELECT c1.contactUid AS uid
+     FROM contacts c1
+     JOIN contacts c2 ON c2.uid = c1.contactUid AND c2.contactUid = c1.uid
+     WHERE c1.uid = ? AND c1.contactUid IN (${placeholders})`,
+    [uid, ...unique],
+  );
+  return new Set(rows.map((r) => r.uid));
+}
+
 export async function searchByWouaffId(wouaffId: string): Promise<string | null> {
   const raw = (wouaffId || '').trim().toLowerCase();
   const withAt = raw.startsWith('@') ? raw : `@${raw}`;
@@ -947,6 +986,11 @@ export async function markStoryViewed(_uid: string, storyId: string, viewerUid: 
     'INSERT INTO story_views (storyId, viewedBy, viewedAt) VALUES (?,?,?) ON DUPLICATE KEY UPDATE viewedAt=VALUES(viewedAt)',
     [storyId, viewerUid, Date.now()],
   );
+}
+
+export async function getStoryOwner(storyId: string): Promise<string | null> {
+  const row = await getOne<{ uid: string }>('SELECT uid FROM stories WHERE storyId=?', [storyId]);
+  return row?.uid ?? null;
 }
 
 export async function deleteStory(uid: string, storyId: string): Promise<void> {
@@ -1313,7 +1357,7 @@ export async function findUsersByPhones(
 
 export async function getRecentUsers(limit = 20): Promise<Record<string, Record<string, unknown>>> {
   const rows = await query<Array<{ uid: string } & Record<string, unknown>>>(
-    'SELECT * FROM users ORDER BY createdAt DESC LIMIT ?',
+    `SELECT ${PUBLIC_PROFILE_SELECT} FROM users ORDER BY createdAt DESC LIMIT ?`,
     [limit],
   );
   const result: Record<string, Record<string, unknown>> = {};
@@ -1354,16 +1398,26 @@ export async function updateProfileByAdmin(uid: string, data: Record<string, unk
     }
   }
   if (data.wouaffId !== undefined) {
-    const newId = data.wouaffId as string;
+    const rawId = typeof data.wouaffId === 'string' ? data.wouaffId.trim() : '';
+    const cleanId = rawId.startsWith('@') ? rawId : `@${rawId}`;
+    if (!/^@[a-z0-9_]{1,49}$/.test(cleanId)) {
+      const error = new Error('Identifiant invalide (50 caractères maximum : lettres minuscules, chiffres, _)');
+      (error as Error & { status: number }).status = 400;
+      throw error;
+    }
+    data.wouaffId = cleanId;
+    const newId = cleanId;
     const oldRow = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM users WHERE uid=?', [uid]);
     const oldId = oldRow?.wouaffId || '';
     if (newId !== oldId) {
-      if (oldId) await query('DELETE FROM wouaff_id_index WHERE wouaffId=?', [oldId]);
-      if (newId)
-        await query(
-          'INSERT INTO wouaff_id_index (wouaffId, uid) VALUES (?,?) ON DUPLICATE KEY UPDATE uid=VALUES(uid)',
-          [newId, uid],
-        );
+      const indexOwner = await getOne<{ uid: string }>('SELECT uid FROM wouaff_id_index WHERE wouaffId=?', [newId]);
+      if (indexOwner && indexOwner.uid !== uid) {
+        const conflict = new Error('Cet identifiant est déjà utilisé');
+        (conflict as Error & { status: number }).status = 409;
+        throw conflict;
+      }
+      if (oldId) await query('DELETE FROM wouaff_id_index WHERE wouaffId=? AND uid=?', [oldId, uid]);
+      if (newId && !indexOwner) await query('INSERT INTO wouaff_id_index (wouaffId, uid) VALUES (?,?)', [newId, uid]);
     }
   }
   const fields: string[] = [];
@@ -1393,13 +1447,13 @@ export async function setUserBadges(uid: string, badgeIds: string[]): Promise<vo
 
 export async function resetUserWouaffId(uid: string): Promise<void> {
   const row = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM users WHERE uid=?', [uid]);
-  if (row?.wouaffId) await query('DELETE FROM wouaff_id_index WHERE wouaffId=?', [row.wouaffId]);
+  if (row?.wouaffId) await query('DELETE FROM wouaff_id_index WHERE wouaffId=? AND uid=?', [row.wouaffId, uid]);
   await query('UPDATE users SET wouaffId=NULL WHERE uid=?', [uid]);
 }
 
 export async function deleteUserProfile(uid: string): Promise<void> {
   const row = await getOne<{ wouaffId: string | null }>('SELECT wouaffId FROM users WHERE uid=?', [uid]);
-  if (row?.wouaffId) await query('DELETE FROM wouaff_id_index WHERE wouaffId=?', [row.wouaffId]);
+  if (row?.wouaffId) await query('DELETE FROM wouaff_id_index WHERE wouaffId=? AND uid=?', [row.wouaffId, uid]);
   await query('DELETE FROM contacts WHERE uid=? OR contactUid=?', [uid, uid]);
   await query('DELETE FROM follows WHERE followerUid=? OR followedUid=?', [uid, uid]);
   await query('DELETE FROM user_badges WHERE uid=?', [uid]);
@@ -1409,26 +1463,119 @@ export async function deleteUserProfile(uid: string): Promise<void> {
   await query('DELETE FROM fcm_tokens WHERE uid=?', [uid]);
   await query('DELETE FROM deleted_convs WHERE uid=?', [uid]);
   await query('DELETE FROM stories WHERE uid=?', [uid]);
+  await query('DELETE FROM sessions WHERE uid=?', [uid]);
+  await query('DELETE FROM staff WHERE uid=?', [uid]);
+  await query('DELETE FROM passkeys WHERE uid=?', [uid]);
+  await query('DELETE FROM email_tokens WHERE uid=?', [uid]);
+  await query('DELETE FROM login_challenges WHERE uid=?', [uid]);
   await query('DELETE FROM users WHERE uid=?', [uid]);
 }
 
-export async function purgeUnverifiedAccounts(): Promise<{ deleted: number }> {
-  const rows = await query<Array<{ uid: string }>>('SELECT uid FROM users WHERE emailVerified = 0');
+const UNVERIFIED_PURGE_MIN_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+async function safeDelete(sql: string, params: unknown[]): Promise<void> {
+  try {
+    await query(sql, params);
+  } catch (err) {
+    console.error('[PURGE] Échec du nettoyage :', (err as Error).message);
+  }
+}
+
+export async function purgeUnverifiedAccounts(
+  minAgeMs: number = UNVERIFIED_PURGE_MIN_AGE_MS,
+): Promise<{ deleted: number }> {
+  const cutoff = Date.now() - minAgeMs;
+  const rows = await query<Array<{ uid: string }>>(
+    'SELECT uid FROM users WHERE emailVerified = 0 AND createdAt > 0 AND createdAt < ?',
+    [cutoff],
+  );
   if (rows.length === 0) return { deleted: 0 };
   const uids = rows.map((r) => r.uid);
   const ph = uids.map(() => '?').join(',');
-  await query(`DELETE FROM wouaff_id_index WHERE wouaffId IN (SELECT wouaffId FROM users WHERE emailVerified = 0)`, []);
-  await query(`DELETE FROM contacts WHERE uid IN (${ph}) OR contactUid IN (${ph})`, [...uids, ...uids]);
-  await query(`DELETE FROM follows WHERE followerUid IN (${ph}) OR followedUid IN (${ph})`, [...uids, ...uids]);
-  await query(`DELETE FROM user_badges WHERE uid IN (${ph})`, uids);
-  await query(`DELETE FROM group_members WHERE uid IN (${ph})`, uids);
-  await query(`DELETE FROM messages WHERE fromUid IN (${ph})`, uids);
-  await query(`DELETE FROM group_messages WHERE fromUid IN (${ph})`, uids);
-  await query(`DELETE FROM fcm_tokens WHERE uid IN (${ph})`, uids);
-  await query(`DELETE FROM deleted_convs WHERE uid IN (${ph})`, uids);
-  await query(`DELETE FROM stories WHERE uid IN (${ph})`, uids);
-  await query(`DELETE FROM sessions WHERE uid IN (${ph})`, uids);
-  await query(`DELETE FROM users WHERE emailVerified = 0`, []);
+
+  await safeDelete(`DELETE FROM wouaff_id_index WHERE uid IN (${ph})`, uids);
+
+  const posts = await query<Array<{ id: string }>>(`SELECT id FROM posts WHERE uid IN (${ph})`, uids).catch(() => []);
+  if (posts.length > 0) {
+    const postIds = posts.map((p) => p.id);
+    const pph = postIds.map(() => '?').join(',');
+    await safeDelete(`DELETE FROM post_likes WHERE postId IN (${pph})`, postIds);
+    await safeDelete(`DELETE FROM post_reposts WHERE postId IN (${pph})`, postIds);
+    await safeDelete(`DELETE FROM poll_votes WHERE postId IN (${pph})`, postIds);
+    await safeDelete(`DELETE FROM post_edits WHERE postId IN (${pph})`, postIds);
+    await safeDelete(`DELETE FROM post_mentions WHERE postId IN (${pph})`, postIds);
+    await safeDelete(`DELETE FROM hashtag_occurrences WHERE postId IN (${pph})`, postIds);
+    await safeDelete(`DELETE FROM notifications WHERE postId IN (${pph})`, postIds);
+    const comments = await query<Array<{ id: number }>>(
+      `SELECT id FROM post_comments WHERE postId IN (${pph})`,
+      postIds,
+    ).catch(() => []);
+    if (comments.length > 0) {
+      const cph = comments.map(() => '?').join(',');
+      const cids = comments.map((c) => c.id);
+      await safeDelete(`DELETE FROM comment_likes WHERE commentId IN (${cph})`, cids);
+      await safeDelete(`DELETE FROM comment_mentions WHERE commentId IN (${cph})`, cids);
+      await safeDelete(`DELETE FROM notifications WHERE commentId IN (${cph})`, cids);
+    }
+    await safeDelete(`DELETE FROM post_comments WHERE postId IN (${pph})`, postIds);
+    await safeDelete(`DELETE FROM post_reports WHERE postId IN (${pph})`, postIds);
+  }
+
+  const communityPosts = await query<Array<{ id: string }>>(
+    `SELECT id FROM community_posts WHERE authorId IN (${ph})`,
+    uids,
+  ).catch(() => []);
+  if (communityPosts.length > 0) {
+    const cpIds = communityPosts.map((p) => p.id);
+    const cpph = cpIds.map(() => '?').join(',');
+    await safeDelete(`DELETE FROM community_comments WHERE postId IN (${cpph})`, cpIds);
+    await safeDelete(`DELETE FROM community_votes WHERE postId IN (${cpph})`, cpIds);
+    await safeDelete(`DELETE FROM community_mentions WHERE postId IN (${cpph})`, cpIds);
+    await safeDelete(`DELETE FROM community_posts WHERE id IN (${cpph})`, cpIds);
+  }
+
+  await safeDelete(`DELETE FROM contacts WHERE uid IN (${ph}) OR contactUid IN (${ph})`, [...uids, ...uids]);
+  await safeDelete(`DELETE FROM contact_requests WHERE fromUid IN (${ph}) OR toUid IN (${ph})`, [...uids, ...uids]);
+  await safeDelete(`DELETE FROM blocks WHERE uid IN (${ph}) OR blockedUid IN (${ph})`, [...uids, ...uids]);
+  await safeDelete(`DELETE FROM follows WHERE followerUid IN (${ph}) OR followedUid IN (${ph})`, [...uids, ...uids]);
+  await safeDelete(`DELETE FROM user_badges WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM group_members WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM messages WHERE fromUid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM group_messages WHERE fromUid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM fcm_tokens WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM deleted_convs WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM story_views WHERE viewedBy IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM stories WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM sessions WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM staff WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM passkeys WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM email_tokens WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM login_challenges WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM login_history WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM notifications WHERE uid IN (${ph}) OR actorUid IN (${ph})`, [...uids, ...uids]);
+  await safeDelete(`DELETE FROM subscriptions WHERE userId IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM community_members WHERE userId IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM community_bans WHERE userId IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM community_votes WHERE userId IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM community_mentions WHERE userId IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM community_comments WHERE authorId IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM videos WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM video_likes WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM video_comments WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM posts WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM post_comments WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM post_likes WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM post_reposts WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM poll_votes WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM post_mentions WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM hashtag_occurrences WHERE uid IN (${ph})`, uids);
+  await safeDelete(`DELETE FROM user_reports WHERE reportedUid IN (${ph}) OR reporterUid IN (${ph})`, [
+    ...uids,
+    ...uids,
+  ]);
+  await safeDelete(`DELETE FROM calls WHERE callerUid IN (${ph}) OR calleeUid IN (${ph})`, [...uids, ...uids]);
+
+  await safeDelete(`DELETE FROM users WHERE uid IN (${ph})`, uids);
   return { deleted: uids.length };
 }
 
@@ -1508,12 +1655,10 @@ export async function isBlocked(uid: string, blockedUid: string): Promise<boolea
 /* ── User Reports ── */
 
 export async function reportUser(reportedUid: string, reporterUid: string, reason?: string): Promise<void> {
-  await query('INSERT INTO user_reports (reportedUid, reporterUid, reason, createdAt) VALUES (?,?,?,?)', [
-    reportedUid,
-    reporterUid,
-    reason || null,
-    Date.now(),
-  ]);
+  await query(
+    'INSERT INTO user_reports (reportedUid, reporterUid, reason, createdAt) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE reason=VALUES(reason), createdAt=VALUES(createdAt)',
+    [reportedUid, reporterUid, reason || null, Date.now()],
+  );
 }
 
 /* ── Status ── */
@@ -1571,10 +1716,26 @@ export async function getLoginHistory(
   uid: string,
   limit = 50,
 ): Promise<Array<{ id: number; uid: string; ip: string | null; userAgent: string | null; createdAt: number }>> {
-  return query(
-    'SELECT id, uid, ip, userAgent, createdAt FROM login_history WHERE uid=? ORDER BY createdAt DESC LIMIT ?',
-    [uid, limit],
-  );
+  const rows = await query<
+    Array<{ id: number; uid: string; ip: string | null; userAgent: string | null; createdAt: number }>
+  >('SELECT id, uid, ip, userAgent, createdAt FROM login_history WHERE uid=? ORDER BY createdAt DESC LIMIT ?', [
+    uid,
+    limit,
+  ]);
+  return rows.map((row) => ({
+    ...row,
+    userAgent: row.userAgent ? row.userAgent.slice(0, 120) : null,
+  }));
+}
+
+/* Rétention du journal de connexions (90 jours) */
+export async function purgeOldLoginHistory(): Promise<void> {
+  await query('DELETE FROM login_history WHERE createdAt < ? LIMIT 5000', [Date.now() - 90 * 24 * 60 * 60 * 1000]);
+}
+
+/* Purge des bannissements de communauté expirés */
+export async function purgeExpiredCommunityBans(): Promise<void> {
+  await query('DELETE FROM community_bans WHERE expiresAt IS NOT NULL AND expiresAt <= ? LIMIT 2000', [Date.now()]);
 }
 
 /* ── Modération du réseau social ── */
@@ -1603,10 +1764,25 @@ export async function listRecentPosts(limit = 30, authorUid?: string): Promise<A
 export async function deletePostById(id: string): Promise<boolean> {
   const row = await getOne<{ id: string }>('SELECT id FROM posts WHERE id=?', [id]);
   if (!row) return false;
+  const comments = await query<Array<{ id: number }>>('SELECT id FROM post_comments WHERE postId=?', [id]).catch(
+    () => [],
+  );
+  if (comments.length > 0) {
+    const ids = comments.map((c) => c.id);
+    const placeholders = ids.map(() => '?').join(',');
+    await query(`DELETE FROM comment_likes WHERE commentId IN (${placeholders})`, ids).catch(() => {});
+    await query(`DELETE FROM comment_mentions WHERE commentId IN (${placeholders})`, ids).catch(() => {});
+    await query(`DELETE FROM notifications WHERE commentId IN (${placeholders})`, ids).catch(() => {});
+  }
   await query('DELETE FROM post_likes WHERE postId=?', [id]);
   await query('DELETE FROM post_reposts WHERE postId=?', [id]);
   await query('DELETE FROM post_comments WHERE postId=?', [id]);
   await query('DELETE FROM post_reports WHERE postId=?', [id]);
+  await query('DELETE FROM poll_votes WHERE postId=?', [id]).catch(() => {});
+  await query('DELETE FROM post_edits WHERE postId=?', [id]).catch(() => {});
+  await query('DELETE FROM post_mentions WHERE postId=?', [id]).catch(() => {});
+  await query('DELETE FROM hashtag_occurrences WHERE postId=?', [id]).catch(() => {});
+  await query('DELETE FROM notifications WHERE postId=?', [id]).catch(() => {});
   await query('DELETE FROM posts WHERE id=?', [id]);
   return true;
 }
@@ -1638,6 +1814,9 @@ export async function listRecentPostComments(limit = 30): Promise<
 export async function deletePostCommentById(id: number): Promise<boolean> {
   const comment = await getOne<{ postId: string }>('SELECT postId FROM post_comments WHERE id=?', [id]);
   if (!comment) return false;
+  await query('DELETE FROM comment_likes WHERE commentId=?', [id]).catch(() => {});
+  await query('DELETE FROM comment_mentions WHERE commentId=?', [id]).catch(() => {});
+  await query('DELETE FROM notifications WHERE commentId=?', [id]).catch(() => {});
   await query('DELETE FROM post_comments WHERE id=?', [id]);
   await query('UPDATE posts SET commentsCount = GREATEST(0, commentsCount - 1) WHERE id=?', [comment.postId]);
   return true;
@@ -1656,11 +1835,18 @@ export async function listRecentVideos(limit = 30): Promise<Array<Record<string,
 }
 
 export async function deleteVideoById(id: string): Promise<boolean> {
-  const row = await getOne<{ id: string }>('SELECT id FROM videos WHERE id=?', [id]);
+  const row = await getOne<{ id: string; deletionUrl: string | null }>(
+    'SELECT id, deletionUrl FROM videos WHERE id=?',
+    [id],
+  );
   if (!row) return false;
   await query('DELETE FROM video_likes WHERE videoId=?', [id]);
   await query('DELETE FROM video_comments WHERE videoId=?', [id]);
   await query('DELETE FROM videos WHERE id=?', [id]);
+  if (row.deletionUrl) {
+    const { deleteFromQuickUploads } = await import('./quickUploads.js');
+    deleteFromQuickUploads(row.deletionUrl).catch(() => {});
+  }
   return true;
 }
 
@@ -1983,7 +2169,13 @@ export async function cleanExpiredEphemeralMessages(): Promise<
 
 /* ── Maintenance mode ── */
 
+let maintenanceCache: { enabled: boolean; message: string | null; expires: number } | null = null;
+const MAINTENANCE_CACHE_TTL = 5000;
+
 export async function getMaintenanceMode(): Promise<{ enabled: boolean; message: string | null }> {
+  if (maintenanceCache && maintenanceCache.expires > Date.now()) {
+    return { enabled: maintenanceCache.enabled, message: maintenanceCache.message };
+  }
   await query(
     `CREATE TABLE IF NOT EXISTS maintenance_mode (
       id INT PRIMARY KEY DEFAULT 1,
@@ -1996,11 +2188,14 @@ export async function getMaintenanceMode(): Promise<{ enabled: boolean; message:
   const rows = await query<Array<{ enabled: number; message: string | null }>>(
     'SELECT enabled, message FROM maintenance_mode WHERE id = 1',
   );
-  return { enabled: rows[0]?.enabled === 1, message: rows[0]?.message ?? null };
+  const value = { enabled: rows[0]?.enabled === 1, message: rows[0]?.message ?? null };
+  maintenanceCache = { ...value, expires: Date.now() + MAINTENANCE_CACHE_TTL };
+  return value;
 }
 
 export async function setMaintenanceMode(enabled: boolean, message?: string): Promise<void> {
   await query('UPDATE maintenance_mode SET enabled = ?, message = ? WHERE id = 1', [enabled ? 1 : 0, message ?? null]);
+  maintenanceCache = { enabled, message: message ?? null, expires: Date.now() + MAINTENANCE_CACHE_TTL };
 }
 
 /* ── Migration ── */

@@ -74,10 +74,13 @@ async function flushQueue(): Promise<void> {
   flushing = false;
 }
 
+const MAX_QUEUE = 500;
+
 function enqueue(level: string, message: string): void {
   if (!WEBHOOK_URL) return;
   const desc = message.length > 4000 ? `${message.substring(0, 3997)}...` : message;
   if (!desc.trim()) return;
+  if (queue.length >= MAX_QUEUE) queue.shift();
   queue.push({
     title: level.toUpperCase(),
     description: desc,
