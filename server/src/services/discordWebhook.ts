@@ -36,9 +36,15 @@ export async function resolveAccount(req: Request): Promise<string> {
   }
 }
 
-function truncate(s: string, max = 900): string {
-  const value = s.length > max ? `${s.slice(0, max)}…` : s;
-  return value.replace(/`/g, '');
+/* Neutralise le Markdown et les mentions dans les champs libres d'un embed */
+function sanitizeField(value: unknown, max = 900): string {
+  const s = typeof value === 'string' ? value : String(value ?? '');
+  const cleaned = s
+    .replace(/[`\r\n\t]/g, ' ')
+    .replace(/@(everyone|here)/gi, '@\u200b$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned.length > max ? `${cleaned.slice(0, max)}…` : cleaned;
 }
 
 async function postWebhook(url: string, payload: unknown): Promise<void> {
@@ -56,12 +62,12 @@ async function postWebhook(url: string, payload: unknown): Promise<void> {
 
 /* ── Envois HTTP réels (exécutés par le worker de la file) ── */
 
-/* Alerte de sécurité (@everyone + embed) */
+/* Alerte de sécurité (embed, sans mention) */
 export async function sendSqlInjectionAlertData(data: Record<string, unknown>): Promise<void> {
   if (!WEBHOOK_URL) return;
   const payload = {
-    content: '@everyone',
     username: 'Wouaff Sécurité',
+    allowed_mentions: { parse: [] },
     embeds: [
       {
         title: '🚨 Tentative d’injection SQL bloquée',
@@ -69,12 +75,16 @@ export async function sendSqlInjectionAlertData(data: Record<string, unknown>): 
         description:
           'Une requête suspecte contenant une tentative d’injection SQL a été détectée et bloquée automatiquement.',
         fields: [
-          { name: '🌐 Adresse IP', value: `\`${data.ip}\``, inline: true },
-          { name: '👤 Compte', value: data.account, inline: true },
-          { name: '🔗 Endpoint', value: `\`${data.method} ${data.url}\``, inline: false },
-          { name: '🧠 Type', value: data.name, inline: true },
-          { name: '📝 Contenu', value: `\`\`\`${truncate(String(data.input))}\`\`\``, inline: false },
-          { name: '🖥️ User-Agent', value: `\`${data.ua}\``, inline: false },
+          { name: '🌐 Adresse IP', value: sanitizeField(data.ip, 60), inline: true },
+          { name: '👤 Compte', value: sanitizeField(data.account, 120), inline: true },
+          {
+            name: '🔗 Endpoint',
+            value: sanitizeField(`${data.method} ${data.url}`, 300),
+            inline: false,
+          },
+          { name: '🧠 Type', value: sanitizeField(data.name, 80), inline: true },
+          { name: '📝 Contenu', value: sanitizeField(data.input, 900), inline: false },
+          { name: '🖥️ User-Agent', value: sanitizeField(data.ua, 200), inline: false },
         ],
         timestamp: new Date().toISOString(),
         footer: { text: 'Wouaff · Protection anti-injection SQL' },
@@ -90,18 +100,23 @@ export async function sendNewUserAlert(data: { pseudo: string; wouaffId: string;
   const rows = await query<Array<{ total: number }>>('SELECT COUNT(*) AS total FROM users');
   const total = rows[0]?.total || 0;
 
+  const pseudo = sanitizeField(data.pseudo || 'Inconnu', 60);
+  const wouaffId = sanitizeField(data.wouaffId || '@inconnu', 60);
+  const uid = sanitizeField(data.uid, 60);
+
   const payload = {
     username: 'Wouaff · Nouveautés',
+    allowed_mentions: { parse: [] },
     embeds: [
       {
         title: '🎉 Nouvelle inscription !',
         color: 0xf97b3b,
-        description: `Un nouveau membre a rejoint la communauté Wouaff : **${data.pseudo}** !`,
+        description: `Un nouveau membre a rejoint la communauté Wouaff : **${pseudo}** !`,
         fields: [
-          { name: '👤 Pseudo', value: data.pseudo || 'Inconnu', inline: true },
-          { name: '🔗 Identifiant', value: data.wouaffId || '@inconnu', inline: true },
+          { name: '👤 Pseudo', value: pseudo, inline: true },
+          { name: '🔗 Identifiant', value: wouaffId, inline: true },
           { name: '📊 Total d’inscrits', value: `\`${total}\``, inline: true },
-          { name: '🪪 UID', value: `\`${data.uid}\``, inline: false },
+          { name: '🪪 UID', value: `\`${uid}\``, inline: false },
         ],
         timestamp: new Date().toISOString(),
         footer: { text: 'Wouaff · Inscriptions' },
@@ -124,8 +139,12 @@ export async function enqueueSqlInjectionAlert(req: Request, match: SqlMatch): P
     typeof req.headers['user-agent'] === 'string' && req.headers['user-agent'].length > 0
       ? req.headers['user-agent'].slice(0, 200)
       : 'Inconnu';
-  await enqueueJob('webhook', {
-    kind: 'sqlAlert',
-    data: { ip, account, ua, method: req.method, url: req.originalUrl, name: match.name, input: match.input },
-  });
+  await enqueueJob(
+    'webhook',
+    {
+      kind: 'sqlAlert',
+      data: { ip, account, ua, method: req.method, url: req.originalUrl, name: match.name, input: match.input },
+    },
+    { maxPending: 200 },
+  );
 }

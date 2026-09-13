@@ -181,7 +181,7 @@ router.get('/analytics', async (req: Request, res: Response) => {
 /* GET /admin/search, recherche globale */
 router.get('/search', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
-  const q = ((req.query.q as string) || '').trim();
+  const q = ((req.query.q as string) || '').trim().slice(0, 100);
   if (!q) {
     res.json({ users: [], posts: [], videos: [], groups: [], messages: [] });
     return;
@@ -501,7 +501,7 @@ router.get('/groups', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
   const offset = Math.max(0, parseInt(req.query.offset as string, 10) || 0);
-  const q = (req.query.q as string) || undefined;
+  const q = ((req.query.q as string) || '').trim().slice(0, 100) || undefined;
   const groups = await listAllGroups(limit, offset, q);
   res.json(groups);
 });

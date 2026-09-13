@@ -11,7 +11,7 @@ router.use(verifyToken);
 /* GET /search/users?q=@pseudo, rechercher un utilisateur */
 router.get('/users', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const q = ((req.query.q as string) || '').trim().toLowerCase();
+  const q = ((req.query.q as string) || '').trim().toLowerCase().slice(0, 100);
   if (!q) {
     res.json({ results: [] });
     return;
@@ -34,7 +34,7 @@ router.get('/users', async (req: Request, res: Response) => {
 /* GET /search/mentions?q=, suggestions de mentions @ (léger) */
 router.get('/mentions', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const raw = ((req.query.q as string) || '').trim().replace(/^@/, '').toLowerCase();
+  const raw = ((req.query.q as string) || '').trim().replace(/^@/, '').toLowerCase().slice(0, 100);
   const limit = Math.min(15, Math.max(1, parseInt(req.query.limit as string, 10) || 10));
 
   let rows: Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>;

@@ -366,7 +366,7 @@ router.get('/mine', async (req: Request, res: Response) => {
 /* GET /communities/search?q=, recherche par nom */
 router.get('/search', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const q = ((req.query.q as string) || '').trim().toLowerCase();
+  const q = ((req.query.q as string) || '').trim().toLowerCase().slice(0, 100);
   const limit = Math.min(FEED_LIMIT, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
   if (!q) {
     res.json([]);
@@ -559,7 +559,7 @@ router.post('/', async (req: Request, res: Response) => {
   );
   const io: Server = req.app.get('io');
   if (io) io.emit('community:created', community);
-  notifyIndexNow(`/c/${slug}`);
+  if (!community.isPrivate) notifyIndexNow(`/c/${slug}`);
   res.json(community);
 });
 
@@ -621,7 +621,7 @@ router.put('/:name', async (req: Request, res: Response) => {
   const io: Server = req.app.get('io');
   if (io) io.to(`community:${id}`).emit('community:updated', { communityId: id });
   const updated = await getCommunityRow(req.params.name.toLowerCase());
-  notifyIndexNow(`/c/${req.params.name}`);
+  if ((updated?.isPrivate as number) !== 1) notifyIndexNow(`/c/${req.params.name}`);
   res.json(await toCommunity(updated!, authReq.uid));
 });
 

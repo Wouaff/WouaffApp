@@ -253,12 +253,12 @@ app.get('*', async (req, res) => {
     const seo = await buildSeo(pathname, canonicalUrl).catch(() => defaultSeo(canonicalUrl));
     let html = getIndexHtml();
     if (html.includes('<!--seo-meta-->')) {
-      html = html.replace('<!--seo-meta-->', seoMetaTags(seo));
+      html = html.replace('<!--seo-meta-->', () => seoMetaTags(seo));
     }
     if (NOINDEX_PATHS.some((re) => re.test(pathname))) {
       html = html.replace(
         '<meta name="robots" content="index, follow" />',
-        '<meta name="robots" content="noindex, nofollow" />',
+        () => '<meta name="robots" content="noindex, nofollow" />',
       );
     }
     res.set('Cache-Control', 'no-cache');

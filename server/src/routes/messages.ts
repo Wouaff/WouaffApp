@@ -369,7 +369,7 @@ router.get('/search/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   if (await isBlockedBetween(authReq.uid!, req.params.uid)) return deniedByBlock(res);
   const cid = chatId(authReq.uid!, req.params.uid);
-  const q = ((req.query.q as string) || '').trim();
+  const q = ((req.query.q as string) || '').trim().slice(0, 100);
   if (!q) {
     res.json({ results: {} });
     return;
@@ -381,7 +381,7 @@ router.get('/search/:uid', async (req: Request, res: Response) => {
 /* GET /messages/group/search/:gid, rechercher dans un groupe */
 router.get('/group/search/:gid', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
-  const q = ((req.query.q as string) || '').trim();
+  const q = ((req.query.q as string) || '').trim().slice(0, 100);
   if (!q) {
     res.json({ results: {} });
     return;

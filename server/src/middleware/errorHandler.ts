@@ -5,6 +5,13 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   const e = err as { status?: number; message?: string; stack?: string };
   const status = e?.status || 500;
   const message = e?.message || 'Erreur interne';
+  if (res.headersSent) {
+    if (status >= 500 && !/headers sent/i.test(message)) {
+      console.error('[ERROR après réponse]', e?.stack || message);
+    }
+    res.end();
+    return;
+  }
   if (status >= 500) {
     console.error('[ERROR]', e?.stack || message);
   }
