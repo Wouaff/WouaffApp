@@ -8,9 +8,12 @@ import {
   deleteStory,
   getContactUids,
   getStories,
+  getStoryOwner,
+  isBlocked,
   markStoryViewed,
 } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
+import { isSafeMediaSource } from '../utils/contentValidation.js';
 
 const router: Router = Router();
 router.use(verifyToken);
@@ -24,6 +27,7 @@ router.get('/', async (req: Request, res: Response) => {
   const storyResults = await Promise.all(
     contactUids.map(async (uid) => {
       if (uid === authReq.uid) return null;
+      if ((await isBlocked(authReq.uid!, uid)) || (await isBlocked(uid, authReq.uid!))) return null;
       const stories = await getStories(uid);
       const active: Record<string, unknown> = {};
       for (const sid in stories) {
@@ -68,6 +72,10 @@ router.post('/', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Media requis' });
     return;
   }
+  if (!isSafeMediaSource(media) || (audioData !== undefined && !isSafeMediaSource(audioData))) {
+    res.status(400).json({ error: 'Média invalide' });
+    return;
+  }
   const now = Date.now();
   const storyData: Record<string, unknown> = {
     media,
@@ -103,15 +111,19 @@ router.post('/', async (req: Request, res: Response) => {
 /* POST /stories/:storyId/view, marquer comme vu */
 router.post('/:storyId/view', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const { uid } = req.body as { uid: string };
-  if (!uid) {
-    res.status(400).json({ error: 'UID du propriétaire requis' });
+  const ownerUid = await getStoryOwner(req.params.storyId);
+  if (!ownerUid) {
+    res.status(404).json({ error: 'Story introuvable' });
     return;
   }
-  await markStoryViewed(uid, req.params.storyId, authReq.uid!);
+  if ((await isBlocked(authReq.uid!, ownerUid)) || (await isBlocked(ownerUid, authReq.uid!))) {
+    res.status(403).json({ error: 'Story indisponible' });
+    return;
+  }
+  await markStoryViewed(ownerUid, req.params.storyId, authReq.uid!);
   const io: Server = req.app.get('io');
   if (io) {
-    io.to(`user:${uid}`).emit('story:viewed', { storyId: req.params.storyId, viewedBy: authReq.uid! });
+    io.to(`user:${ownerUid}`).emit('story:viewed', { storyId: req.params.storyId, viewedBy: authReq.uid! });
   }
   res.json({ success: true });
 });

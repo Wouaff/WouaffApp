@@ -8,10 +8,11 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
+import { isCaptchaEnabled, isCaptchaRequired } from './config/captcha.js';
 import pool from './config/database.js';
 import { runMigrations } from './config/migrate.js';
 import { patchRouter } from './middleware/asyncHandler.js';
-import { checkIpBan } from './middleware/auth.js';
+import { checkIpBan, purgeExpiredSessions } from './middleware/auth.js';
 import { errorHandler, setupProcessHandlers } from './middleware/errorHandler.js';
 import { maintenanceCheck } from './middleware/maintenance.js';
 import { rateLimit } from './middleware/rateLimit.js';
@@ -54,7 +55,14 @@ import { setupSocket } from './socket/index.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
-app.set('trust proxy', 1);
+const rawTrustProxy = (process.env.TRUST_PROXY || '').trim();
+if (rawTrustProxy === 'false') {
+  app.set('trust proxy', false);
+} else if (/^\d+$/.test(rawTrustProxy)) {
+  app.set('trust proxy', parseInt(rawTrustProxy, 10));
+} else {
+  app.set('trust proxy', rawTrustProxy || 1);
+}
 const httpServer = createServer(app);
 
 /* En-têtes de sécurité + redirection HTTPS */
@@ -95,7 +103,7 @@ app.use(
   rateLimitByKey({
     windowMs: 60000,
     max: 8,
-    keyFn: (req) => ((req.body as { email?: string } | undefined)?.email || '').toLowerCase(),
+    keyFn: (req) => ((req.body as { email?: string } | undefined)?.email || '').trim().toLowerCase(),
     message: 'Trop de tentatives pour ce compte, réessayez plus tard',
   }),
 );
@@ -112,6 +120,10 @@ app.use('/api/gifs', rateLimit({ windowMs: 60000, max: 60 }));
 app.use('/api/link-preview', rateLimit({ windowMs: 60000, max: 20 }));
 app.use('/api/admin/bootstrap', rateLimit({ windowMs: 60000, max: 3 }));
 app.use('/api/auth/2fa/verify', rateLimit({ windowMs: 60000, max: 10 }));
+app.use('/api/auth/2fa/send-email', rateLimit({ windowMs: 60000, max: 5 }));
+app.use('/api/auth/send-verification', rateLimit({ windowMs: 60000, max: 5 }));
+app.use('/api/auth/reset-password', rateLimit({ windowMs: 60000, max: 10 }));
+app.use('/api/auth/passkey', rateLimit({ windowMs: 60000, max: 20 }));
 app.use('/api/contact', rateLimit({ windowMs: 60000, max: 5 }));
 app.use('/api/auth/verify-email', rateLimit({ windowMs: 60000, max: 10 }));
 app.use('/api/notifications', rateLimit({ windowMs: 60000, max: 60 }));
@@ -119,6 +131,7 @@ app.use('/api/groups', rateLimit({ windowMs: 60000, max: 60 }));
 app.use('/api/profiles', rateLimit({ windowMs: 60000, max: 60 }));
 app.use('/api/stories', rateLimit({ windowMs: 60000, max: 30 }));
 app.use('/api/blocks', rateLimit({ windowMs: 60000, max: 30 }));
+app.use('/api/public', rateLimit({ windowMs: 60000, max: 120 }));
 
 /* Public maintenance status (accessible even during maintenance) */
 app.get('/api/maintenance', (_req, res) => {
@@ -293,8 +306,20 @@ runMigrations()
       }
     }, 30000);
 
+    setInterval(
+      () => {
+        purgeExpiredSessions().catch(() => {});
+      },
+      60 * 60 * 1000,
+    ).unref();
+
     httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`🟢 Wouaff server running on http://0.0.0.0:${PORT}`);
+      if (isCaptchaRequired() && !isCaptchaEnabled()) {
+        console.warn(
+          '[CAPTCHA] Aucun TURNSTILE_SECRET_KEY configuré : les formulaires protégés (inscription, mot de passe oublié, contact) seront refusés. Définissez la clé ou CAPTCHA_DISABLED=1 pour les débloquer.',
+        );
+      }
     });
   })
   .catch((err) => {

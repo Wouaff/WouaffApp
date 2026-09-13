@@ -1,9 +1,16 @@
+import { timingSafeEqual } from 'node:crypto';
 import { isIP } from 'node:net';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
-import { clearBanCache, clearIpBanCache, verifyToken } from '../middleware/auth.js';
+import {
+  clearAllCachedSessions,
+  clearBanCache,
+  clearCachedSessionsForUid,
+  clearIpBanCache,
+  verifyToken,
+} from '../middleware/auth.js';
 import {
   addBadgeToUser,
   banIp,
@@ -62,6 +69,8 @@ router.use(verifyToken);
 
 type StaffLevel = 'moderator' | 'owner';
 
+const SENSITIVE_BADGES = new Set(['founder', 'dieu', 'staff', 'chef-security', 'v.i.p', 'vip']);
+
 async function requireRole(req: Request, res: Response, min: StaffLevel): Promise<boolean> {
   const authReq = req as AuthRequest;
   const role = await getStaffRole(authReq.uid!);
@@ -79,6 +88,18 @@ async function requireRole(req: Request, res: Response, min: StaffLevel): Promis
 /* POST /admin/bootstrap, premier admin si la liste staff est vide */
 router.post('/bootstrap', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
+  const expectedSecret = (process.env.ADMIN_BOOTSTRAP_SECRET || '').trim();
+  if (!expectedSecret) {
+    res.status(503).json({ error: 'Bootstrap désactivé : ADMIN_BOOTSTRAP_SECRET non configuré' });
+    return;
+  }
+  const provided = String((req.body as { secret?: string } | undefined)?.secret || '').trim();
+  const providedBuf = Buffer.from(provided);
+  const expectedBuf = Buffer.from(expectedSecret);
+  if (providedBuf.length !== expectedBuf.length || !timingSafeEqual(providedBuf, expectedBuf)) {
+    res.status(403).json({ error: 'Code de démarrage invalide' });
+    return;
+  }
   const allStaff = await getAllStaff();
   if (Object.keys(allStaff).length > 0) {
     res.status(403).json({ error: 'Un staff existe déjà, contactez un admin' });
@@ -129,6 +150,14 @@ router.put('/staff/:uid/role', async (req: Request, res: Response) => {
 /* DELETE /admin/staff/:uid, retirer du staff (owner) */
 router.delete('/staff/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
+  const allStaff = await getAllStaff();
+  if (allStaff[req.params.uid]?.role === 'owner') {
+    const owners = Object.values(allStaff).filter((s) => s.role === 'owner');
+    if (owners.length <= 1) {
+      res.status(400).json({ error: 'Impossible de retirer le dernier propriétaire' });
+      return;
+    }
+  }
   await setStaff(req.params.uid, false);
   await logAdminAction((req as AuthRequest).uid!, 'staff_remove', 'user', req.params.uid);
   res.json({ success: true });
@@ -194,7 +223,8 @@ router.get('/users/recent', async (_req: Request, res: Response) => {
 });
 
 /* GET /admin/badges, liste des badges disponibles */
-router.get('/badges', async (_req: Request, res: Response) => {
+router.get('/badges', async (req: Request, res: Response) => {
+  if (!(await requireRole(req, res, 'moderator'))) return;
   const badges = await getBadges();
   res.json(badges);
 });
@@ -210,13 +240,20 @@ router.post('/badges/seed', async (req: Request, res: Response) => {
 router.put('/badges/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
   const { badgeIds } = req.body as { badgeIds: string[] };
-  await setUserBadges(req.params.uid, badgeIds || []);
+  const list = Array.isArray(badgeIds) ? badgeIds : [];
+  if (list.some((id) => SENSITIVE_BADGES.has(String(id).toLowerCase()))) {
+    if (!(await requireRole(req, res, 'owner'))) return;
+  }
+  await setUserBadges(req.params.uid, list);
   res.json({ success: true });
 });
 
 /* POST /admin/badges/:uid/add/:badgeId, ajouter un badge à un utilisateur */
 router.post('/badges/:uid/add/:badgeId', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'moderator'))) return;
+  if (SENSITIVE_BADGES.has(String(req.params.badgeId).toLowerCase())) {
+    if (!(await requireRole(req, res, 'owner'))) return;
+  }
   await addBadgeToUser(req.params.uid, req.params.badgeId);
   res.json({ success: true });
 });
@@ -230,10 +267,19 @@ router.get('/profile/:uid/email', async (req: Request, res: Response) => {
 
 /* PUT /admin/profile/:uid, modifier le profil d'un utilisateur */
 router.put('/profile/:uid', async (req: Request, res: Response) => {
-  if (req.body && req.body.email !== undefined) {
+  const body = (req.body || {}) as Record<string, unknown>;
+  const needsOwner = body.email !== undefined || body.wouaffId !== undefined;
+  if (needsOwner) {
     if (!(await requireRole(req, res, 'owner'))) return;
   } else if (!(await requireRole(req, res, 'moderator'))) return;
-  await updateProfileByAdmin(req.params.uid, req.body);
+  await updateProfileByAdmin(req.params.uid, body);
+  await logAdminAction(
+    (req as AuthRequest).uid!,
+    'profile_update',
+    'user',
+    req.params.uid,
+    Object.keys(body).join(', '),
+  );
   res.json({ success: true });
 });
 
@@ -248,6 +294,7 @@ router.post('/profile/:uid/reset-wouaffid', async (req: Request, res: Response) 
 router.delete('/profile/:uid', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   await deleteUserProfile(req.params.uid);
+  clearCachedSessionsForUid(req.params.uid);
   await logAdminAction((req as AuthRequest).uid!, 'account_delete', 'user', req.params.uid);
   res.json({ success: true });
 });
@@ -314,7 +361,10 @@ router.post('/bans', async (req: Request, res: Response) => {
   await banUser(uid, reason, authReq.uid!, expiresAt);
   await clearBanCache(uid);
   const io: Server = req.app.get('io');
-  if (io) io.to(`user:${uid}`).emit('account:banned', { reason: reason || null, expiresAt: expiresAt ?? null });
+  if (io) {
+    io.to(`user:${uid}`).emit('account:banned', { reason: reason || null, expiresAt: expiresAt ?? null });
+    io.in(`user:${uid}`).disconnectSockets(true);
+  }
   await logAdminAction(authReq.uid!, 'user_ban', 'user', uid, reason || '');
   res.json({ success: true });
 });
@@ -632,6 +682,7 @@ router.post('/maintenance', async (req: Request, res: Response) => {
 router.post('/purge-unverified', async (req: Request, res: Response) => {
   if (!(await requireRole(req, res, 'owner'))) return;
   const result = await purgeUnverifiedAccounts();
+  clearAllCachedSessions();
   await logAdminAction((req as AuthRequest).uid!, 'purge_unverified', 'system', undefined, `${result.deleted} comptes`);
   res.json(result);
 });

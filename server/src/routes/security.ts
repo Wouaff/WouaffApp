@@ -10,6 +10,7 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
 import { createSession, verifyToken } from '../middleware/auth.js';
+import { clearAttempts, registerAttemptFailure, tooManyAttempts } from '../services/attemptLimiter.js';
 import { send2FAEmail } from '../services/email.js';
 import {
   deletePasskey,
@@ -27,8 +28,12 @@ import {
   generateTotpSecret,
   get2FAStatus,
   getLoginChallengeUid,
+  getTotpSecret,
   hasRecoveryCodes,
+  isTotpCodeReplayed,
+  markTotpCodeUsed,
   setBackupCodes,
+  setTotpSecret,
   totpUri,
   verify2FAEmailCode,
   verifyRecoveryCode,
@@ -62,7 +67,7 @@ async function verifyPassword(uid: string, password: string): Promise<boolean> {
 
 /* ---- Challenges WebAuthn en mémoire (process unique) ---- */
 const regChallenges = new Map<string, { uid: string; createdAt: number }>();
-const authChallenges = new Map<string, { uid?: string; email?: string; createdAt: number }>();
+const authChallenges = new Map<string, { uid?: string; email?: string; credentialIds?: string[]; createdAt: number }>();
 const pendingTotp = new Map<string, { secret: string; createdAt: number }>();
 
 const CHALLENGE_TTL = 10 * 60 * 1000;
@@ -132,20 +137,31 @@ router.post('/2fa/verify', async (req: Request, res: Response) => {
       return;
     }
 
+    const attemptKey = `2fa:${uid}`;
+    if (tooManyAttempts(attemptKey, 5)) {
+      res.status(429).json({ error: 'Trop de tentatives. Reconnectez-vous pour réessayer.' });
+      return;
+    }
+
     let valid = false;
     if (await verifyRecoveryCode(uid, code)) {
       valid = true;
     } else if (method === 'totp' && status.totpEnabled) {
-      const row = await getOne<{ totpSecret: string | null }>('SELECT totpSecret FROM users WHERE uid=?', [uid]);
-      valid = await verifyTotp(code, row?.totpSecret || '');
+      const secret = await getTotpSecret(uid);
+      if (secret && !isTotpCodeReplayed(uid, code)) {
+        valid = await verifyTotp(code, secret);
+        if (valid) markTotpCodeUsed(uid, code);
+      }
     } else if (method === 'email' && status.email2faEnabled) {
       valid = await verify2FAEmailCode(uid, code);
     }
 
     if (!valid) {
+      registerAttemptFailure(attemptKey, 10 * 60 * 1000);
       res.status(401).json({ error: 'Code invalide ou expiré' });
       return;
     }
+    clearAttempts(attemptKey);
 
     const profile = await getOne<{ uid: string; pseudo: string; avatar: string | null }>(
       'SELECT uid, pseudo, avatar FROM users WHERE uid=?',
@@ -253,7 +269,7 @@ router.post('/2fa/totp/confirm', verifyToken, async (req: Request, res: Response
       res.status(401).json({ error: "Code invalide. Vérifiez l'heure de votre appareil." });
       return;
     }
-    await query('UPDATE users SET totpSecret=?, totpEnabled=1 WHERE uid=?', [pending.secret, authReq.uid!]);
+    await setTotpSecret(authReq.uid!, pending.secret);
     pendingTotp.delete(authReq.uid!);
     let newRecoveryCodes: string[] | null = null;
     if (!(await hasRecoveryCodes(authReq.uid!))) {
@@ -408,23 +424,23 @@ router.post('/passkey/login/start', async (req: Request, res: Response) => {
   try {
     const { email } = req.body as { email?: string };
     let uid: string | null = null;
-    let allowCredentials: { id: string; transports: Transport[] }[] = [];
+    let credentialIds: string[] = [];
     if (email) {
       const profile = await getOne<{ uid: string }>('SELECT uid FROM users WHERE email=?', [email.trim()]);
       if (profile) {
         uid = profile.uid;
         const existing = await listPasskeys(uid);
-        allowCredentials = existing.map((p) => ({ id: p.credentialId, transports: parseTransports(p.transports) }));
+        credentialIds = existing.map((p) => p.credentialId);
       }
     }
     const options = await generateAuthenticationOptions({
       rpID: RP_ID,
-      allowCredentials: allowCredentials.length > 0 ? allowCredentials : undefined,
       userVerification: 'preferred',
     });
     authChallenges.set(options.challenge, {
       uid: uid ?? undefined,
       email: email?.trim() || undefined,
+      credentialIds: uid ? credentialIds : undefined,
       createdAt: Date.now(),
     });
     res.json(options);
@@ -458,6 +474,21 @@ router.post('/passkey/login/complete', async (req: Request, res: Response) => {
       res.status(400).json({ error: "Cette clé d'accès n'est pas reconnue" });
       return;
     }
+    if (entry.email && !entry.uid) {
+      authChallenges.delete(expectedChallenge);
+      res.status(403).json({ error: "Cette clé d'accès n'appartient pas à ce compte" });
+      return;
+    }
+    if (entry.uid && passkey.uid !== entry.uid) {
+      authChallenges.delete(expectedChallenge);
+      res.status(403).json({ error: "Cette clé d'accès n'appartient pas à ce compte" });
+      return;
+    }
+    if (entry.credentialIds && !entry.credentialIds.includes(credentialId)) {
+      authChallenges.delete(expectedChallenge);
+      res.status(403).json({ error: "Cette clé d'accès n'appartient pas à ce compte" });
+      return;
+    }
     const verification = await verifyAuthenticationResponse({
       response: response as never,
       expectedChallenge,
@@ -477,7 +508,7 @@ router.post('/passkey/login/complete', async (req: Request, res: Response) => {
     await updatePasskeyCounter(passkey.id, verification.authenticationInfo.newCounter);
     authChallenges.delete(expectedChallenge);
 
-    const uid = entry.uid || passkey.uid;
+    const uid = passkey.uid;
     const banned = await isUserBanned(uid);
     if (banned) {
       res.status(403).json({ error: 'Ce compte est banni.' });
@@ -546,7 +577,8 @@ function isValidTransport(value: string): value is Transport {
 }
 
 function findExpectedChallenge<T extends { createdAt: number }>(map: Map<string, T>, response: unknown): string | null {
-  const clientData = (response as { clientDataJSON?: string }).clientDataJSON;
+  const payload = response as { clientDataJSON?: string; response?: { clientDataJSON?: string } };
+  const clientData = payload.response?.clientDataJSON || payload.clientDataJSON;
   if (!clientData) return null;
   try {
     const parsed = JSON.parse(new TextDecoder().decode(isoBase64URL.toBuffer(clientData))) as { challenge?: string };

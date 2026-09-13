@@ -77,6 +77,7 @@ router.get('/profile/:wouaffId', async (req: Request, res: Response) => {
       res.status(404).json({ error: 'Profil introuvable' });
       return;
     }
+    const { status, lastSeen, ...publicProfile } = profile;
     const [followersCount, followingCount, postsCount, staff] = await Promise.all([
       count('SELECT COUNT(*) AS c FROM follows WHERE followedUid = ?', uid),
       count('SELECT COUNT(*) AS c FROM follows WHERE followerUid = ?', uid),
@@ -93,7 +94,7 @@ router.get('/profile/:wouaffId', async (req: Request, res: Response) => {
     }
     res.json({
       uid,
-      profile,
+      profile: publicProfile,
       badges,
       followersCount,
       followingCount,

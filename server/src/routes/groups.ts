@@ -12,6 +12,7 @@ import {
   getGroupConversations,
   getGroupInvite,
   getGroupInviteByGroup,
+  getMutualContactUids,
   getProfile,
   getProfiles,
   getPublicGroups,
@@ -59,8 +60,12 @@ router.post('/', async (req: Request, res: Response) => {
   const groupMembers: Record<string, { role: string; joinedAt: number }> = {
     [authReq.uid!]: { role: 'owner', joinedAt: Date.now() },
   };
-  if (members) {
-    for (const uid of members) {
+  if (Array.isArray(members)) {
+    const allowed = await getMutualContactUids(
+      authReq.uid!,
+      members.filter((uid): uid is string => typeof uid === 'string' && uid.length > 0),
+    );
+    for (const uid of [...allowed].slice(0, 100)) {
       groupMembers[uid] = { role: 'member', joinedAt: Date.now() };
     }
   }
@@ -184,14 +189,18 @@ router.post('/:gid/members', async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Action réservée aux admins' });
     return;
   }
-  const { uids } = req.body as { uids: string[] };
-  if (!uids?.length) {
+  const { uids } = req.body as { uids?: unknown };
+  const candidates = Array.isArray(uids) ? uids.filter((u): u is string => typeof u === 'string' && u.length > 0) : [];
+  if (candidates.length === 0) {
     res.status(400).json({ error: 'Aucun membre spécifié' });
     return;
   }
+  const currentMembers = group.members as Record<string, unknown> | undefined;
+  const allowed = await getMutualContactUids(authReq.uid!, candidates);
+  const toAdd = [...allowed].filter((uid) => !currentMembers?.[uid]).slice(0, 100);
   const io: Server = req.app.get('io');
-  const profiles = await getProfiles(uids);
-  for (const uid of uids) {
+  const profiles = await getProfiles(toAdd);
+  for (const uid of toAdd) {
     await addGroupMember(req.params.gid, uid);
     if (io) {
       io.to(`user:${uid}`).emit('group:member:added', {
@@ -201,7 +210,7 @@ router.post('/:gid/members', async (req: Request, res: Response) => {
       emitToGroup(io, req.params.gid, 'group:member:added', { gid: req.params.gid, uid, profile: profiles.get(uid) });
     }
   }
-  res.json({ success: true, added: uids.length });
+  res.json({ success: true, added: toAdd.length, ignored: candidates.length - toAdd.length });
 });
 
 /* DELETE /groups/:gid/members/:uid, exclure/quitter */

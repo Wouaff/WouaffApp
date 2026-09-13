@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import type { Request } from 'express';
 import { getOne, query } from '../config/database.js';
+import { getClientIp as resolveClientIp } from '../utils/clientIp.js';
 import { enqueueJob } from './queue.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -19,9 +20,7 @@ export interface SqlMatch {
 }
 
 export function getClientIp(req: Request): string {
-  const fwd = req.headers['x-forwarded-for'];
-  if (typeof fwd === 'string' && fwd.length > 0) return fwd.split(',')[0].trim();
-  return req.ip || req.socket.remoteAddress || 'inconnue';
+  return resolveClientIp(req) || req.socket.remoteAddress || 'inconnue';
 }
 
 export async function resolveAccount(req: Request): Promise<string> {

@@ -79,9 +79,11 @@ router.get('/mentions', async (req: Request, res: Response) => {
       `SELECT uid, pseudo, avatar, wouaffId FROM users
        WHERE (wouaffId LIKE ? OR REPLACE(COALESCE(wouaffId, ''), '@', '') LIKE ? OR pseudo LIKE ?)
          AND uid != ?
+         AND uid NOT IN (SELECT blockedUid FROM blocks WHERE uid = ?)
+         AND uid NOT IN (SELECT uid FROM blocks WHERE blockedUid = ?)
        ORDER BY lastSeen DESC
        LIMIT ?`,
-      [pattern, pattern, pattern, authReq.uid!, limit],
+      [pattern, pattern, pattern, authReq.uid!, authReq.uid!, authReq.uid!, limit],
     );
   }
   const results = rows.map((r) => ({

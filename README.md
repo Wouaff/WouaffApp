@@ -116,7 +116,7 @@ cd client
 npm run dev
 ```
 
-Le client tourne sur `http://localhost:5173` et proxyfie les requêtes API vers le serveur sur `http://localhost:7284`. Une fois connecté, vous arrivez sur la page d'accueil ; l'ancienne messagerie reste accessible sur `/chat`.
+Le client tourne sur `http://localhost:5173` et proxyfie les requêtes API vers le serveur sur `http://localhost:7285`. Une fois connecté, vous arrivez sur la page d'accueil ; l'ancienne messagerie reste accessible sur `/chat`.
 
 ### 📦 Build production
 

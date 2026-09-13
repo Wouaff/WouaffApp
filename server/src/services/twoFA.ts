@@ -1,9 +1,78 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, randomInt, randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { generateSecret, generateURI, verify } from 'otplib';
 import { getOne, query } from '../config/database.js';
 
 export const TOTP_ISSUER = 'Wouaff';
+
+const TOTP_ENC_PREFIX = 'enc:v1:';
+
+function encryptionKey(): Buffer | null {
+  const raw = (process.env.TOTP_ENCRYPTION_KEY || '').trim();
+  if (!raw) return null;
+  const key = /^[0-9a-f]{64}$/i.test(raw) ? Buffer.from(raw, 'hex') : Buffer.from(raw, 'base64');
+  return key.length === 32 ? key : null;
+}
+
+export function encryptTotpSecret(secret: string): string {
+  const key = encryptionKey();
+  if (!key) return secret;
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(secret, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `${TOTP_ENC_PREFIX}${iv.toString('base64url')}:${tag.toString('base64url')}:${encrypted.toString('base64url')}`;
+}
+
+export function decryptTotpSecret(stored: string): string {
+  if (!stored.startsWith(TOTP_ENC_PREFIX)) return stored;
+  const key = encryptionKey();
+  if (!key) return '';
+  const parts = stored.slice(TOTP_ENC_PREFIX.length).split(':');
+  if (parts.length !== 3) return '';
+  try {
+    const iv = Buffer.from(parts[0] as string, 'base64url');
+    const tag = Buffer.from(parts[1] as string, 'base64url');
+    const data = Buffer.from(parts[2] as string, 'base64url');
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
+  } catch {
+    return '';
+  }
+}
+
+export async function setTotpSecret(uid: string, secret: string): Promise<void> {
+  await query('UPDATE users SET totpSecret=?, totpEnabled=1 WHERE uid=?', [encryptTotpSecret(secret), uid]);
+}
+
+export async function getTotpSecret(uid: string): Promise<string | null> {
+  const row = await getOne<{ totpSecret: string | null }>('SELECT totpSecret FROM users WHERE uid=?', [uid]);
+  if (!row?.totpSecret) return null;
+  const secret = decryptTotpSecret(row.totpSecret);
+  return secret || null;
+}
+
+const usedTotpCodes = new Map<string, number>();
+const TOTP_REPLAY_WINDOW_MS = 90 * 1000;
+const MAX_REPLAY_ENTRIES = 10000;
+
+export function isTotpCodeReplayed(uid: string, code: string): boolean {
+  const at = usedTotpCodes.get(`${uid}:${code}`);
+  return !!at && Date.now() - at < TOTP_REPLAY_WINDOW_MS;
+}
+
+export function markTotpCodeUsed(uid: string, code: string): void {
+  const now = Date.now();
+  for (const [key, at] of usedTotpCodes) {
+    if (now - at >= TOTP_REPLAY_WINDOW_MS) usedTotpCodes.delete(key);
+  }
+  if (usedTotpCodes.size >= MAX_REPLAY_ENTRIES) {
+    const oldest = usedTotpCodes.keys().next().value;
+    if (oldest !== undefined) usedTotpCodes.delete(oldest);
+  }
+  usedTotpCodes.set(`${uid}:${code}`, now);
+}
 
 export function generateTotpSecret(): string {
   return generateSecret();
@@ -16,7 +85,7 @@ export function totpUri(account: string, secret: string): string {
 export async function verifyTotp(code: string, secret: string): Promise<boolean> {
   if (!secret) return false;
   try {
-    const result = await verify({ secret, token: code.replace(/\s/g, '') });
+    const result = await verify({ secret, token: code.replace(/\s/g, ''), epochTolerance: 0 });
     return result.valid;
   } catch {
     return false;
@@ -130,7 +199,8 @@ export async function consumeLoginChallenge(challenge: string): Promise<string |
 /* ---- Code 2FA par email ---- */
 
 export async function create2FAEmailCode(uid: string): Promise<string> {
-  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const code = String(randomInt(100000, 1000000));
+  await query("UPDATE email_tokens SET used=1 WHERE uid=? AND type='2fa' AND used=0", [uid]);
   await query('INSERT INTO email_tokens (uid, token, type, expiresAt, createdAt) VALUES (?,?,?,?,?)', [
     uid,
     code,

@@ -52,6 +52,13 @@ function scanValue(value: unknown, out: SqlMatch[]): void {
   }
 }
 
+/* Quota global d'alertes : borne l'amplification (job DB + webhook) */
+const ALERT_BUDGET_PER_MINUTE = 30;
+let alertBudget = ALERT_BUDGET_PER_MINUTE;
+setInterval(() => {
+  alertBudget = ALERT_BUDGET_PER_MINUTE;
+}, 60000).unref();
+
 export function sqlGuard(req: Request, res: Response, next: NextFunction): void {
   const matches: SqlMatch[] = [];
 
@@ -68,7 +75,10 @@ export function sqlGuard(req: Request, res: Response, next: NextFunction): void 
   console.warn(
     `[SQL-GUARD] Tentative d'injection SQL (${match.name}) depuis ${req.ip || 'inconnu'} sur ${req.method} ${req.originalUrl}`,
   );
-  enqueueSqlInjectionAlert(req, match).catch(() => {});
+  if (alertBudget > 0) {
+    alertBudget--;
+    enqueueSqlInjectionAlert(req, match).catch(() => {});
+  }
 
   res.status(400).json({ error: 'Requête rejetée' });
 }

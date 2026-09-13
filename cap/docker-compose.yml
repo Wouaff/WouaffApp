@@ -3,9 +3,9 @@ services:
     image: tiago2/cap:latest
     container_name: wouaff-cap
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     environment:
-      ADMIN_KEY: ${CAP_ADMIN_KEY}
+      ADMIN_KEY: ${CAP_ADMIN_KEY:?CAP_ADMIN_KEY requis}
       REDIS_URL: redis://valkey:6379
     depends_on:
       valkey:
