@@ -2,23 +2,128 @@
  * Ported from assets/js/crypto.js for React + TypeScript
  */
 
-const KEY = 'wouaff_e2ee';
+/* La clé privée n'est jamais stockée en clair : elle est conservée sous forme
+ * de CryptoKey non-exportable dans IndexedDB. Un XSS ne peut donc pas l'exfiltrer
+ * (il ne peut au mieux que s'en servir dans l'onglet compromis). */
+const LEGACY_KEY = 'wouaff_e2ee';
+const IDB_NAME = 'wouaff-e2ee';
+const IDB_STORE = 'keys';
+const IDB_RECORD = 'keypair';
+
+interface StoredKeyPair {
+  privKey: CryptoKey;
+  pubJwk: JsonWebKey;
+}
 
 let _privKey: CryptoKey | null = null;
 let _pubKey: JsonWebKey | null = null;
 const _keyCache = new Map<string, CryptoKey>();
 
+function _openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') {
+      reject(new Error('IndexedDB indisponible'));
+      return;
+    }
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error ?? new Error('Ouverture IndexedDB échouée'));
+  });
+}
+
+async function _idbGet<T>(id: string): Promise<T | null> {
+  const db = await _openDb();
+  try {
+    return await new Promise<T | null>((resolve, reject) => {
+      const req = db.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).get(id);
+      req.onsuccess = () => resolve((req.result as T | undefined) ?? null);
+      req.onerror = () => reject(req.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function _idbPut(value: StoredKeyPair, id: string): Promise<void> {
+  const db = await _openDb();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(value, id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function _idbDelete(id: string): Promise<void> {
+  const db = await _openDb();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
 async function _importPrivKey(jwk: JsonWebKey): Promise<CryptoKey> {
   return crypto.subtle.importKey('jwk', jwk, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveKey', 'deriveBits']);
 }
 
-async function _generateKeyPair(): Promise<{ privKey: CryptoKey; privJwk: JsonWebKey; pubJwk: JsonWebKey }> {
-  const kp = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey', 'deriveBits']);
+async function _generateKeyPair(): Promise<{ privKey: CryptoKey; pubJwk: JsonWebKey }> {
+  /* extractable=false : la clé privée ne peut plus être exportée. La clé publique
+   * reste, elle, toujours exportable conformément à la spécification WebCrypto. */
+  const kp = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveKey', 'deriveBits']);
   return {
     privKey: kp.privateKey,
-    privJwk: await crypto.subtle.exportKey('jwk', kp.privateKey),
     pubJwk: await crypto.subtle.exportKey('jwk', kp.publicKey),
   };
+}
+
+async function _loadStoredKeyPair(): Promise<StoredKeyPair | null> {
+  try {
+    const record = await _idbGet<StoredKeyPair>(IDB_RECORD);
+    if (record?.privKey && record?.pubJwk) return record;
+  } catch (e) {
+    console.warn('E2EE : IndexedDB indisponible, clé privée non persistée', e);
+    return null;
+  }
+  return _migrateLegacyKeyPair();
+}
+
+/* Migration de l'ancienne clé stockée en clair dans localStorage : elle est
+ * ré-importée en clé non-exportable puis supprimée du localStorage. */
+async function _migrateLegacyKeyPair(): Promise<StoredKeyPair | null> {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(LEGACY_KEY);
+  } catch {
+    return null;
+  }
+  if (!raw) return null;
+  try {
+    const data = JSON.parse(raw) as { privJwk?: JsonWebKey; pubJwk?: JsonWebKey };
+    if (!data?.privJwk || !data?.pubJwk) throw new Error('paire de clés héritée invalide');
+    const privKey = await _importPrivKey(data.privJwk);
+    await _idbPut({ privKey, pubJwk: data.pubJwk }, IDB_RECORD);
+    localStorage.removeItem(LEGACY_KEY);
+    return { privKey, pubJwk: data.pubJwk };
+  } catch (e) {
+    console.warn('E2EE : migration de la clé locale échouée', e);
+    return null;
+  }
 }
 
 async function _getAesKey(partnerPubJwk: JsonWebKey): Promise<CryptoKey> {
@@ -44,27 +149,41 @@ export async function initE2EE(
   _uid: string,
   _fetchPublicKeyFromAPI: (uid: string) => Promise<JsonWebKey | null>,
 ): Promise<void> {
-  const stored = localStorage.getItem(KEY);
+  const stored = await _loadStoredKeyPair();
   if (stored) {
-    try {
-      const data = JSON.parse(stored) as { privJwk: JsonWebKey; pubJwk: JsonWebKey };
-      _privKey = await _importPrivKey(data.privJwk);
-      _pubKey = data.pubJwk;
-      return;
-    } catch {
-      localStorage.removeItem(KEY);
-    }
+    _privKey = stored.privKey;
+    _pubKey = stored.pubJwk;
+    return;
   }
   const pair = await _generateKeyPair();
   _privKey = pair.privKey;
   _pubKey = pair.pubJwk;
-  localStorage.setItem(KEY, JSON.stringify({ privJwk: pair.privJwk, pubJwk: pair.pubJwk }));
+  try {
+    await _idbPut({ privKey: pair.privKey, pubJwk: pair.pubJwk }, IDB_RECORD);
+  } catch (e) {
+    console.warn('E2EE : persistance de la clé privée impossible', e);
+  }
 }
 
 export function clearE2EE(): void {
   _keyCache.clear();
   _privKey = null;
   _pubKey = null;
+}
+
+/* Efface la clé privée persistée (déconnexion / changement de compte). */
+export async function destroyE2EE(): Promise<void> {
+  clearE2EE();
+  try {
+    await _idbDelete(IDB_RECORD);
+  } catch {
+    /* IndexedDB indisponible */
+  }
+  try {
+    localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function encrypt(partnerPubJwk: JsonWebKey, plaintext: string): Promise<{ ct: string; iv: string }> {
