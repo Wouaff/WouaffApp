@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
-import { verifyToken } from '../middleware/auth.js';
+import { clearCachedSessionsForUid, verifyToken } from '../middleware/auth.js';
 import { notifyIndexNow } from '../services/indexnow.js';
 import { resolveMusicLink } from '../services/musicOembed.js';
 import { enqueueJob } from '../services/queue.js';
@@ -17,6 +17,7 @@ import {
   updateProfile,
 } from '../services/rtdb.js';
 import type { AuthRequest } from '../types/index.js';
+import { sanitizeSocialLinks } from '../utils/contentValidation.js';
 
 const router: Router = Router();
 router.use(verifyToken);
@@ -108,7 +109,14 @@ router.put('/me', async (req: Request, res: Response) => {
   if (bio !== undefined) patch.bio = bio;
   if (avatar !== undefined) patch.avatar = avatar;
   if (banner !== undefined) patch.banner = banner;
-  if (social_links !== undefined) patch.social_links = social_links;
+  if (social_links !== undefined) {
+    const sanitized = sanitizeSocialLinks(social_links);
+    if (!sanitized.ok) {
+      res.status(400).json({ error: 'Liens invalides : seules les URL http(s) sont acceptées' });
+      return;
+    }
+    patch.social_links = sanitized.value;
+  }
   await updateProfile(authReq.uid!, patch);
   const io: Server = req.app.get('io');
   if (io) {
@@ -170,6 +178,7 @@ router.delete('/me', async (req: Request, res: Response) => {
     return;
   }
   await deleteUserProfile(authReq.uid!);
+  clearCachedSessionsForUid(authReq.uid!);
   const io: Server = req.app.get('io');
   if (io) {
     const contactUids = await getReverseContactUids(authReq.uid!);

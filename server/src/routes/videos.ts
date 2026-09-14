@@ -4,7 +4,7 @@ import multer from 'multer';
 import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
-import { uploadToQuickUploads } from '../services/quickUploads.js';
+import { deleteFromQuickUploads, uploadToQuickUploads } from '../services/quickUploads.js';
 import { getProfile } from '../services/rtdb.js';
 import type { AuthRequest, VideoComment, VideoData } from '../types/index.js';
 import { fetchBadgesMap } from '../utils/badges.js';
@@ -68,15 +68,19 @@ router.post('/', upload.fields([{ name: 'video', maxCount: 1 }]), async (req: Re
   }
   try {
     const ext = videoFile.originalname.split('.').pop() || 'mp4';
-    const videoUrl = await uploadToQuickUploads(videoFile.buffer, `video.${ext}`, videoFile.mimetype);
+    const { url: videoUrl, deletionUrl } = await uploadToQuickUploads(
+      videoFile.buffer,
+      `video.${ext}`,
+      videoFile.mimetype,
+    );
     const id = videoUrl.split('?v=').pop() || videoUrl.split('/').pop() || Date.now().toString();
     const location =
       lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng), name: locationName || undefined } : null;
     const now = Date.now();
     await query(
-      `INSERT INTO videos (id, uid, videoPath, caption, duration, location, likesCount, commentsCount, createdAt)
-       VALUES (?,?,?,?,?,?,0,0,?)`,
-      [id, authReq.uid!, videoUrl, caption || null, 0, location ? JSON.stringify(location) : null, now],
+      `INSERT INTO videos (id, uid, videoPath, deletionUrl, caption, duration, location, likesCount, commentsCount, createdAt)
+       VALUES (?,?,?,?,?,?,?,0,0,?)`,
+      [id, authReq.uid!, videoUrl, deletionUrl, caption || null, 0, location ? JSON.stringify(location) : null, now],
     );
     const io: Server = req.app.get('io');
     if (io) {
@@ -84,7 +88,8 @@ router.post('/', upload.fields([{ name: 'video', maxCount: 1 }]), async (req: Re
     }
     res.json({ id, videoPath: videoUrl, caption, location, createdAt: now });
   } catch (err) {
-    res.status(400).json({ error: (err as { message?: string }).message });
+    console.error('Video upload error:', err);
+    res.status(400).json({ error: "Erreur lors de l'envoi de la vidéo" });
   }
 });
 
@@ -166,7 +171,10 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const row = await getOne<{ uid: string }>('SELECT uid FROM videos WHERE id=?', [req.params.id]);
+  const row = await getOne<{ uid: string; deletionUrl: string | null }>(
+    'SELECT uid, deletionUrl FROM videos WHERE id=?',
+    [req.params.id],
+  );
   if (!row) {
     res.status(404).json({ error: 'Vidéo introuvable' });
     return;
@@ -178,6 +186,9 @@ router.delete('/:id', async (req: Request, res: Response) => {
   await query('DELETE FROM videos WHERE id=?', [req.params.id]);
   await query('DELETE FROM video_likes WHERE videoId=?', [req.params.id]);
   await query('DELETE FROM video_comments WHERE videoId=?', [req.params.id]);
+  if (row.deletionUrl) {
+    deleteFromQuickUploads(row.deletionUrl).catch(() => {});
+  }
   res.json({ success: true });
 });
 

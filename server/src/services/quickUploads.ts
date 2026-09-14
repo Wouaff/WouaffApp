@@ -9,9 +9,17 @@ interface QuickUploadsResponse {
   code: string;
 }
 
-export async function uploadToQuickUploads(buffer: Buffer, filename: string, mimeType: string): Promise<string> {
+export interface QuickUploadResult {
+  url: string;
+  deletionUrl: string | null;
+}
+
+export async function uploadToQuickUploads(
+  buffer: Buffer,
+  filename: string,
+  mimeType: string,
+): Promise<QuickUploadResult> {
   const boundary = `----${Math.random().toString(36).slice(2)}`;
-  const _body = '';
   const header = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mimeType}\r\n\r\n`;
   const footer = `\r\n--${boundary}--\r\n`;
   const headerBuf = Buffer.from(header, 'latin1');
@@ -41,5 +49,13 @@ export async function uploadToQuickUploads(buffer: Buffer, filename: string, mim
   if (!data.success || !data.direct_url) {
     throw new Error('QuickUploads: upload failed or missing direct_url');
   }
-  return data.direct_url;
+  return { url: data.direct_url, deletionUrl: data.deletion_url || null };
+}
+
+export async function deleteFromQuickUploads(deletionUrl: string): Promise<void> {
+  try {
+    await fetch(deletionUrl, { signal: AbortSignal.timeout(5000), redirect: 'follow' });
+  } catch {
+    /* best effort */
+  }
 }

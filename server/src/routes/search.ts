@@ -11,7 +11,7 @@ router.use(verifyToken);
 /* GET /search/users?q=@pseudo, rechercher un utilisateur */
 router.get('/users', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const q = ((req.query.q as string) || '').trim().toLowerCase();
+  const q = ((req.query.q as string) || '').trim().toLowerCase().slice(0, 100);
   if (!q) {
     res.json({ results: [] });
     return;
@@ -34,7 +34,7 @@ router.get('/users', async (req: Request, res: Response) => {
 /* GET /search/mentions?q=, suggestions de mentions @ (léger) */
 router.get('/mentions', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const raw = ((req.query.q as string) || '').trim().replace(/^@/, '').toLowerCase();
+  const raw = ((req.query.q as string) || '').trim().replace(/^@/, '').toLowerCase().slice(0, 100);
   const limit = Math.min(15, Math.max(1, parseInt(req.query.limit as string, 10) || 10));
 
   let rows: Array<{ uid: string; pseudo: string; avatar: string | null; wouaffId: string | null }>;
@@ -79,9 +79,11 @@ router.get('/mentions', async (req: Request, res: Response) => {
       `SELECT uid, pseudo, avatar, wouaffId FROM users
        WHERE (wouaffId LIKE ? OR REPLACE(COALESCE(wouaffId, ''), '@', '') LIKE ? OR pseudo LIKE ?)
          AND uid != ?
+         AND uid NOT IN (SELECT blockedUid FROM blocks WHERE uid = ?)
+         AND uid NOT IN (SELECT uid FROM blocks WHERE blockedUid = ?)
        ORDER BY lastSeen DESC
        LIMIT ?`,
-      [pattern, pattern, pattern, authReq.uid!, limit],
+      [pattern, pattern, pattern, authReq.uid!, authReq.uid!, authReq.uid!, limit],
     );
   }
   const results = rows.map((r) => ({

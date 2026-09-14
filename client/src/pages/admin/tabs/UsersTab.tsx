@@ -238,7 +238,6 @@ export function UsersTab({
     }
     try {
       await adminApi.profile.update(uid, data);
-      adminApi.logAction('profile_update', 'user', uid, Object.keys(data).join(', '));
       setSaveMsg('Profil mis à jour ✓');
       toast('Profil mis à jour', 'success');
       if (data.email !== undefined) setEmailOriginal(data.email);
@@ -256,7 +255,6 @@ export function UsersTab({
     if (!result) return;
     try {
       await adminApi.badges.set(result.uid, selectedBadges);
-      adminApi.logAction('badge_update', 'user', result.uid, selectedBadges.join(', '));
       setBadgeMsg('Badges mis à jour ✓');
       toast('Badges mis à jour', 'success');
     } catch (e) {
@@ -275,7 +273,6 @@ export function UsersTab({
     if (!ok) return;
     try {
       await adminApi.profile.resetWouaffId(result.uid);
-      adminApi.logAction('wouaffid_reset', 'user', result.uid);
       setEditData((prev) => ({ ...prev, wouaffId: '' }));
       toast('Wouaff ID réinitialisé', 'success');
     } catch (e) {
@@ -294,7 +291,6 @@ export function UsersTab({
     if (!ok) return;
     try {
       await adminApi.profile.delete(result.uid);
-      adminApi.logAction('account_delete', 'user', result.uid, result.profile.pseudo);
       toast('Compte supprimé', 'success');
       setResult(null);
       setQuery('');

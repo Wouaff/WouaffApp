@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { verifyToken } from '../middleware/auth.js';
+import { rateLimitByKey } from '../middleware/rateLimitByKey.js';
 import {
   acceptContactRequest,
   findUsersByPhones,
@@ -24,6 +25,15 @@ import type { AuthRequest } from '../types/index.js';
 const router: Router = Router();
 router.use(verifyToken);
 
+const syncLimit = rateLimitByKey({
+  windowMs: 60 * 60 * 1000,
+  max: 6,
+  keyFn: (req) => (req as AuthRequest).uid || '',
+  message: 'Trop de synchronisations de contacts, réessayez plus tard.',
+});
+
+const MAX_SYNC_CONTACTS = 500;
+
 /* GET /contacts/sync-status, à afficher (popup) ou pas ? */
 router.get('/sync-status', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -31,7 +41,7 @@ router.get('/sync-status', async (req: Request, res: Response) => {
 });
 
 /* POST /contacts/sync, enregistrer mon n° et retrouver mes amis par téléphone */
-router.post('/sync', async (req: Request, res: Response) => {
+router.post('/sync', syncLimit, async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { phone, contacts } = req.body as { phone?: string; contacts?: string[] };
   const ownPhone = typeof phone === 'string' ? normalizePhone(phone) : undefined;
@@ -39,7 +49,15 @@ router.post('/sync', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Numéro de téléphone invalide' });
     return;
   }
-  const list = Array.isArray(contacts) ? contacts.map((n) => String(n)).filter(Boolean) : [];
+  const rawList = Array.isArray(contacts) ? contacts : [];
+  if (rawList.length > MAX_SYNC_CONTACTS) {
+    res.status(400).json({ error: `Trop de numéros en une seule synchronisation (${MAX_SYNC_CONTACTS} maximum)` });
+    return;
+  }
+  const list = rawList
+    .map((n) => String(n))
+    .filter(Boolean)
+    .slice(0, MAX_SYNC_CONTACTS);
   const phoneMap = await findUsersByPhones(list);
   const matches: Array<{
     uid: string;

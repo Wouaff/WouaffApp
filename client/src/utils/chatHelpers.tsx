@@ -569,8 +569,17 @@ export async function toggleReaction(mid: string, emoji: string, convId: string,
 }
 
 export function downloadFile(msg: MessageData) {
+  const href = msg.fileData || '';
+  let safe = false;
+  try {
+    const parsed = new URL(href, window.location.origin);
+    safe = ['http:', 'https:', 'data:', 'blob:'].includes(parsed.protocol);
+  } catch {
+    safe = false;
+  }
+  if (!safe) return;
   const a = document.createElement('a');
-  a.href = msg.fileData || '';
+  a.href = href;
   a.download = msg.fileName || 'fichier';
   a.style.display = 'none';
   document.body.appendChild(a);

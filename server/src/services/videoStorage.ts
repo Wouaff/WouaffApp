@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readdir, unlink, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -8,6 +8,13 @@ const UPLOADS_DIR = resolve(__dirname, '../uploads');
 const VIDEOS_DIR = resolve(UPLOADS_DIR, 'videos');
 const THUMBS_DIR = resolve(UPLOADS_DIR, 'thumbnails');
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
+const UPLOADS_ROOT = resolve(UPLOADS_DIR, '..');
+
+function safeUploadPath(relativePath: string): string | null {
+  const full = resolve(UPLOADS_ROOT, relativePath);
+  if (full !== UPLOADS_ROOT && !full.startsWith(UPLOADS_ROOT + sep)) return null;
+  return full;
+}
 
 const ALLOWED_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 
@@ -46,14 +53,18 @@ export async function storeThumbnail(buffer: Buffer): Promise<string> {
 }
 
 export async function deleteVideoFiles(videoPath: string, thumbnailPath?: string): Promise<void> {
-  const fullPath = resolve(UPLOADS_DIR, '..', videoPath);
+  const fullPath = safeUploadPath(videoPath);
+  if (!fullPath) return;
   try {
     await unlink(fullPath);
   } catch {}
   if (thumbnailPath) {
-    try {
-      await unlink(resolve(UPLOADS_DIR, '..', thumbnailPath));
-    } catch {}
+    const thumbPath = safeUploadPath(thumbnailPath);
+    if (thumbPath) {
+      try {
+        await unlink(thumbPath);
+      } catch {}
+    }
   }
 }
 

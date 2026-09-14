@@ -2,6 +2,16 @@ import type { NextFunction, Request, Response } from 'express';
 
 const isProd = process.env.NODE_ENV === 'production';
 
+const CANONICAL_HOST = (() => {
+  const appUrl = (process.env.APP_URL || '').trim();
+  if (!appUrl) return '';
+  try {
+    return new URL(appUrl).host.toLowerCase();
+  } catch {
+    return '';
+  }
+})();
+
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://wouaff.statuspage.io https://8d9r257f8g5b.statuspage.io https://images.dmca.com",
@@ -37,12 +47,17 @@ export function redirectHttps(req: Request, res: Response, next: NextFunction): 
     return;
   }
 
-  const host = req.headers.host || '';
-  const hostname = host.split(':')[0].toLowerCase();
+  const host = (req.headers.host || '').toLowerCase();
+  const hostname = host.split(':')[0];
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
     next();
     return;
   }
 
-  res.redirect(301, `https://${host}${req.originalUrl}`);
+  const targetHost = CANONICAL_HOST || host;
+  if (!targetHost) {
+    next();
+    return;
+  }
+  res.redirect(301, `https://${targetHost}${req.originalUrl}`);
 }

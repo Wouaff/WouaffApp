@@ -1,7 +1,7 @@
 {
   "name": "Wouaff — ton fil, pas leur algo",
   "short_name": "Wouaff",
-  "description": "Le réseau social français et souverain. Posts, vidéos, communautés, MP chiffrés. Zéro pub, tes données restent en France.",
+  "description": "Le réseau social français et souverain. Posts, vidéos, communautés, messagerie. Zéro pub, tes données restent en France.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

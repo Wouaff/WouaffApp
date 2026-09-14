@@ -64,7 +64,8 @@ router.get('/', async (_req: Request, res: Response) => {
       })),
     );
   } catch (err) {
-    res.status(500).json({ error: (err as { message?: string }).message });
+    console.error('Trends error:', err);
+    res.status(500).json({ error: 'Erreur lors du chargement des tendances' });
   }
 });
 

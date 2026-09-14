@@ -1,4 +1,4 @@
-import { isIP } from 'node:net';
+import { assertPublicUrl, fetchPublic, readLimitedBody } from './urlSafety.js';
 
 export interface ResolvedMusic {
   provider: string;
@@ -54,31 +54,12 @@ const PROVIDERS: ProviderRule[] = [
   },
 ];
 
-const PRIVATE_HOST_RE =
-  /^(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.0\.0\.0)(:|$|\/)/i;
-
-function looksPrivate(url: URL): boolean {
-  if (/^localhost$/i.test(url.hostname)) return true;
-  if (PRIVATE_HOST_RE.test(url.hostname)) return true;
-  const ip = isIP(url.hostname);
-  if (ip === 4) {
-    const parts = url.hostname.split('.').map(Number);
-    if (parts[0] === 10) return true;
-    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-    if (parts[0] === 192 && parts[1] === 168) return true;
-    if (parts[0] === 127) return true;
-    if (parts[0] === 169 && parts[1] === 254) return true;
-  }
-  if (ip === 6 && /^f[cd][0-9a-f]{2}:/i.test(url.hostname)) return true;
-  return false;
-}
-
 async function fetchJson<T>(endpoint: string): Promise<T | null> {
   try {
     const res = await fetch(endpoint, {
       signal: AbortSignal.timeout(8000),
       headers: { 'User-Agent': 'Wouaff/1.0' },
-      redirect: 'follow',
+      redirect: 'manual',
     });
     if (!res.ok) return null;
     return (await res.json()) as T;
@@ -88,19 +69,16 @@ async function fetchJson<T>(endpoint: string): Promise<T | null> {
 }
 
 async function fetchOgMeta(url: string): Promise<Record<string, string>> {
-  const target = new URL(url);
-  if (looksPrivate(target)) return {};
   try {
-    const res = await fetch(url, {
+    const { response } = await fetchPublic(url, {
       signal: AbortSignal.timeout(8000),
       headers: {
         'User-Agent':
           'Mozilla/5.0 (compatible; Wouaff/1.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
       },
-      redirect: 'follow',
     });
-    if (!res.ok) return {};
-    const html = await res.text();
+    if (!response.ok) return {};
+    const html = await readLimitedBody(response, 256 * 1024);
     const meta: Record<string, string> = {};
     const re = /<meta[^>]+(?:property|name)=["'](og:[a-z:_]+)["'][^>]+content=["']([^"']*)["']/gi;
     let m = re.exec(html);
@@ -143,7 +121,11 @@ export async function resolveMusicLink(rawUrl: string): Promise<ResolvedMusic | 
     return null;
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-  if (looksPrivate(url)) return null;
+  try {
+    await assertPublicUrl(url.toString());
+  } catch {
+    return null;
+  }
 
   const provider = findProvider(url);
   let title = '';

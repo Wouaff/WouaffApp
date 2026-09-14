@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
+import { rateLimitByKey } from '../middleware/rateLimitByKey.js';
 import {
   chatId,
   getGroupMessageBlob,
@@ -17,21 +18,41 @@ import {
   updateMessage,
 } from '../services/rtdb.js';
 import type { AuthRequest, MessageData } from '../types/index.js';
+import { isSafeMediaSource } from '../utils/contentValidation.js';
 
 const MSG_COLS =
   'msgKey, fromUid, text, type, time, seen, encrypted, ct, iv, fileName, duration, pendingFrom, senderName, replyTo, messageTheme, forwardedFrom, ephemeralDuration, pinned, reactions, id';
 const MSG_GROUP_COLS =
   'msgKey, fromUid, text, type, time, deleted, edited, encrypted, ct, iv, fileName, duration, senderName, replyTo, messageTheme, forwardedFrom, seenBy, ephemeralDuration, pinned, id';
+const MAX_MESSAGE_MEDIA_LENGTH = 5 * 1024 * 1024;
+const MAX_MESSAGE_TEXT_LENGTH = 10000;
 
 const router: Router = Router();
 router.use(verifyToken);
+router.use(
+  rateLimitByKey({
+    windowMs: 60000,
+    max: 30,
+    keyFn: (req) => (req as AuthRequest).uid || '',
+    message: 'Trop de messages envoyés, réessayez plus tard',
+  }),
+);
 
-async function isBlocked(uid: string, byUid: string): Promise<boolean> {
-  const row = await getOne<{ blockedUid: string }>('SELECT blockedUid FROM blocks WHERE uid=? AND blockedUid=?', [
-    byUid,
-    uid,
-  ]);
-  return !!row;
+function mediaLength(body: Record<string, unknown>): number {
+  let total = 0;
+  for (const key of ['imageData', 'fileData', 'audioData'] as const) {
+    const value = body[key];
+    if (typeof value === 'string') total += value.length;
+  }
+  return total;
+}
+
+function rejectOversizedMessage(body: Record<string, unknown>): string | null {
+  if (mediaLength(body) > MAX_MESSAGE_MEDIA_LENGTH) return 'Pièce jointe trop volumineuse (5 Mo maximum)';
+  if (typeof body.text === 'string' && body.text.length > MAX_MESSAGE_TEXT_LENGTH) {
+    return 'Message trop long';
+  }
+  return null;
 }
 
 async function requireGroupMember(req: Request, res: Response): Promise<boolean> {
@@ -65,9 +86,30 @@ async function isGroupAdmin(gid: string, uid: string): Promise<boolean> {
   return !!row && (row.role === 'owner' || row.role === 'admin');
 }
 
+function rejectUnsafeMedia(body: Record<string, unknown>): string | null {
+  if (body.imageData !== undefined && !isSafeMediaSource(body.imageData)) return 'Image invalide';
+  if (body.audioData !== undefined && !isSafeMediaSource(body.audioData)) return 'Audio invalide';
+  if (body.fileData !== undefined && !isSafeMediaSource(body.fileData)) return 'Fichier invalide';
+  return null;
+}
+
+async function isBlockedBetween(uid: string, otherUid: string): Promise<boolean> {
+  const row = await getOne<{ blockedUid: string }>(
+    'SELECT blockedUid FROM blocks WHERE (uid=? AND blockedUid=?) OR (uid=? AND blockedUid=?) LIMIT 1',
+    [otherUid, uid, uid, otherUid],
+  );
+  return !!row;
+}
+
+function deniedByBlock(res: Response): boolean {
+  res.status(403).json({ error: 'Conversation indisponible' });
+  return true;
+}
+
 /* GET /messages/:uid, messages d'une conversation DM */
 router.get('/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
+  if (await isBlockedBetween(authReq.uid!, req.params.uid)) return deniedByBlock(res);
   const cid = chatId(authReq.uid!, req.params.uid);
   const limit = req.query.limit ? Math.min(Math.max(parseInt(req.query.limit as string, 10) || 50, 1), 100) : undefined;
   const before = req.query.before ? parseInt(req.query.before as string, 10) : undefined;
@@ -89,15 +131,30 @@ router.post('/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const targetUid = req.params.uid;
 
-  /* Block enforcement: check if target has blocked sender, or sender has blocked target */
-  const blockedByTarget = await isBlocked(authReq.uid!, targetUid);
-  if (blockedByTarget) {
+  const recipient = await getOne<{ uid: string }>('SELECT uid FROM users WHERE uid=?', [targetUid]);
+  if (!recipient) {
+    res.status(404).json({ error: 'Destinataire introuvable' });
+    return;
+  }
+
+  /* Blocage symétrique : ni l'un ni l'autre ne peut écrire à l'autre */
+  if (await isBlockedBetween(authReq.uid!, targetUid)) {
     res.status(403).json({ error: 'Vous ne pouvez pas envoyer de message à cet utilisateur' });
     return;
   }
 
   const cid = chatId(authReq.uid!, targetUid);
   const b = req.body as Record<string, unknown>;
+  const sizeError = rejectOversizedMessage(b);
+  if (sizeError) {
+    res.status(413).json({ error: sizeError });
+    return;
+  }
+  const mediaError = rejectUnsafeMedia(b);
+  if (mediaError) {
+    res.status(400).json({ error: mediaError });
+    return;
+  }
   const msg: MessageData = {
     text: b.text as string | undefined,
     type: b.type as string | undefined,
@@ -122,11 +179,7 @@ router.post('/:uid', async (req: Request, res: Response) => {
   const io = req.app.get('io');
   if (io) {
     io.to(`dm:${cid}`).emit('message:added', { convId: cid, key, data: msg });
-    /* Only notify target if they haven't blocked the sender */
-    const senderBlockedByTarget = await isBlocked(authReq.uid!, targetUid);
-    if (!senderBlockedByTarget) {
-      io.to(`user:${targetUid}`).emit('message:added', { convId: cid, key, data: msg });
-    }
+    io.to(`user:${targetUid}`).emit('message:added', { convId: cid, key, data: msg });
   }
   res.json({ key, ...msg });
 });
@@ -136,6 +189,16 @@ router.post('/group/:gid', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
   const authReq = req as AuthRequest;
   const b = req.body as Record<string, unknown>;
+  const sizeError = rejectOversizedMessage(b);
+  if (sizeError) {
+    res.status(413).json({ error: sizeError });
+    return;
+  }
+  const mediaError = rejectUnsafeMedia(b);
+  if (mediaError) {
+    res.status(400).json({ error: mediaError });
+    return;
+  }
   const msg: MessageData = {
     text: b.text as string | undefined,
     type: b.type as string | undefined,
@@ -235,12 +298,11 @@ router.patch('/:uid/:msgKey', async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Vous ne pouvez pas modifier ce message' });
     return;
   }
-  const { text, edited, reactions, pinned, type, encrypted, ct, iv, fileName, duration, replyTo, messageTheme } =
+  const { text, edited, pinned, type, encrypted, ct, iv, fileName, duration, replyTo, messageTheme } =
     req.body as Record<string, unknown>;
   const patch: Record<string, unknown> = {};
   if (text !== undefined) patch.text = text;
   if (edited !== undefined) patch.edited = edited;
-  if (reactions !== undefined) patch.reactions = reactions;
   if (pinned !== undefined) patch.pinned = pinned;
   if (type !== undefined) patch.type = type;
   if (encrypted !== undefined) patch.encrypted = encrypted;
@@ -264,12 +326,11 @@ router.patch('/group/:gid/:msgKey', async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Vous ne pouvez pas modifier ce message' });
     return;
   }
-  const { text, edited, reactions, pinned, type, encrypted, ct, iv, fileName, duration, replyTo, messageTheme } =
+  const { text, edited, pinned, type, encrypted, ct, iv, fileName, duration, replyTo, messageTheme } =
     req.body as Record<string, unknown>;
   const patch: Record<string, unknown> = {};
   if (text !== undefined) patch.text = text;
   if (edited !== undefined) patch.edited = edited;
-  if (reactions !== undefined) patch.reactions = reactions;
   if (pinned !== undefined) patch.pinned = pinned;
   if (type !== undefined) patch.type = type;
   if (encrypted !== undefined) patch.encrypted = encrypted;
@@ -348,8 +409,9 @@ router.post('/group/:gid/seen', async (req: Request, res: Response) => {
 /* GET /messages/search/:uid, rechercher dans une conversation DM */
 router.get('/search/:uid', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
+  if (await isBlockedBetween(authReq.uid!, req.params.uid)) return deniedByBlock(res);
   const cid = chatId(authReq.uid!, req.params.uid);
-  const q = ((req.query.q as string) || '').trim();
+  const q = ((req.query.q as string) || '').trim().slice(0, 100);
   if (!q) {
     res.json({ results: {} });
     return;
@@ -361,7 +423,7 @@ router.get('/search/:uid', async (req: Request, res: Response) => {
 /* GET /messages/group/search/:gid, rechercher dans un groupe */
 router.get('/group/search/:gid', async (req: Request, res: Response) => {
   if (!(await requireGroupMember(req, res))) return;
-  const q = ((req.query.q as string) || '').trim();
+  const q = ((req.query.q as string) || '').trim().slice(0, 100);
   if (!q) {
     res.json({ results: {} });
     return;
@@ -373,6 +435,7 @@ router.get('/group/search/:gid', async (req: Request, res: Response) => {
 /* GET /messages/:uid/pinned, messages épinglés DM */
 router.get('/:uid/pinned', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
+  if (await isBlockedBetween(authReq.uid!, req.params.uid)) return deniedByBlock(res);
   const cid = chatId(authReq.uid!, req.params.uid);
   const rows = await query<Array<MessageData & { msgKey: string }>>(
     `SELECT ${MSG_COLS} FROM messages WHERE convId=? AND pinned=1 ORDER BY time DESC LIMIT 5`,
@@ -448,6 +511,7 @@ router.post('/group/:gid/:msgKey/pin', async (req: Request, res: Response) => {
 /* GET /messages/:uid/:msgKey/blob, données blob d'un message DM */
 router.get('/:uid/:msgKey/blob', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
+  if (await isBlockedBetween(authReq.uid!, req.params.uid)) return deniedByBlock(res);
   const cid = chatId(authReq.uid!, req.params.uid);
   const blob = await getMessageBlob(cid, req.params.msgKey);
   if (!blob) {

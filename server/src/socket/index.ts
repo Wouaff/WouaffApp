@@ -3,12 +3,20 @@ import type { Server as HTTPServer } from 'node:http';
 import { parseCookie } from 'cookie';
 import { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
-import { isIpBannedCached } from '../middleware/auth.js';
-import { chatId, getReverseContactUids, isUserBanned, setUserOffline, setUserOnline } from '../services/rtdb.js';
+import { isIpBannedCached, isUserBannedCached } from '../middleware/auth.js';
+import {
+  chatId,
+  getReverseContactUids,
+  isBlocked,
+  isUserBanned,
+  setUserOffline,
+  setUserOnline,
+} from '../services/rtdb.js';
 
 interface AuthenticatedSocket {
   uid: string;
   roomsJoined: Set<string>;
+  activeCalls: Set<string>;
 }
 
 interface CallPayload {
@@ -66,6 +74,7 @@ export function setupSocket(httpServer: HTTPServer, allowedOrigins: string[]): S
       if (await isUserBanned(session.uid)) return next(new Error('Compte banni'));
       (socket as unknown as AuthenticatedSocket).uid = session.uid;
       (socket as unknown as AuthenticatedSocket).roomsJoined = new Set();
+      (socket as unknown as AuthenticatedSocket).activeCalls = new Set();
       next();
     } catch {
       next(new Error('Session invalide'));
@@ -134,46 +143,69 @@ export function setupSocket(httpServer: HTTPServer, allowedOrigins: string[]): S
 
     /* ── Call signaling ── */
 
-    socket.on('call:offer', (payload: CallPayload) => {
-      payload.from = uid;
-      io.to(`user:${payload.to}`).emit('call:incoming', payload);
+    async function guardCall(payload: unknown): Promise<{ from: string; to: string } | null> {
+      if (await isUserBannedCached(uid)) {
+        socket.disconnect(true);
+        return null;
+      }
+      if (!payload || typeof payload !== 'object') return null;
+      const target = (payload as { to?: unknown }).to;
+      if (typeof target !== 'string' || target.length === 0 || target.length > 128 || target === uid) return null;
+      if ((await isBlocked(uid, target)) || (await isBlocked(target, uid))) return null;
+      return { from: uid, to: target };
+    }
+
+    socket.on('call:offer', async (payload: CallPayload) => {
+      const call = await guardCall(payload);
+      if (!call) return;
+      authed.activeCalls.add(call.to);
+      io.to(`user:${call.to}`).emit('call:incoming', { ...payload, from: uid });
     });
 
-    socket.on('call:accept', (payload: CallPayload) => {
-      payload.from = uid;
-      io.to(`user:${payload.to}`).emit('call:accepted', payload);
+    socket.on('call:accept', async (payload: CallPayload) => {
+      const call = await guardCall(payload);
+      if (!call) return;
+      io.to(`user:${call.to}`).emit('call:accepted', { ...payload, from: uid });
     });
 
-    socket.on('call:answer', (payload: CallPayload) => {
-      payload.from = uid;
-      io.to(`user:${payload.to}`).emit('call:answer', payload);
+    socket.on('call:answer', async (payload: CallPayload) => {
+      const call = await guardCall(payload);
+      if (!call) return;
+      io.to(`user:${call.to}`).emit('call:answer', { ...payload, from: uid });
     });
 
-    socket.on('call:ice-candidate', (payload: CallPayload) => {
-      payload.from = uid;
-      io.to(`user:${payload.to}`).emit('call:ice-candidate', payload);
+    socket.on('call:ice-candidate', async (payload: CallPayload) => {
+      const call = await guardCall(payload);
+      if (!call) return;
+      io.to(`user:${call.to}`).emit('call:ice-candidate', { ...payload, from: uid });
     });
 
-    socket.on('call:end', (payload: CallPayload) => {
-      payload.from = uid;
-      io.to(`user:${payload.to}`).emit('call:ended', payload);
+    socket.on('call:end', async (payload: CallPayload) => {
+      const call = await guardCall(payload);
+      if (!call || !authed.activeCalls.has(call.to)) return;
+      authed.activeCalls.delete(call.to);
+      const rawDuration = (payload as { duration?: unknown }).duration;
+      const duration =
+        typeof rawDuration === 'number' && Number.isFinite(rawDuration) && rawDuration >= 0
+          ? Math.min(Math.floor(rawDuration), 24 * 60 * 60)
+          : 0;
+      io.to(`user:${call.to}`).emit('call:ended', { ...payload, from: uid });
       try {
-        const startTime = Date.now() - (payload.duration || 0);
+        const startTime = Date.now() - duration * 1000;
         const callId = randomUUID();
-        const caller = uid;
-        const callee = payload.to;
         const endTime = Date.now();
-        const dur = payload.duration || 0;
         query(
           'INSERT INTO calls (id, callerUid, calleeUid, startTime, endTime, duration, status) VALUES (?,?,?,?,?,?,?)',
-          [callId, caller, callee, startTime, endTime, dur, 'completed'],
+          [callId, uid, call.to, startTime, endTime, duration, 'completed'],
         );
       } catch {}
     });
 
-    socket.on('call:reject', (payload: CallPayload) => {
-      payload.from = uid;
-      io.to(`user:${payload.to}`).emit('call:rejected', payload);
+    socket.on('call:reject', async (payload: CallPayload) => {
+      const call = await guardCall(payload);
+      if (!call) return;
+      authed.activeCalls.delete(call.to);
+      io.to(`user:${call.to}`).emit('call:rejected', { ...payload, from: uid });
     });
 
     socket.on('disconnect', async () => {

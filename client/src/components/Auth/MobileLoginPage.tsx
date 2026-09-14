@@ -3,6 +3,7 @@ import { Check, ChevronLeft, KeyRound } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useCap } from '../../hooks/useCap';
 import { login, register } from '../../services/auth';
 import {
   browserSupportsWebAuthn,
@@ -53,6 +54,7 @@ export default function MobileLoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [honeypot, setHoneypot] = useState('');
+  const cap = useCap('register');
 
   const [twoFactor, setTwoFactor] = useState<{ loginChallenge: string; methods: TwoFactorMethods } | null>(null);
   const [twoFACode, setTwoFACode] = useState('');
@@ -112,11 +114,15 @@ export default function MobileLoginPage() {
           setError('Le mot de passe ne respecte pas les exigences de sécurité.');
           return;
         }
+        if (cap.required && !cap.token) {
+          setError('Veuillez confirmer que vous êtes humain.');
+          return;
+        }
       }
       setIsLoading(true);
       try {
         if (isRegister) {
-          await register(email, password, pseudo, undefined, honeypot);
+          await register(email, password, pseudo, cap.token, honeypot);
         } else {
           const data = await login(email, password);
           if (isPasskeyResult(data)) {
@@ -134,7 +140,19 @@ export default function MobileLoginPage() {
         setIsLoading(false);
       }
     },
-    [email, password, pseudo, confirmPassword, isRegister, pwValid, enter2FA, finishLogin, honeypot],
+    [
+      email,
+      password,
+      pseudo,
+      confirmPassword,
+      isRegister,
+      pwValid,
+      enter2FA,
+      finishLogin,
+      honeypot,
+      cap.required,
+      cap.token,
+    ],
   );
 
   const handleSendEmail2FA = useCallback(async () => {
@@ -520,6 +538,8 @@ export default function MobileLoginPage() {
                   {error}
                 </div>
               )}
+
+              {isRegister && <div className="flex justify-center">{cap.widget}</div>}
 
               <button type="submit" disabled={isLoading} className={primaryBtnCls}>
                 {isLoading ? (isRegister ? 'Création...' : 'Connexion...') : isRegister ? 'C’est parti' : 'Entrer'}

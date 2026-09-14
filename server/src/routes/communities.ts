@@ -6,6 +6,7 @@ import { getOne, query } from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
 import { notifyIndexNow } from '../services/indexnow.js';
 import { enqueueJob } from '../services/queue.js';
+import { getMutualContactUids } from '../services/rtdb.js';
 import type {
   AuthRequest,
   Community,
@@ -89,6 +90,13 @@ async function isBanned(communityId: string, uid: string): Promise<boolean> {
   );
   if (!row) return false;
   return !row.expiresAt || row.expiresAt > Date.now();
+}
+
+async function canAccessCommunity(row: Record<string, unknown>, uid: string): Promise<boolean> {
+  if ((row.isPrivate as number) !== 1) return true;
+  if (row.id) return !!(await getRole(row.id as string, uid));
+  if (row.communityId) return !!(await getRole(row.communityId as string, uid));
+  return false;
 }
 
 async function toCommunity(row: Record<string, unknown>, uid?: string): Promise<Community> {
@@ -269,8 +277,11 @@ async function getPostByQuery(
   viewerUid?: string,
 ): Promise<CommunityPost | null> {
   const row = await getOne<Record<string, unknown>>(
-    `${COMMUNITY_POST_SELECT} WHERE ${where} AND p.deletedAt IS NULL`,
-    viewerUid ? [viewerUid, ...params] : [null, ...params],
+    `${COMMUNITY_POST_SELECT}
+     WHERE ${where} AND p.deletedAt IS NULL
+       AND p.authorId NOT IN (SELECT blockedUid FROM blocks WHERE uid = ?)
+       AND p.authorId NOT IN (SELECT uid FROM blocks WHERE blockedUid = ?)`,
+    viewerUid ? [viewerUid, ...params, viewerUid, viewerUid] : [null, ...params, null, null],
   );
   return row ? toPost(row) : null;
 }
@@ -355,7 +366,7 @@ router.get('/mine', async (req: Request, res: Response) => {
 /* GET /communities/search?q=, recherche par nom */
 router.get('/search', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const q = ((req.query.q as string) || '').trim().toLowerCase();
+  const q = ((req.query.q as string) || '').trim().toLowerCase().slice(0, 100);
   const limit = Math.min(FEED_LIMIT, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
   if (!q) {
     res.json([]);
@@ -412,6 +423,9 @@ router.get('/feed', async (req: Request, res: Response) => {
     where += ' AND p.createdAt >= ?';
     params.push(Date.now() - (TOP_WINDOWS_MS[window] ?? TOP_WINDOWS_MS.week));
   }
+  where += ` AND p.authorId NOT IN (SELECT blockedUid FROM blocks WHERE uid = ?)
+             AND p.authorId NOT IN (SELECT uid FROM blocks WHERE blockedUid = ?)`;
+  params.push(authReq.uid!, authReq.uid!);
   params.push(limit, offset);
   const rows = await query<Array<Record<string, unknown>>>(
     `${COMMUNITY_POST_SELECT}
@@ -435,7 +449,10 @@ router.post('/onboard', async (req: Request, res: Response) => {
   }
   const unique = [...new Set(list)];
   const placeholders = unique.map(() => '?').join(',');
-  const rows = await query<Array<{ id: string }>>(`SELECT id FROM communities WHERE name IN (${placeholders})`, unique);
+  const rows = await query<Array<{ id: string }>>(
+    `SELECT id FROM communities WHERE name IN (${placeholders}) AND isPrivate = 0`,
+    unique,
+  );
   const ids = rows.map((r) => r.id);
   if (ids.length < 3) {
     res.status(400).json({ error: 'Certaines communautés sont introuvables' });
@@ -463,6 +480,13 @@ router.get('/post/:id', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const post = await getPostByQuery('p.id = ?', [req.params.id], authReq.uid);
   if (!post) {
+    res.status(404).json({ error: 'Post introuvable' });
+    return;
+  }
+  const community = await getOne<Record<string, unknown>>('SELECT id, isPrivate FROM communities WHERE id = ?', [
+    post.communityId,
+  ]);
+  if (community && !(await canAccessCommunity(community, authReq.uid!))) {
     res.status(404).json({ error: 'Post introuvable' });
     return;
   }
@@ -535,7 +559,7 @@ router.post('/', async (req: Request, res: Response) => {
   );
   const io: Server = req.app.get('io');
   if (io) io.emit('community:created', community);
-  notifyIndexNow(`/c/${slug}`);
+  if (!community.isPrivate) notifyIndexNow(`/c/${slug}`);
   res.json(community);
 });
 
@@ -546,6 +570,10 @@ router.get('/:name', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
   if (!row) {
+    res.status(404).json({ error: 'Communauté introuvable' });
+    return;
+  }
+  if (!(await canAccessCommunity(row, authReq.uid!))) {
     res.status(404).json({ error: 'Communauté introuvable' });
     return;
   }
@@ -593,7 +621,7 @@ router.put('/:name', async (req: Request, res: Response) => {
   const io: Server = req.app.get('io');
   if (io) io.to(`community:${id}`).emit('community:updated', { communityId: id });
   const updated = await getCommunityRow(req.params.name.toLowerCase());
-  notifyIndexNow(`/c/${req.params.name}`);
+  if ((updated?.isPrivate as number) !== 1) notifyIndexNow(`/c/${req.params.name}`);
   res.json(await toCommunity(updated!, authReq.uid));
 });
 
@@ -610,6 +638,10 @@ router.post('/:name/subscribe', async (req: Request, res: Response) => {
   const id = row.id as string;
   if (await isBanned(id, authReq.uid!)) {
     res.status(403).json({ error: 'Vous êtes banni de cette communauté' });
+    return;
+  }
+  if ((row.isPrivate as number) === 1 && !(await getRole(id, authReq.uid!))) {
+    res.status(404).json({ error: 'Communauté introuvable' });
     return;
   }
   const now = Date.now();
@@ -637,6 +669,10 @@ router.post('/:name/unsubscribe', async (req: Request, res: Response) => {
     res.status(404).json({ error: 'Communauté introuvable' });
     return;
   }
+  if (!(await canAccessCommunity(row, authReq.uid!))) {
+    res.status(404).json({ error: 'Communauté introuvable' });
+    return;
+  }
   const id = row.id as string;
   await query('DELETE FROM subscriptions WHERE userId = ? AND communityId = ?', [authReq.uid!, id]);
   const role = await getRole(id, authReq.uid!);
@@ -649,6 +685,46 @@ router.post('/:name/unsubscribe', async (req: Request, res: Response) => {
 });
 
 /* ═══════════ Membres & rôles ═══════════ */
+
+/* POST /communities/:name/members, ajouter des membres (admin, contacts mutuels uniquement) */
+router.post('/:name/members', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const row = await getCommunityRow(req.params.name.toLowerCase());
+  if (!row) {
+    res.status(404).json({ error: 'Communauté introuvable' });
+    return;
+  }
+  const id = row.id as string;
+  if (!(await hasRole(id, authReq.uid!, ['admin']))) {
+    res.status(403).json({ error: 'Réservé à l’administrateur de la communauté' });
+    return;
+  }
+  const { uids } = req.body as { uids?: unknown };
+  const candidates = Array.isArray(uids) ? uids.filter((u): u is string => typeof u === 'string' && u.length > 0) : [];
+  if (candidates.length === 0) {
+    res.status(400).json({ error: 'Aucun membre spécifié' });
+    return;
+  }
+  const allowed = await getMutualContactUids(authReq.uid!, candidates);
+  const list = [...allowed].slice(0, 100);
+  const io: Server = req.app.get('io');
+  const now = Date.now();
+  let added = 0;
+  for (const uid of list) {
+    const result = await query(
+      'INSERT IGNORE INTO community_members (communityId, userId, role, joinedAt) VALUES (?,?,?,?)',
+      [id, uid, 'member', now],
+    );
+    if (((result as { affectedRows?: number })?.affectedRows ?? 0) === 0) continue;
+    added++;
+    await query('INSERT IGNORE INTO subscriptions (userId, communityId, createdAt) VALUES (?,?,?)', [uid, id, now]);
+    if (io) {
+      io.to(`user:${uid}`).emit('community:added', { communityId: id, name: row.name });
+      io.to(`community:${id}`).emit('community:member:added', { communityId: id, userId: uid });
+    }
+  }
+  res.json({ success: true, added, ignored: candidates.length - added });
+});
 
 /* POST /communities/:name/members/:uid/role, nommer/rétrograder un modérateur (admin) */
 router.post('/:name/members/:uid/role', async (req: Request, res: Response) => {
@@ -801,6 +877,10 @@ router.get('/:name/feed', async (req: Request, res: Response) => {
     res.status(404).json({ error: 'Communauté introuvable' });
     return;
   }
+  if (!(await canAccessCommunity(row, authReq.uid!))) {
+    res.status(404).json({ error: 'Communauté introuvable' });
+    return;
+  }
   const id = row.id as string;
   const sort = (req.query.sort as CommunitySort) || 'new';
   const window = (req.query.window as CommunityTopWindow) || 'week';
@@ -812,6 +892,9 @@ router.get('/:name/feed', async (req: Request, res: Response) => {
     where += ' AND p.createdAt >= ?';
     params.push(Date.now() - (TOP_WINDOWS_MS[window] ?? TOP_WINDOWS_MS.week));
   }
+  where += ` AND p.authorId NOT IN (SELECT blockedUid FROM blocks WHERE uid = ?)
+             AND p.authorId NOT IN (SELECT uid FROM blocks WHERE blockedUid = ?)`;
+  params.push(authReq.uid!, authReq.uid!);
   params.push(limit, offset);
   const rows = await query<Array<Record<string, unknown>>>(
     `${COMMUNITY_POST_SELECT}
@@ -841,7 +924,7 @@ router.post('/:name/posts', async (req: Request, res: Response) => {
   }
   const isPrivate = (row.isPrivate as number) === 1;
   if (isPrivate && !(await getRole(id, authReq.uid!))) {
-    res.status(403).json({ error: 'Cette communauté est privée : rejoignez-la pour publier' });
+    res.status(404).json({ error: 'Communauté introuvable' });
     return;
   }
   const { title, content, type } = req.body as {
@@ -895,6 +978,10 @@ router.get('/:name/posts/:postId', async (req: Request, res: Response) => {
     res.status(404).json({ error: 'Communauté introuvable' });
     return;
   }
+  if (!(await canAccessCommunity(row, authReq.uid!))) {
+    res.status(404).json({ error: 'Post introuvable' });
+    return;
+  }
   const post = await getPostByQuery('p.id = ?', [req.params.postId], authReq.uid);
   if (!post || post.communityId !== (row.id as string)) {
     res.status(404).json({ error: 'Post introuvable' });
@@ -909,6 +996,10 @@ router.post('/:name/posts/:postId/vote', async (req: Request, res: Response) => 
   const row = await getCommunityRow(req.params.name.toLowerCase());
   if (!row) {
     res.status(404).json({ error: 'Communauté introuvable' });
+    return;
+  }
+  if (!(await canAccessCommunity(row, authReq.uid!))) {
+    res.status(404).json({ error: 'Post introuvable' });
     return;
   }
   const postId = req.params.postId;
@@ -1050,9 +1141,14 @@ router.delete('/:name/posts/:postId', async (req: Request, res: Response) => {
 
 /* GET /communities/:name/posts/:postId/comments, liste des commentaires */
 router.get('/:name/posts/:postId/comments', async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   const row = await getCommunityRow(req.params.name.toLowerCase());
   if (!row) {
     res.status(404).json({ error: 'Communauté introuvable' });
+    return;
+  }
+  if (!(await canAccessCommunity(row, authReq.uid!))) {
+    res.status(404).json({ error: 'Post introuvable' });
     return;
   }
   const id = row.id as string;
@@ -1072,9 +1168,11 @@ router.get('/:name/posts/:postId/comments', async (req: Request, res: Response) 
      FROM community_comments c
      LEFT JOIN users u ON u.uid = c.authorId
      WHERE c.postId = ? AND c.communityId = ?
+       AND c.authorId NOT IN (SELECT blockedUid FROM blocks WHERE uid = ?)
+       AND c.authorId NOT IN (SELECT uid FROM blocks WHERE blockedUid = ?)
      ORDER BY c.createdAt ASC
      LIMIT ? OFFSET ?`,
-    [req.params.postId, id, limit, offset],
+    [req.params.postId, id, authReq.uid!, authReq.uid!, limit, offset],
   );
   const comments: CommunityComment[] = rows.map((r) => ({
     id: r.id as number,
@@ -1101,6 +1199,10 @@ router.post('/:name/posts/:postId/comments', async (req: Request, res: Response)
   const id = row.id as string;
   if (await isBanned(id, authReq.uid!)) {
     res.status(403).json({ error: 'Vous êtes banni de cette communauté' });
+    return;
+  }
+  if (!(await canAccessCommunity(row, authReq.uid!))) {
+    res.status(404).json({ error: 'Post introuvable' });
     return;
   }
   const post = await getOne<{ id: string; authorId: string }>(

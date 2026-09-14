@@ -32,10 +32,3 @@ export async function safeAsyncCall<T>(fn: () => Promise<T>, fallback: T): Promi
     return fallback;
   }
 }
-
-/* Strip dangerous HTML tags and attributes (XSS prevention) */
-const XSS_PATTERN =
-  /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>|on\w+\s*=|javascript\s*:|data\s*:\s*text\/html|document\.|alert\s*\(|fetch\s*\(|eval\s*\(/gi;
-export function sanitizeHtml(html: string): string {
-  return html.replace(XSS_PATTERN, '');
-}

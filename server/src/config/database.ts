@@ -24,17 +24,26 @@ const pool = createPool({
   console.error('[DB POOL ERROR]', err.message);
 });
 
+/* Seules les lectures sont rejouables : rejouer un INSERT/UPDATE après une coupure
+   peut dupliquer l'écriture (la requête a pu être exécutée avant la perte de connexion). */
+const READ_ONLY_RE = /^\s*(?:SELECT|SHOW|DESCRIBE|DESC|EXPLAIN|WITH)\b/i;
+
 export async function query<T>(sql: string, params?: unknown[]): Promise<T> {
   const sanitized = params?.map((p) => (p === undefined ? null : p));
+  const args = sanitized as (string | number | boolean | null | Buffer | Date)[];
   try {
-    const [rows] = await pool.execute(sql, sanitized as (string | number | boolean | null | Buffer | Date)[]);
+    const [rows] = await pool.execute(sql, args);
     return rows as T;
   } catch (err: unknown) {
     const dbErr = err as { code?: string };
-    if (dbErr.code === 'ECONNRESET' || dbErr.code === 'PROTOCOL_CONNECTION_LOST') {
-      console.warn('[DB] Connection lost, retrying...');
-      const [rows] = await pool.execute(sql, sanitized as (string | number | boolean | null | Buffer | Date)[]);
+    const retryable = dbErr.code === 'ECONNRESET' || dbErr.code === 'PROTOCOL_CONNECTION_LOST';
+    if (retryable && READ_ONLY_RE.test(sql)) {
+      console.warn('[DB] Connection lost, retrying read-only query...');
+      const [rows] = await pool.execute(sql, args);
       return rows as T;
+    }
+    if (retryable) {
+      console.error('[DB] Connection lost pendant une écriture : requête non rejouée (risque de doublon)');
     }
     throw err;
   }

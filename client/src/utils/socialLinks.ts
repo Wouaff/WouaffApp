@@ -11,19 +11,33 @@ export interface PlatformDef {
   urlPattern?: RegExp;
 }
 
+export function isSafeSocialUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function parseSocialLinks(raw: unknown): SocialLink[] {
   if (!raw) return [];
   if (typeof raw === 'string') {
     try {
       const p = JSON.parse(raw);
-      return Array.isArray(p) ? p : [];
+      return Array.isArray(p) ? p.filter((x) => x && typeof x.url === 'string' && isSafeSocialUrl(x.url)) : [];
     } catch {
       return [];
     }
   }
   if (Array.isArray(raw))
     return raw.filter(
-      (x): x is SocialLink => !!x && typeof x === 'object' && typeof (x as SocialLink).platform === 'string',
+      (x): x is SocialLink =>
+        !!x &&
+        typeof x === 'object' &&
+        typeof (x as SocialLink).platform === 'string' &&
+        typeof (x as SocialLink).url === 'string' &&
+        isSafeSocialUrl((x as SocialLink).url),
     );
   return [];
 }
