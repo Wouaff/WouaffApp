@@ -23,10 +23,7 @@ export function findMigrationsDir(candidates: string[]): string | null {
 
 export async function runMigrations(): Promise<void> {
   const rootDir = resolve(__dirname, '../../');
-  const migrationsDir = findMigrationsDir([
-    resolve(__dirname, '../migrations'),
-    resolve(rootDir, 'src/migrations'),
-  ]);
+  const migrationsDir = findMigrationsDir([resolve(__dirname, '../migrations'), resolve(rootDir, 'src/migrations')]);
   if (!migrationsDir) {
     console.warn('[MIGRATE] Aucun dossier de migrations trouvé : schéma non vérifié');
     return;
