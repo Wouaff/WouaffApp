@@ -113,7 +113,7 @@ export default function ProfilePage() {
 
         <div className="px-4 pb-4 relative">
           <div className="flex justify-between items-end -mt-[68px] mb-3">
-            <div className="w-[134px] h-[134px] rounded-full ring-4 ring-[var(--bg-secondary)] bg-[var(--bg-tertiary)] flex items-center justify-center text-4xl font-bold overflow-hidden">
+            <div className="relative z-10 w-[134px] h-[134px] rounded-full ring-4 ring-[var(--bg-secondary)] bg-[var(--bg-tertiary)] flex items-center justify-center text-4xl font-bold overflow-hidden">
               {profile.avatar ? (
                 <img src={profile.avatar} alt="" className="w-full h-full object-cover" />
               ) : (

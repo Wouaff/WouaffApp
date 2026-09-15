@@ -136,7 +136,7 @@ function ProfileTab({ user, refresh }: { user: any; refresh: () => Promise<unkno
 
       {/* L'avatar chevauche la moitié de la bannière, le nom reste sous l'avatar
           (sinon l'avatar posé à -64px recouvre la bannière et le nom). */}
-      <div className="w-20 h-20 -mt-10 ml-4 rounded-full bg-[var(--bg-tertiary)] ring-4 ring-[var(--bg-secondary)] flex items-center justify-center text-2xl font-bold overflow-hidden">
+      <div className="relative z-10 w-20 h-20 -mt-10 ml-4 rounded-full bg-[var(--bg-tertiary)] ring-4 ring-[var(--bg-secondary)] flex items-center justify-center text-2xl font-bold overflow-hidden">
         {user?.avatar ? (
           <img src={user.avatar} alt="" className="w-full h-full object-cover" />
         ) : (
