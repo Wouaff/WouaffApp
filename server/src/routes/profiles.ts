@@ -1,211 +1,118 @@
-import bcrypt from 'bcryptjs';
-import type { Request, Response } from 'express';
 import { Router } from 'express';
-import type { Server } from 'socket.io';
 import { getOne, query } from '../config/database.js';
-import { clearCachedSessionsForUid, verifyToken } from '../middleware/auth.js';
-import { notifyIndexNow } from '../services/indexnow.js';
-import { resolveMusicLink } from '../services/musicOembed.js';
-import { enqueueJob } from '../services/queue.js';
-import {
-  deleteUserProfile,
-  getMutualContacts,
-  getProfile,
-  getPublicKey,
-  getRandomUserSuggestions,
-  getReverseContactUids,
-  updateProfile,
-} from '../services/rtdb.js';
-import type { AuthRequest } from '../types/index.js';
-import { sanitizeSocialLinks } from '../utils/contentValidation.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { findUserByPseudo, updateUser } from '../services/rtdb.js';
 
-const router: Router = Router();
-router.use(verifyToken);
+const router = Router();
 
-/* GET /profiles/me, mon propre profil */
-router.get('/me', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const profile = await getProfile(authReq.uid!);
-  if (!profile) {
-    res.status(404).json({ error: 'Profil introuvable' });
-    return;
-  }
-  res.json(profile);
-});
-
-/* GET /profiles/suggestions, comptes suggérés aléatoirement */
-router.get('/suggestions', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const limit = Math.min(10, Math.max(1, parseInt(req.query.limit as string, 10) || 3));
-  const suggestions = await getRandomUserSuggestions(authReq.uid!, limit);
-  res.json({ results: suggestions });
-});
-
-/* GET /profiles/:uid */
-router.get('/:uid', async (req: Request, res: Response) => {
-  const profile = await getProfile(req.params.uid);
-  if (!profile) {
-    res.status(404).json({ error: 'Profil introuvable' });
-    return;
-  }
-  res.json(profile);
-});
-
-/* GET /profiles/:uid/mutual, amis en commun */
-router.get('/:uid/mutual', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const mutual = await getMutualContacts(authReq.uid!, req.params.uid);
-  res.json(mutual);
-});
-
-/* POST /profiles/:uid/follow, suivre un utilisateur */
-router.post('/:uid/follow', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  if (authReq.uid === req.params.uid) {
-    res.status(400).json({ error: 'Impossible de se suivre soi-même' });
-    return;
-  }
-  const target = await getProfile(req.params.uid);
-  if (!target) {
-    res.status(404).json({ error: 'Utilisateur introuvable' });
-    return;
-  }
-  const result = await query<{ affectedRows: number }>(
-    'INSERT INTO follows (followerUid, followedUid, createdAt) VALUES (?,?,?) ON DUPLICATE KEY UPDATE createdAt=VALUES(createdAt)',
-    [authReq.uid!, req.params.uid, Date.now()],
-  );
-  if (result.affectedRows === 1) {
-    const io: Server = req.app.get('io');
-    if (io) {
-      enqueueJob('notification', { uid: req.params.uid, actorUid: authReq.uid!, type: 'follow' }).catch(() => {});
-    }
-  }
-  res.json({ following: true });
-});
-
-/* DELETE /profiles/:uid/follow, ne plus suivre */
-router.delete('/:uid/follow', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  await query('DELETE FROM follows WHERE followerUid = ? AND followedUid = ?', [authReq.uid!, req.params.uid]);
-  res.json({ following: false });
-});
-
-/* GET /profiles/:uid/publicKey */
-router.get('/:uid/publicKey', async (req: Request, res: Response) => {
-  const key = await getPublicKey(req.params.uid);
-  res.json({ publicKey: key });
-});
-
-/* PUT /profiles/me, mettre à jour mon profil */
-router.put('/me', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  if (typeof req.body.pseudo === 'string' && /[A-Z]/.test(req.body.pseudo)) {
-    res.status(400).json({ error: 'Le pseudo ne peut pas contenir de majuscules' });
-    return;
-  }
-  const { pseudo, bio, avatar, banner, social_links } = req.body as Record<string, unknown>;
-  const patch: Record<string, unknown> = {};
-  if (pseudo !== undefined) patch.pseudo = pseudo;
-  if (bio !== undefined) patch.bio = bio;
-  if (avatar !== undefined) patch.avatar = avatar;
-  if (banner !== undefined) patch.banner = banner;
-  if (social_links !== undefined) {
-    const sanitized = sanitizeSocialLinks(social_links);
-    if (!sanitized.ok) {
-      res.status(400).json({ error: 'Liens invalides : seules les URL http(s) sont acceptées' });
-      return;
-    }
-    patch.social_links = sanitized.value;
-  }
-  await updateProfile(authReq.uid!, patch);
-  const io: Server = req.app.get('io');
-  if (io) {
-    const contactUids = await getReverseContactUids(authReq.uid!);
-    for (const cu of contactUids) {
-      io.to(`user:${cu}`).emit('profile:updated', { uid: authReq.uid!, ...patch });
-    }
-  }
-  const profileRow = await getOne<{ wouaffId: string }>('SELECT wouaffId FROM users WHERE uid = ?', [authReq.uid!]);
-  if (profileRow?.wouaffId) notifyIndexNow(`/@${profileRow.wouaffId.replace(/^@/, '')}`);
-  res.json({ success: true });
-});
-
-/* POST /profiles/me/music, définir la musique affichée sur le profil (lien Spotify/SoundCloud/YT/Tidal/…) */
-router.post('/me/music', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const { url } = req.body as { url?: string };
-  if (!url || typeof url !== 'string') {
-    res.status(400).json({ error: 'Veuillez fournir un lien' });
-    return;
-  }
-  const music = await resolveMusicLink(url);
-  if (!music) {
-    res.status(400).json({
-      error: 'Lien non reconnu. Collez un lien Spotify, SoundCloud, YouTube Music, Tidal, Deezer ou Apple Music.',
+router.get('/:pseudo', authMiddleware, async (req, res) => {
+  try {
+    const pseudo = req.params.pseudo;
+    const user = await findUserByPseudo(pseudo);
+    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    const myUid = (req as any).user.uid;
+    const followersCount = await getOne<{ count: number }>(
+      'SELECT COUNT(*) as count FROM follows WHERE followed_uid = ?',
+      [user.uid],
+    );
+    const followingCount = await getOne<{ count: number }>(
+      'SELECT COUNT(*) as count FROM follows WHERE follower_uid = ?',
+      [user.uid],
+    );
+    const tweetsCount = await getOne<{ count: number }>(
+      'SELECT COUNT(*) as count FROM posts WHERE uid = ? AND repost_of IS NULL',
+      [user.uid],
+    );
+    const isFollowingUser = await getOne<any>(
+      'SELECT follower_uid FROM follows WHERE follower_uid = ? AND followed_uid = ?',
+      [myUid, user.uid],
+    );
+    res.json({
+      uid: user.uid,
+      pseudo: user.pseudo,
+      displayName: user.displayName,
+      avatar: user.avatar,
+      banner: user.banner,
+      bio: user.bio,
+      location: user.location,
+      website: user.website,
+      verified: !!user.verified,
+      createdAt: user.createdAt,
+      followersCount: followersCount?.count || 0,
+      followingCount: followingCount?.count || 0,
+      tweetsCount: tweetsCount?.count || 0,
+      isFollowing: !!isFollowingUser,
+      isOwn: myUid === user.uid,
     });
-    return;
+  } catch (err) {
+    console.error('[PROFILES] Get error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
-  await query(
-    'UPDATE users SET musicProvider=?, musicUrl=?, musicTitle=?, musicArtist=?, musicThumbnail=? WHERE uid=?',
-    [music.provider, music.url, music.title, music.artist, music.thumbnail, authReq.uid!],
-  );
-  res.json({ success: true, music });
 });
 
-/* DELETE /profiles/me/music, retirer la musique du profil */
-router.delete('/me/music', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  await query(
-    'UPDATE users SET musicProvider=NULL, musicUrl=NULL, musicTitle=NULL, musicArtist=NULL, musicThumbnail=NULL WHERE uid=?',
-    [authReq.uid!],
-  );
-  res.json({ success: true });
+router.put('/me', authMiddleware, async (req, res) => {
+  try {
+    const uid = (req as any).user.uid;
+    const { displayName, bio, location, website, avatar, banner } = req.body;
+    const fields: Record<string, unknown> = {};
+    if (displayName !== undefined) fields.displayName = displayName;
+    if (bio !== undefined) fields.bio = bio;
+    if (location !== undefined) fields.location = location;
+    if (website !== undefined) fields.website = website;
+    if (avatar !== undefined) fields.avatar = avatar;
+    if (banner !== undefined) fields.banner = banner;
+    await updateUser(uid, fields);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[PROFILES] Update error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
-/* DELETE /profiles/me, supprimer mon compte */
-router.delete('/me', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const { password } = req.body as { password?: string };
-  if (!password) {
-    res.status(400).json({ error: 'Mot de passe requis pour supprimer le compte' });
-    return;
+router.get('/:pseudo/posts', authMiddleware, async (req, res) => {
+  try {
+    const pseudo = req.params.pseudo;
+    const user = await findUserByPseudo(pseudo);
+    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    const myUid = (req as any).user.uid;
+    const limit = Math.min(Number(req.query.limit) || 50, 100);
+    const offset = Number(req.query.offset) || 0;
+    const posts = await query<any[]>(
+      `SELECT p.*, u.pseudo, u.displayName, u.avatar, u.verified,
+        (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count,
+        (SELECT COUNT(*) FROM posts WHERE repost_of = p.id) as reposts_count,
+        (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count,
+        (SELECT COUNT(*) FROM likes WHERE post_id = p.id AND uid = ?) as user_liked,
+        (SELECT COUNT(*) FROM posts WHERE uid = ? AND repost_of = p.id) as user_reposted
+        FROM posts p JOIN users u ON p.uid = u.uid
+        WHERE p.uid = ? ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
+      [myUid, myUid, user.uid, limit, offset],
+    );
+    res.json(
+      posts.map((p) => ({
+        id: p.id,
+        text: p.text,
+        image: p.image,
+        createdAt: p.created_at,
+        likesCount: p.likes_count,
+        repostsCount: p.reposts_count,
+        commentsCount: p.comments_count,
+        userLiked: !!p.user_liked,
+        userReposted: !!p.user_reposted,
+        repostOf: p.repost_of,
+        user: {
+          uid: p.uid,
+          pseudo: p.pseudo,
+          displayName: p.displayName,
+          avatar: p.avatar,
+          verified: !!p.verified,
+        },
+      })),
+    );
+  } catch (err) {
+    console.error('[PROFILES] Posts error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
-  const user = await getOne<{ passwordHash: string | null }>('SELECT passwordHash FROM users WHERE uid=?', [
-    authReq.uid!,
-  ]);
-  if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
-    res.status(403).json({ error: 'Mot de passe incorrect' });
-    return;
-  }
-  await deleteUserProfile(authReq.uid!);
-  clearCachedSessionsForUid(authReq.uid!);
-  const io: Server = req.app.get('io');
-  if (io) {
-    const contactUids = await getReverseContactUids(authReq.uid!);
-    for (const cu of contactUids) {
-      io.to(`user:${cu}`).emit('account:deleted', { uid: authReq.uid! });
-    }
-  }
-  res.json({ success: true });
-});
-
-/* PUT /profiles/me/publicKey, mettre à jour ma clé publique E2EE */
-router.put('/me/publicKey', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const { publicKey } = req.body as { publicKey: Record<string, unknown> };
-  if (!publicKey) {
-    res.status(400).json({ error: 'Clé publique requise' });
-    return;
-  }
-  await updateProfile(authReq.uid!, { publicKey });
-  const io: Server = req.app.get('io');
-  if (io) {
-    const contactUids = await getReverseContactUids(authReq.uid!);
-    for (const cu of contactUids) {
-      io.to(`user:${cu}`).emit('key:changed', { uid: authReq.uid! });
-    }
-  }
-  res.json({ success: true });
 });
 
 export default router;

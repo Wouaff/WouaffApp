@@ -1,103 +1,47 @@
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { logout as authLogout, initSession } from '../services/auth';
-import { initMessagesUnread } from '../services/messagesUnread';
-import { connectSocket, disconnectSocket } from '../services/socket';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { logout as apiLogout, type CurrentUser, getMe } from '../services/auth';
 
-export interface AuthState {
-  user: {
-    uid: string;
-    pseudo: string;
-    email?: string;
-    staffRole?: 'owner' | 'moderator' | null;
-  } | null;
+interface AuthContextType {
+  user: CurrentUser | null;
   loading: boolean;
-  emailVerified: boolean;
-  banned: boolean;
+  refresh: () => Promise<CurrentUser | null>;
   logout: () => Promise<void>;
-  markBanned: () => void;
-  refresh: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthState>({
+const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  emailVerified: false,
-  banned: false,
+  refresh: async () => null,
   logout: async () => {},
-  markBanned: () => {},
-  refresh: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<{
-    uid: string;
-    pseudo: string;
-    email?: string;
-    staffRole?: 'owner' | 'moderator' | null;
-  } | null>(null);
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [banned, setBanned] = useState(false);
 
-  const fetchUser = useCallback(async () => {
+  const refresh = useCallback(async () => {
     try {
-      connectSocket();
-      initMessagesUnread();
-      const res = await fetch('/api/auth/me');
-      if (res.status === 403) {
-        setBanned(true);
-        setUser(null);
-        setEmailVerified(false);
-        disconnectSocket();
-        setLoading(false);
-        return;
-      }
-      if (!res.ok) throw new Error('Non connecté');
-      const profile = await res.json();
-      const userData = {
-        uid: profile.uid,
-        pseudo: profile.pseudo || '',
-        email: profile.email,
-        staffRole: (profile.staffRole as 'owner' | 'moderator' | null) || null,
-      };
-      setBanned(false);
-      setUser(userData);
-      setEmailVerified(!!profile.emailVerified);
-      initSession(profile.uid);
+      const me = await getMe();
+      setUser(me);
+      return me;
     } catch {
       setUser(null);
-      setEmailVerified(false);
-      disconnectSocket();
+      return null;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
-
   const logout = useCallback(async () => {
-    await authLogout();
+    await apiLogout();
     setUser(null);
-    setEmailVerified(false);
-    setBanned(false);
-    disconnectSocket();
   }, []);
 
-  const markBanned = useCallback(() => {
-    setBanned(true);
-    setUser(null);
-    setEmailVerified(false);
-    disconnectSocket();
-  }, []);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-  const value = useMemo(
-    () => ({ user, loading, emailVerified, banned, logout, markBanned, refresh: fetchUser }),
-    [user, loading, emailVerified, banned, logout, markBanned, fetchUser],
-  );
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, refresh, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

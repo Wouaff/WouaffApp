@@ -1,76 +1,78 @@
-import type { Request, Response } from 'express';
 import { Router } from 'express';
-import { verifyToken } from '../middleware/auth.js';
-import {
-  getUnreadCount,
-  listNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from '../services/notifications.js';
-import { removeFcmToken, setFcmToken } from '../services/rtdb.js';
-import type { AuthRequest } from '../types/index.js';
+import { query } from '../config/database.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { getNotifications, getUnreadNotificationCount, markNotificationsRead } from '../services/rtdb.js';
 
-const router: Router = Router();
-router.use(verifyToken);
+const router = Router();
 
-/* POST /notifications/fcm-token, enregistrer un token FCM */
-router.post('/fcm-token', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const { token } = req.body as { token: string };
-  if (!token) {
-    res.status(400).json({ error: 'Token requis' });
-    return;
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const uid = (req as any).user.uid;
+    const limit = Math.min(Number(req.query.limit) || 50, 100);
+    const offset = Number(req.query.offset) || 0;
+    const notifications = await getNotifications(uid, limit, offset);
+
+    // Enrich with actor info
+    const enriched = await Promise.all(
+      notifications.map(async (n) => {
+        let actor: any = null;
+        if (n.actor_uid) {
+          actor = await query<any>('SELECT uid, pseudo, displayName, avatar, verified FROM users WHERE uid = ?', [
+            n.actor_uid,
+          ]).then((rows) => rows[0] || null);
+        }
+        let post: any = null;
+        if (n.post_id) {
+          post = await query<any>('SELECT id, text FROM posts WHERE id = ?', [n.post_id]).then(
+            (rows) => rows[0] || null,
+          );
+        }
+        return {
+          id: n.id,
+          type: n.type,
+          read: !!n.is_read,
+          createdAt: n.created_at,
+          actor: actor
+            ? {
+                uid: actor.uid,
+                pseudo: actor.pseudo,
+                displayName: actor.displayName,
+                avatar: actor.avatar,
+                verified: !!actor.verified,
+              }
+            : null,
+          post: post ? { id: post.id, text: post.text } : null,
+        };
+      }),
+    );
+
+    res.json(enriched);
+  } catch (err) {
+    console.error('[NOTIFS] Get error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
-  await setFcmToken(authReq.uid!, token);
-  res.json({ success: true });
 });
 
-/* DELETE /notifications/fcm-token, supprimer un token FCM */
-router.delete('/fcm-token', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const { token } = req.body as { token: string };
-  if (!token) {
-    res.status(400).json({ error: 'Token requis' });
-    return;
+router.get('/unread', authMiddleware, async (req, res) => {
+  try {
+    const uid = (req as any).user.uid;
+    const count = await getUnreadNotificationCount(uid);
+    res.json({ count });
+  } catch (err) {
+    console.error('[NOTIFS] Unread error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
-  await removeFcmToken(authReq.uid!, token);
-  res.json({ success: true });
 });
 
-/* GET /notifications, liste des notifications */
-router.get('/', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
-  const before = req.query.before ? parseInt(req.query.before as string, 10) || undefined : undefined;
-  const items = await listNotifications(authReq.uid!, limit, before);
-  const unread = await getUnreadCount(authReq.uid!);
-  res.json({ items, unread });
-});
-
-/* GET /notifications/unread-count, nombre de notifications non lues */
-router.get('/unread-count', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const count = await getUnreadCount(authReq.uid!);
-  res.json({ count });
-});
-
-/* POST /notifications/read-all, tout marquer comme lu */
-router.post('/read-all', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  await markAllNotificationsRead(authReq.uid!);
-  res.json({ success: true });
-});
-
-/* POST /notifications/:id/read, marquer une notification comme lue */
-router.post('/:id/read', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const id = parseInt(req.params.id, 10);
-  if (!Number.isFinite(id)) {
-    res.status(400).json({ error: 'ID invalide' });
-    return;
+router.put('/read', authMiddleware, async (req, res) => {
+  try {
+    const uid = (req as any).user.uid;
+    await markNotificationsRead(uid);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[NOTIFS] Read error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
-  await markNotificationRead(authReq.uid!, id);
-  res.json({ success: true });
 });
 
 export default router;

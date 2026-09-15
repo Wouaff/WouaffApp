@@ -8,8 +8,8 @@
   "display": "standalone",
   "lang": "fr",
   "dir": "ltr",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#020617",
+  "theme_color": "#020617",
   "categories": ["social", "news"],
   "icons": [
     {

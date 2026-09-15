@@ -1,324 +1,167 @@
-import { AtSign, Bell, CheckCheck, Heart, MessageCircle, Repeat2, UserPlus } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { showToast } from '../components/Common/Toast';
-import AppChrome from '../components/Layout/AppChrome';
-import { useAuth } from '../hooks/useAuth';
-import { communities as communitiesAPI, notifications as notificationsAPI } from '../services/api';
-import { offNotificationNew, onNotificationNew } from '../services/socket';
-import type { NotificationItem } from '../types';
-import {
-  notificationPermission,
-  requestNotificationPermission,
-  showBrowserNotification,
-} from '../utils/browserNotifications';
+import { AtSign, Heart, Repeat2, UserPlus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import ComposeModal from '../components/ComposeModal';
+import RightSidebar from '../components/RightSidebar';
+import Sidebar from '../components/Sidebar';
+import { api } from '../services/api';
 
-function formatTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const m = Math.floor(diff / 60_000);
-  if (m < 1) return "à l'instant";
-  if (m < 60) return `il y a ${m} min`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `il y a ${h} h`;
-  const d = Math.floor(h / 24);
-  if (d === 1) return 'hier';
-  return `il y a ${d} j`;
+const TABS = ['All', 'Verified', 'Mentions', 'VERIF'] as const;
+
+interface NotifActor {
+  uid: string;
+  pseudo: string;
+  displayName: string | null;
+  avatar: string | null;
+  verified: boolean;
 }
 
-function notifTitle(item: NotificationItem): string {
-  switch (item.type) {
-    case 'follow':
-      return `${item.actorPseudo} a suivi votre compte`;
-    case 'like':
-      return `${item.actorPseudo} a aimé votre post`;
-    case 'repost':
-      return `${item.actorPseudo} a repartagé votre post`;
-    case 'comment':
-      return `${item.actorPseudo} a commenté votre post`;
-    case 'community_reply':
-      return `${item.actorPseudo} a répondu à votre post de communauté`;
-    case 'community_mention':
-      return `${item.actorPseudo} vous a mentionné`;
-    case 'mention':
-      return `${item.actorPseudo} vous a mentionné`;
-    default:
-      return 'Nouvelle notification';
-  }
+interface Notification {
+  id: number;
+  type: string;
+  read: boolean;
+  createdAt: string;
+  actor: NotifActor | null;
+  post: { id: number; text: string | null } | null;
 }
-
-function notifVerb(item: NotificationItem): string {
-  switch (item.type) {
-    case 'follow':
-      return 'a suivi votre compte';
-    case 'like':
-      return 'a aimé votre post';
-    case 'repost':
-      return 'a repartagé votre post';
-    case 'comment':
-      return 'a commenté votre post';
-    case 'community_reply':
-      return 'a répondu à votre post';
-    case 'community_mention':
-      return 'vous a mentionné';
-    case 'mention':
-      return 'vous a mentionné';
-    default:
-      return '';
-  }
-}
-
-function notifUrl(item: NotificationItem): string {
-  if (item.type === 'follow' && item.actorHandle && item.actorHandle !== '@inconnu') {
-    return `/@${item.actorHandle.replace(/^@/, '')}`;
-  }
-  return '/';
-}
-
-function dispatchUnread(count: number): void {
-  window.dispatchEvent(new CustomEvent('wouaff:unread-count', { detail: { count } }));
-}
-
-const TYPE_ICONS: Record<NotificationItem['type'], { Icon: typeof Bell; cls: string }> = {
-  like: { Icon: Heart, cls: 'text-red-500 bg-red-500/10' },
-  repost: { Icon: Repeat2, cls: 'text-online bg-online/10' },
-  comment: { Icon: MessageCircle, cls: 'text-brand bg-[var(--brand-glow)]' },
-  follow: { Icon: UserPlus, cls: 'text-brand bg-[var(--brand-glow)]' },
-  community_reply: { Icon: MessageCircle, cls: 'text-brand bg-[var(--brand-glow)]' },
-  community_mention: { Icon: AtSign, cls: 'text-brand bg-[var(--brand-glow)]' },
-  mention: { Icon: AtSign, cls: 'text-brand bg-[var(--brand-glow)]' },
-};
 
 export default function NotificationsPage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [tab, setTab] = useState<string>('All');
+  const [showCompose, setShowCompose] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [notifOn, setNotifOn] = useState(notificationPermission() === 'granted');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await notificationsAPI.list(50);
-      setItems(data.items);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    api
+      .get<Notification[]>('/notifications')
+      .then((data) => {
+        setNotifications(data);
+        setLoading(false);
+        api.put('/notifications/read').catch(() => {});
+      })
+      .catch(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const filtered = notifications.filter((n) => {
+    if (tab === 'Verified') return n.type === 'follow';
+    if (tab === 'Mentions') return n.type === 'mention';
+    if (tab === 'VERIF') return n.type === 'like' || n.type === 'repost';
+    return true;
+  });
 
-  useEffect(() => {
-    dispatchUnread(items.filter((n) => !n.read).length);
-  }, [items]);
-
-  useEffect(() => {
-    if (!user) return;
-    const onNew = (item: NotificationItem) => {
-      setItems((prev) => (prev.some((n) => n.id === item.id) ? prev : [item, ...prev]));
-      showBrowserNotification(notifTitle(item), {
-        body: item.postText || undefined,
-        url: notifUrl(item),
-      });
-    };
-    onNotificationNew(onNew);
-    return () => offNotificationNew(onNew);
-  }, [user]);
-
-  const enableBrowser = async () => {
-    const granted = await requestNotificationPermission();
-    setNotifOn(granted);
-    showToast(
-      granted ? 'Notifications du navigateur activées !' : 'Permission de notification refusée',
-      granted ? 'success' : 'error',
-    );
-  };
-
-  const markAll = async () => {
-    try {
-      await notificationsAPI.markAllRead();
-    } catch {
-      /* silencieux */
-    }
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-    showToast('Tout est marqué comme lu', 'success');
-  };
-
-  const open = async (item: NotificationItem) => {
-    if (!item.read) {
-      try {
-        await notificationsAPI.markRead(item.id);
-      } catch {
-        /* silencieux */
-      }
-      setItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
-    }
-    if (item.type === 'follow') {
-      navigate(notifUrl(item));
-      return;
-    }
-    if (item.type === 'community_reply' || item.type === 'community_mention') {
-      if (!item.postId) return;
-      try {
-        const post = await communitiesAPI.getPost(item.postId);
-        navigate(`/c/${encodeURIComponent(post.communityName)}/p/${encodeURIComponent(post.id)}`);
-      } catch {
-        navigate('/communities');
-      }
-      return;
-    }
-    if (item.postId) {
-      navigate(`/?post=${encodeURIComponent(item.postId)}`);
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'follow':
+        return <UserPlus className="w-8 h-8 text-[var(--accent)]" />;
+      case 'like':
+        return <Heart className="w-8 h-8 text-[var(--like-color)] fill-current" />;
+      case 'repost':
+        return <Repeat2 className="w-8 h-8 text-[var(--repost-color)]" />;
+      case 'mention':
+        return <AtSign className="w-8 h-8 text-[var(--accent)]" />;
+      default:
+        return <Heart className="w-8 h-8 text-[var(--text-secondary)]" />;
     }
   };
 
-  const unread = items.filter((n) => !n.read).length;
+  const getMessage = (type: string) => {
+    switch (type) {
+      case 'follow':
+        return 'followed you';
+      case 'like':
+        return 'liked your post';
+      case 'repost':
+        return 'reposted your post';
+      case 'mention':
+        return 'mentioned you';
+      default:
+        return 'interacted with you';
+    }
+  };
 
   return (
-    <AppChrome>
-      <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[var(--bg-deep)]">
-        <header className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-[12px] border-b border-[var(--border)]">
-          <div className="flex items-center justify-between px-4 h-14">
-            <h1 className="text-xl font-extrabold m-0 text-[var(--text-primary)]">
-              Notifications
-              {unread > 0 && (
-                <span className="ml-2 align-middle text-[13px] font-bold text-brand bg-[var(--brand-glow)] rounded-full px-2.5 py-0.5">
-                  {unread} nouvelle{unread > 1 ? 's' : ''}
-                </span>
-              )}
-            </h1>
-            {unread > 0 && (
-              <button
-                type="button"
-                onClick={markAll}
-                className="flex items-center gap-1.5 text-[13px] font-bold text-brand rounded-full border-none bg-transparent cursor-pointer px-3 py-1.5 hover:bg-[var(--brand-glow)] transition-colors"
-              >
-                <CheckCheck size={16} />
-                Tout marquer lu
-              </button>
-            )}
-          </div>
-        </header>
+    <div className="flex min-h-screen justify-center">
+      <Sidebar onCompose={() => setShowCompose(true)} />
 
-        {notifOn ? (
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-card)]">
-            <span className="w-9 h-9 rounded-full bg-[var(--brand-glow)] flex items-center justify-center flex-shrink-0">
-              <Bell size={16} className="text-brand" />
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-bold text-[var(--text-primary)]">Notifications du navigateur</div>
-              <div className="text-[12px] text-[var(--text-secondary)]">
-                Alertes actives, vous serez notifié même en dehors de l'onglet
-              </div>
-            </div>
-            <span className="text-[12px] font-bold text-online flex-shrink-0">Activées</span>
+      <main className="flex-1 min-w-0 border-r border-[var(--border-color)] max-w-[600px] bg-[var(--bg-secondary)]">
+        <div className="sticky top-0 z-40 bg-[var(--bg-secondary)]/80 backdrop-blur-md">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <Link
+              to="/"
+              className="text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] p-2 rounded-full transition-colors"
+            >
+              ←
+            </Link>
+            <h1 className="font-bold text-xl">Notifications</h1>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={enableBrowser}
-            className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] w-full text-left bg-[var(--bg-card)] cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
-          >
-            <span className="w-9 h-9 rounded-full bg-[var(--brand-glow)] flex items-center justify-center flex-shrink-0">
-              <Bell size={16} className="text-brand" />
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-bold text-[var(--text-primary)]">Notifications du navigateur</div>
-              <div className="text-[12px] text-[var(--text-secondary)]">
-                Recevoir une alerte système même onglet fermé
-              </div>
-            </div>
-            <span className="text-brand font-bold text-[13px] flex-shrink-0">Activer</span>
-          </button>
-        )}
+
+          <div className="flex border-b border-[var(--border-color)]">
+            {TABS.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`flex-1 py-3 text-sm font-medium transition-colors relative hover:bg-[var(--bg-tertiary)] ${
+                  tab === t ? 'text-[var(--text-primary)] font-bold' : 'text-[var(--text-secondary)]'
+                }`}
+              >
+                {t}
+                {tab === t && (
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-[var(--accent)] rounded-full" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {loading ? (
-          <div className="py-16 px-6 flex flex-col items-center gap-3">
+          <div className="flex justify-center py-12">
             <div className="spinner" />
-            <p className="m-0 text-sm text-[var(--text-muted)]">Chargement des notifications...</p>
           </div>
-        ) : items.length === 0 ? (
-          <div className="py-20 px-6 flex flex-col items-center gap-4 text-center">
-            <span className="w-16 h-16 rounded-full bg-[var(--brand-glow)] flex items-center justify-center">
-              <Bell size={28} className="text-brand" />
-            </span>
-            <p className="m-0 text-[15px] text-[var(--text-primary)] font-bold">Aucune notification pour le moment</p>
-            <p className="m-0 text-[13px] text-[var(--text-secondary)] max-w-[340px]">
-              Les likes, reposts, commentaires et nouveaux abonnements apparaîtront ici.
-            </p>
-          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12 text-[var(--text-secondary)]">No notifications</div>
         ) : (
-          <ul className="list-none m-0 p-0">
-            {items.map((item) => {
-              const { Icon, cls } = TYPE_ICONS[item.type];
-              const initial = (item.actorPseudo || '?')[0]?.toUpperCase() || '?';
-              return (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    onClick={() => open(item)}
-                    className={`w-full flex gap-3 px-4 py-3.5 text-left border-b border-[var(--border)] cursor-pointer transition-colors ${
-                      item.read
-                        ? 'bg-transparent hover:bg-[var(--bg-hover)]'
-                        : 'bg-[rgba(249,123,59,0.14)] hover:bg-[rgba(249,123,59,0.22)] border-l-[3px] border-l-brand'
-                    }`}
-                  >
-                    <div className="relative flex-shrink-0">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-[var(--brand-ink)] font-extrabold text-base overflow-hidden">
-                        {item.actorAvatar ? (
-                          <img
-                            src={item.actorAvatar}
-                            alt={`Avatar de ${item.actorPseudo || "l'utilisateur"}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span>{initial}</span>
-                        )}
-                      </div>
-                      <span
-                        className={`absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center border-2 border-[var(--bg-base)] ${cls}`}
-                      >
-                        <Icon size={12} />
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0 py-0.5">
-                      <p className="m-0 text-[14px] leading-snug">
-                        <span className="font-bold text-[var(--text-primary)]">{item.actorPseudo}</span>{' '}
-                        <span className="text-[var(--text-primary)]">{notifVerb(item)}</span>
-                        {!item.read && (
-                          <span
-                            role="img"
-                            className="ml-2 inline-block w-2 h-2 rounded-full bg-brand align-middle"
-                            aria-label="Non lue"
-                          />
-                        )}
-                      </p>
-                      {item.postText && (
-                        <div className="mt-1.5 flex items-center gap-2.5 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2">
-                          {item.postImage && (
-                            <img
-                              src={item.postImage}
-                              alt="Visuel du post"
-                              className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          )}
-                          <span className="text-[13px] text-[var(--text-secondary)] truncate">{item.postText}</span>
-                        </div>
+          filtered.map((n) => (
+            <div
+              key={n.id}
+              className={`flex gap-3 px-4 py-4 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)]/50 transition-colors ${!n.read ? 'bg-[var(--accent)]/5' : ''}`}
+            >
+              <div className="flex-shrink-0 mt-1">{getIcon(n.type)}</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  {n.actor && (
+                    <Link
+                      to={`/${n.actor.pseudo}`}
+                      className="w-8 h-8 rounded-full bg-[var(--bg-tertiary)] flex-shrink-0 flex items-center justify-center text-xs font-bold overflow-hidden"
+                    >
+                      {n.actor.avatar ? (
+                        <img src={n.actor.avatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        (n.actor.pseudo || '?')[0].toUpperCase()
                       )}
-                      <p className="m-0 mt-1 text-[12px] text-[var(--text-muted)]">{formatTime(item.createdAt)}</p>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                    </Link>
+                  )}
+                  <p className="text-[var(--text-primary)]">
+                    <Link to={`/${n.actor?.pseudo}`} className="font-bold hover:underline">
+                      {n.actor?.displayName || n.actor?.pseudo || 'Someone'}
+                    </Link>{' '}
+                    {getMessage(n.type)}
+                  </p>
+                </div>
+                {n.post && (
+                  <p className="text-sm text-[var(--text-secondary)] mt-1 truncate">{n.post.text || 'View post'}</p>
+                )}
+                <span className="text-xs text-[var(--text-secondary)]">
+                  {new Date(n.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          ))
         )}
       </main>
-    </AppChrome>
+
+      <RightSidebar />
+
+      {showCompose && <ComposeModal onClose={() => setShowCompose(false)} onPosted={() => {}} />}
+    </div>
   );
 }

@@ -18,10 +18,27 @@ const pool = createPool({
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
   connectTimeout: 10000,
+  /* MySQL renvoie les TIMESTAMP/DATETIME en texte : sans ça mysql2 les relit comme de
+     l'heure locale et tout `createdAt` ressort décalé (post « il y a 2h » à l'instant).
+     À combiner avec la session forcée en +00:00 juste en dessous. */
+  timezone: 'Z',
 });
 
-(pool as unknown as { on?: (event: string, cb: (err: Error) => void) => void }).on?.('error', (err: Error) => {
-  console.error('[DB POOL ERROR]', err.message);
+/* Le pool typé par mysql2/promise n'expose pas les évènements du pool sous-jacent. */
+const poolEvents = pool as unknown as {
+  on?: (event: string, cb: (payload: unknown) => void) => void;
+};
+
+/* Chaque connexion du pool raisonne en UTC, cohérent avec `timezone: 'Z'` ci-dessus. */
+poolEvents.on?.('connection', (connection) => {
+  const raw = connection as { query: (sql: string, cb: (err: Error | null) => void) => void };
+  raw.query("SET time_zone = '+00:00'", (err) => {
+    if (err) console.error('[DB] Impossible de forcer le fuseau UTC:', err.message);
+  });
+});
+
+poolEvents.on?.('error', (err) => {
+  console.error('[DB POOL ERROR]', (err as Error).message);
 });
 
 /* Seules les lectures sont rejouables : rejouer un INSERT/UPDATE après une coupure

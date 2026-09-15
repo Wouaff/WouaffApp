@@ -2,417 +2,104 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ══════════════════════════════════════════════════════════════════════
-   WOUAFF — SYSTÈME VISUEL
-   ─────────────────────────────────────────────────────────────────────
-   Monochrome d'abord, un seul accent. Bordures 1px plutôt qu'ombres.
-   Typographie système, densité 4px. Les surfaces portent l'information,
-   la couleur ne décore pas. Si on retire l'accent, la hiérarchie tient.
-   Densité, échelle et rayons alignés sur les conventions des réseaux
-   sociaux (X, Bluesky, Threads).
-   ══════════════════════════════════════════════════════════════════════ */
-
+/* Palette alignée sur la maquette : fond bleu nuit, colonnes et cartes sur une
+   surface plus claire, accent cyan. */
 :root {
-  /* ── Accent unique ── */
-  --brand: #1d9bf0;
-  --brand-dark: #1a8cd8;
-  --brand-light: #8ecdf8;
-  --brand-ink: #ffffff;
-  --brand-glow: rgba(29, 155, 240, 0.16);
-  --brand-soft: rgba(29, 155, 240, 0.12);
-
-  /* ── Surfaces (noir OLED) ── */
-  --bg-deep: #000000;
-  --bg-base: #000000;
-  --bg-card: #16181c;
-  --bg-elevated: #16181c;
-  --bg-input: #202327;
-  --bg-hover: rgba(255, 255, 255, 0.03);
-  --bg-active: rgba(255, 255, 255, 0.06);
-  --border: #2f3336;
-  --border-light: #202327;
-  --border-strong: #3e4347;
-
-  /* ── Texte ── */
-  --text-primary: #e7e9ea;
-  --text-secondary: #71767b;
-  --text-muted: #71767b;
-  --text-invert: #000000;
-
-  /* ── Sémantique ── */
-  --accent: #f91880;
-  --accent-2: #7856ff;
-  --online: #00ba7c;
-  --offline: #71767b;
+  --bg-primary: #020617;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1f2937;
+  --bg-hover: #0b1220;
+  --bg-modal: rgba(2, 6, 23, 0.75);
+  --text-primary: #e5e7eb;
+  --text-secondary: #94a3b8;
+  --text-link: #38bdf8;
+  --border-color: #2d3746;
+  --accent: #00a6f4;
+  --accent-hover: #0b90d6;
+  --like-color: #f91880;
+  --repost-color: #00ba7c;
   --danger: #f4212e;
-  --warning: #ffd400;
-  --star: #ffd400;
-  --like: #f91880;
-  --repost: #00ba7c;
-
-  /* ── Messagerie ── */
-  --msg-sent: #1d9bf0;
-  --msg-sent-border: #1d9bf0;
-  --msg-recv: #16181c;
-
-  /* ── Métriques ── */
-  --sidebar-w: 350px;
-  --rail-w: 232px;
-  --feed-max: 600px;
-  --header-h: 53px;
-  --radius: 16px;
-  --radius-sm: 4px;
-  --radius-lg: 16px;
-  --radius-msg: 18px;
-  --radius-pill: 9999px;
-  --shadow: 0 0 15px rgba(101, 119, 134, 0.2), 0 0 3px 1px rgba(101, 119, 134, 0.15);
-  --shadow-sm: 0 0 3px rgba(101, 119, 134, 0.15);
-  --transition: 0.15s ease;
-
-  /* ── Typographie : système, natif, dense ── */
-  --font-display:
-    -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-body: var(--font-display);
-  --font-mono: var(--font-display);
-
-  /* ── Zones sûres ── */
-  --safe-top: env(safe-area-inset-top, 5px);
-  --safe-bottom: env(safe-area-inset-bottom, 5px);
-  --safe-left: env(safe-area-inset-left, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
-  --bnav-h: calc(53px + var(--safe-bottom));
-
-  --auth-bg-image: url("/assets/logo/background_black.png");
-  --bg-page: var(--bg-deep);
-  --bg-card2: var(--bg-card);
-  --bg: var(--bg-base);
-  --text: var(--text-secondary);
-  color-scheme: dark;
 }
 
-[data-theme="light"] {
-  --brand: #1d9bf0;
-  --brand-dark: #1a8cd8;
-  --brand-light: #8ecdf8;
-  --brand-ink: #ffffff;
-  --brand-glow: rgba(29, 155, 240, 0.12);
-  --brand-soft: rgba(29, 155, 240, 0.08);
-
-  --bg-deep: #ffffff;
-  --bg-base: #ffffff;
-  --bg-card: #ffffff;
-  --bg-elevated: #ffffff;
-  --bg-input: #eff3f4;
-  --bg-hover: rgba(0, 0, 0, 0.03);
-  --bg-active: #eff3f4;
-  --border: #eff3f4;
-  --border-light: #f7f9f9;
-  --border-strong: #cfd9de;
-
-  --text-primary: #0f1419;
-  --text-secondary: #536471;
-  --text-muted: #536471;
-  --text-invert: #ffffff;
-
-  --accent: #f91880;
-  --accent-2: #7856ff;
-  --online: #00ba7c;
-  --offline: #536471;
-  --danger: #f4212e;
-  --warning: #ffd400;
-  --star: #ffd400;
-  --like: #f91880;
-  --repost: #00ba7c;
-
-  --msg-sent: #1d9bf0;
-  --msg-sent-border: #1d9bf0;
-  --msg-recv: #eff3f4;
-
-  --shadow: 0 0 15px rgba(101, 119, 134, 0.2), 0 0 3px 1px rgba(101, 119, 134, 0.15);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
-  color-scheme: light;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   IONIC (mobile web) — aligné sur l'accent unique
-   ══════════════════════════════════════════════════════════════════════ */
-:root {
-  --ion-color-primary: #1d9bf0;
-  --ion-color-primary-rgb: 29, 155, 240;
-  --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #1a8cd8;
-  --ion-color-primary-tint: #49abf4;
-  --ion-background-color: var(--bg-base);
-  --ion-background-color-rgb: 0, 0, 0;
-  --ion-text-color: var(--text-primary);
-  --ion-text-color-rgb: 231, 233, 234;
-  --ion-border-color: var(--border);
-  --ion-toolbar-background: var(--bg-base);
-  --ion-toolbar-border-color: var(--border);
-  --ion-item-background: transparent;
-  --ion-card-background: var(--bg-card);
-  --ion-tab-bar-background: rgba(0, 0, 0, 0.85);
-  --ion-tab-bar-border-color: var(--border);
-  --ion-font-family: var(--font-body);
-  --ion-color-step-50: #0a0a0a;
-  --ion-color-step-100: #121212;
-  --ion-color-step-200: #1a1a1a;
-  --ion-color-step-300: #242424;
-  --ion-color-step-400: #333333;
-  --ion-color-step-500: #555555;
-  --ion-color-step-600: #71767b;
-  --ion-color-step-700: #9a9a9a;
-  --ion-color-step-800: #c7c7c7;
-  --ion-color-step-900: #e7e9ea;
-}
-
-[data-theme="light"] {
-  --ion-background-color-rgb: 255, 255, 255;
-  --ion-text-color-rgb: 15, 20, 25;
-  --ion-tab-bar-background: rgba(255, 255, 255, 0.92);
-  --ion-color-step-50: #f7f9f9;
-  --ion-color-step-100: #eff3f4;
-  --ion-color-step-200: #e1e8ed;
-  --ion-color-step-300: #cfd9de;
-  --ion-color-step-400: #aab8c2;
-  --ion-color-step-500: #8899a6;
-  --ion-color-step-600: #536471;
-  --ion-color-step-700: #3b444c;
-  --ion-color-step-800: #1f2529;
-  --ion-color-step-900: #0f1419;
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   BASE
-   ══════════════════════════════════════════════════════════════════════ */
-@layer base {
-  *,
-  *::before,
-  *::after {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  html {
-    height: 100%;
-    min-height: -webkit-fill-available;
-  }
-  body {
-    font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 20px;
-    background: var(--bg-deep);
-    color: var(--text-primary);
-    height: 100dvh;
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-    transition:
-      background 0.2s ease,
-      color 0.2s ease;
-  }
-  #root {
-    height: 100%;
-  }
-  h1,
-  h2,
-  h3,
-  h4 {
-    font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
-  }
-  button {
-    font-family: inherit;
-    font-size: inherit;
-    color: inherit;
-    background: none;
-    border: none;
-  }
-  input,
-  textarea,
-  select {
-    font-family: inherit;
-    font-size: inherit;
-    color: inherit;
-  }
-  a {
-    color: var(--brand);
-    text-decoration: none;
-  }
-  a:hover {
-    text-decoration: underline;
-  }
-  img,
-  svg,
-  video {
-    max-width: 100%;
-    vertical-align: middle;
-  }
-  ::selection {
-    background: var(--brand);
-    color: var(--brand-ink);
-  }
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: var(--border-strong);
-    border-radius: 9999px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-secondary);
-  }
-  *:focus-visible {
-    outline: 2px solid var(--brand);
-    outline-offset: 1px;
-    border-radius: 2px;
-  }
-  .tnum,
-  time,
-  .conv-time,
-  .msg-time,
-  .msg-edited {
-    font-variant-numeric: tabular-nums;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      /* biome-ignore lint/complexity/noImportantStyles: required for WCAG prefers-reduced-motion */
-      animation-duration: 0.01ms !important;
-      /* biome-ignore lint/complexity/noImportantStyles: required for WCAG prefers-reduced-motion */
-      animation-iteration-count: 1 !important;
-      /* biome-ignore lint/complexity/noImportantStyles: required for WCAG prefers-reduced-motion */
-      transition-duration: 0.01ms !important;
-      /* biome-ignore lint/complexity/noImportantStyles: required for WCAG prefers-reduced-motion */
-      scroll-behavior: auto !important;
-    }
-  }
-  [dir="rtl"] .sidebar {
-    left: auto;
-    right: 0;
-  }
-  [dir="rtl"] .msg-wrapper.sent {
-    flex-direction: row-reverse;
-  }
-  [dir="rtl"] .msg-wrapper.recv {
-    flex-direction: row;
-  }
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   ÉCHELLE TYPOGRAPHIQUE (7 tailles, 11 → 24)
-   ══════════════════════════════════════════════════════════════════════ */
-:root {
-  --text-xs: 11px;
-  --text-sm: 13px;
-  --text-base: 14px;
-  --text-md: 15px;
-  --text-lg: 17px;
-  --text-xl: 20px;
-  --text-2xl: 23px;
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   BOUTONS
-   ══════════════════════════════════════════════════════════════════════ */
-@layer components {
-  .btn {
-    font-family: inherit;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    transition: var(--transition);
-    border-radius: var(--radius-pill);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-  .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  .btn-primary {
-    background: var(--brand);
-    color: var(--brand-ink);
-  }
-  .btn-primary:hover:not(:disabled) {
-    background: var(--brand-dark);
-  }
-  .btn-ghost {
-    background: transparent;
-    color: var(--text-secondary);
-  }
-  .btn-ghost:hover {
-    color: var(--text-primary);
-    background: var(--bg-hover);
-  }
-  .btn-ghost-danger {
-    background: transparent;
-    color: var(--text-secondary);
-  }
-  .btn-ghost-danger:hover {
-    color: var(--danger);
-    background: rgba(244, 33, 46, 0.1);
-  }
-  .btn-pill {
-    border-radius: var(--radius-pill);
-  }
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   FORMULAIRES
-   ══════════════════════════════════════════════════════════════════════ */
-.input,
-.form-control,
-.form-select {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+html,
+body,
+#root {
+  height: 100%;
+  background: var(--bg-primary);
   color: var(--text-primary);
-  padding: 12px;
-  outline: none;
-  transition: border-color var(--transition);
-  width: 100%;
-}
-.input::placeholder,
-.form-control::placeholder {
-  color: var(--text-secondary);
-}
-.input:focus,
-.form-control:focus,
-.form-select:focus {
-  border-color: var(--brand);
-}
-.dropdown-menu {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-.modal-content {
-  background: var(--bg-base);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  border-radius: var(--radius-lg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   ANIMATIONS — uniquement celles qui portent du sens d'état
-   ══════════════════════════════════════════════════════════════════════ */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--text-link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+::-webkit-scrollbar {
+  width: 0px;
+}
+
+/* Le preflight de Tailwind est désactivé (tailwind.config.js) : sans ce reset, les
+   <button> gardent le style natif du navigateur (fond gris/blanc, bordure) et jurent
+   avec le thème sombre. Les classes Tailwind restent prioritaires (spécificité). */
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0 solid var(--border-color);
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -421,186 +108,13 @@
     opacity: 1;
   }
 }
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes skeleton {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: calc(200px + 100%) 0;
-  }
-}
-@keyframes typingBounce {
-  0%,
-  60%,
-  100% {
-    transform: translateY(0);
-  }
-  30% {
-    transform: translateY(-4px);
-  }
-}
-@keyframes shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  20%,
-  40%,
-  60%,
-  80% {
-    transform: translateX(3px);
-  }
-  10%,
-  30%,
-  50%,
-  70%,
-  90% {
-    transform: translateX(-3px);
-  }
-}
-@keyframes pollFill {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-@keyframes pollBackdropIn {
-  from {
-    opacity: 0;
-  }
-}
-@keyframes pollConfirmIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-@keyframes bannerSlideUp {
-  from {
-    transform: translateY(-100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-@keyframes authModeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 
-/* Overlay d'animations de messages (fonctionnalité existante) */
-.msg-animation-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  pointer-events: none;
-  overflow: hidden;
-}
-.msg-animation-particle {
-  position: absolute;
-  will-change: transform, opacity;
-  line-height: 1;
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   SPINNERS / SQUELETTES / UTILITAIRES
-   ══════════════════════════════════════════════════════════════════════ */
-.spinner {
-  width: 26px;
-  height: 26px;
-  border: 2px solid var(--border-strong);
-  border-top-color: var(--brand);
-  border-radius: 9999px;
-  animation: spin 0.7s linear infinite;
-}
-.spinner-sm {
-  width: 16px;
-  height: 16px;
-  border-width: 2px;
-}
 .loading-overlay {
   position: fixed;
   inset: 0;
-  z-index: 99999;
+  background: var(--bg-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-deep);
-}
-.loading-overlay.hidden {
-  display: none;
-}
-.skeleton {
-  border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-hover) 37%, var(--bg-card) 63%);
-  background-size: 200% 100%;
-  animation: skeleton 1.4s ease infinite;
-}
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-/* Cibles tactiles (WCAG 2.5.5) */
-.pending-accept-btn,
-.pending-decline-btn,
-.app-download-banner-close,
-.pp-close-btn,
-.icon-btn,
-.sidebar-logout,
-.sidebar-install,
-.sidebar-icon-btn {
-  min-width: 44px;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   RESPONSIVE — fallback desktop < lg
-   ══════════════════════════════════════════════════════════════════════ */
-@media (max-width: 767px) {
-  .sidebar {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    width: 100%;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-  }
-  .sidebar.open {
-    transform: translateX(0);
-  }
-  .msg-input-area {
-    bottom: var(--bnav-h);
-  }
+  z-index: 99999;
 }

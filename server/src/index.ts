@@ -1,336 +1,72 @@
-import './services/logger.js';
-
-import { readFileSync } from 'node:fs';
-import { createServer } from 'node:http';
-import { dirname, resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import compression from 'compression';
+import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import express from 'express';
-import { isCaptchaEnabled, isCaptchaRequired } from './config/captcha.js';
 import pool from './config/database.js';
 import { runMigrations } from './config/migrate.js';
-import { patchRouter } from './middleware/asyncHandler.js';
-import { checkIpBan, purgeExpiredSessions } from './middleware/auth.js';
-import { errorHandler, setupProcessHandlers } from './middleware/errorHandler.js';
-import { maintenanceCheck } from './middleware/maintenance.js';
-import { rateLimit } from './middleware/rateLimit.js';
-import { rateLimitByKey } from './middleware/rateLimitByKey.js';
-import { redirectHttps, securityHeaders } from './middleware/securityHeaders.js';
-import { sqlGuard } from './middleware/sqlGuard.js';
-import { requestTimeout } from './middleware/timeout.js';
-import adminRouter from './routes/admin.js';
-import authRouter from './routes/auth.js';
-import blocksRouter from './routes/blocks.js';
-import callsRouter from './routes/calls.js';
-import captchaRouter from './routes/captcha.js';
-import communitiesRouter from './routes/communities.js';
-import contactRouter from './routes/contact.js';
-import contactsRouter from './routes/contacts.js';
-import conversationsRouter from './routes/conversations.js';
-import gifsRouter from './routes/gifs.js';
-import groupsRouter from './routes/groups.js';
-import linkPreviewRouter from './routes/linkPreview.js';
-import messagesRouter from './routes/messages.js';
-import notificationsRouter from './routes/notifications.js';
-import onboardingRouter from './routes/onboarding.js';
-import postsRouter from './routes/posts.js';
-import profilesRouter from './routes/profiles.js';
-import publicRouter from './routes/public.js';
-import searchRouter from './routes/search.js';
-import securityRouter from './routes/security.js';
-import statusRouter from './routes/status.js';
-import storiesRouter from './routes/stories.js';
-import trendsRouter from './routes/trends.js';
-import videosRouter from './routes/videos.js';
-import { INDEXNOW_KEY, indexNowKeyFileContent } from './services/indexnow.js';
-import { startQueueWorker } from './services/queue.js';
-import { registerQueueHandlers, setQueueIo } from './services/queueHandlers.js';
-import {
-  cleanExpiredEphemeralMessages,
-  getMaintenanceMode,
-  purgeExpiredCommunityBans,
-  purgeOldLoginHistory,
-} from './services/rtdb.js';
-import { buildSeo, defaultSeo, SITE_URL, seoMetaTags } from './services/seo.js';
-import { buildSitemap, robotsTxt } from './services/sitemap.js';
-import { setupSocket } from './socket/index.js';
+import authRoutes from './routes/auth.js';
+import postsRoutes from './routes/posts.js';
+import profilesRoutes from './routes/profiles.js';
+import socialRoutes from './routes/social.js';
+import notificationsRoutes from './routes/notifications.js';
+import trendsRoutes from './routes/trends.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
 const app = express();
-const rawTrustProxy = (process.env.TRUST_PROXY || '').trim();
-if (rawTrustProxy === 'false') {
-  app.set('trust proxy', false);
-} else if (/^\d+$/.test(rawTrustProxy)) {
-  app.set('trust proxy', parseInt(rawTrustProxy, 10));
-} else {
-  app.set('trust proxy', rawTrustProxy || 1);
+const PORT = Number(process.env.PORT) || 7285;
+const distPath = resolve(__dirname, '../../client/dist');
+/* Lancé depuis src/ (tsx watch) = développement : on sert toujours Vite, même si un
+   client/dist traîne. Sinon ce build obsolète prend le dessus et le navigateur charge
+   d'anciens bundles dont les chunks n'existent plus (fallback SPA en text/html). */
+const fromBuild = basename(__dirname) === 'dist';
+const isProd = process.env.NODE_ENV === 'production' || (fromBuild && existsSync(distPath));
+if (!isProd && existsSync(distPath)) {
+  console.log('[SERVER] client/dist ignoré en dev : Vite sert les sources (HMR)');
 }
-const httpServer = createServer(app);
 
-/* En-têtes de sécurité + redirection HTTPS */
-app.use(redirectHttps);
-app.use(securityHeaders);
-
-/* Middleware */
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.APP_URL || 'https://wouaff.app')
-  .split(',')
-  .map((o) => o.trim());
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(null, false);
-      }
-    },
-    credentials: true,
-  }),
-);
-app.use(compression());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(cors({ origin: process.env.APP_URL || `http://localhost:${PORT}`, credentials: true }));
+app.use(express.json({ limit: '5mb' }));
+/* Sans ce middleware, req.cookies est undefined : le cookie de session n'est jamais lu
+   et toutes les routes authentifiées répondent 401 alors que le login a réussi. */
 app.use(cookieParser());
 
-/* SQL injection guard, scanne tous les champs textuels des requêtes API */
-app.use('/api', sqlGuard);
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
-/* Blocage des adresses IP bannies (toutes routes API confondues) */
-app.use('/api', checkIpBan);
+app.use('/api/auth', authRoutes);
+app.use('/api/posts', postsRoutes);
+app.use('/api/profiles', profilesRoutes);
+app.use('/api', socialRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/trends', trendsRoutes);
 
-/* Rate limiting */
-app.use('/api/auth/login', rateLimit({ windowMs: 60000, max: 20 }));
-app.use(
-  '/api/auth/login',
-  rateLimitByKey({
-    windowMs: 60000,
-    max: 8,
-    keyFn: (req) => ((req.body as { email?: string } | undefined)?.email || '').trim().toLowerCase(),
-    message: 'Trop de tentatives pour ce compte, réessayez plus tard',
-  }),
-);
-app.use('/api/auth/register', rateLimit({ windowMs: 60000, max: 10 }));
-app.use('/api/auth/forgot-password', rateLimit({ windowMs: 60000, max: 5 }));
-app.use('/api/contacts', rateLimit({ windowMs: 60000, max: 60 }));
-app.use('/api/messages', rateLimit({ windowMs: 60000, max: 120 }));
-app.use('/api/conversations', rateLimit({ windowMs: 60000, max: 60 }));
-app.use('/api/search', rateLimit({ windowMs: 60000, max: 30 }));
-app.use('/api/videos', rateLimit({ windowMs: 60000, max: 60 }));
-app.use('/api/posts', rateLimit({ windowMs: 60000, max: 120 }));
-app.use('/api/communities', rateLimit({ windowMs: 60000, max: 120 }));
-app.use('/api/trends', rateLimit({ windowMs: 60000, max: 30 }));
-app.use('/api/gifs', rateLimit({ windowMs: 60000, max: 60 }));
-app.use('/api/link-preview', rateLimit({ windowMs: 60000, max: 20 }));
-app.use('/api/admin/bootstrap', rateLimit({ windowMs: 60000, max: 3 }));
-app.use('/api/auth/2fa/verify', rateLimit({ windowMs: 60000, max: 10 }));
-app.use('/api/auth/2fa/send-email', rateLimit({ windowMs: 60000, max: 5 }));
-app.use('/api/auth/send-verification', rateLimit({ windowMs: 60000, max: 5 }));
-app.use('/api/auth/reset-password', rateLimit({ windowMs: 60000, max: 10 }));
-app.use('/api/auth/passkey', rateLimit({ windowMs: 60000, max: 20 }));
-app.use('/api/contact', rateLimit({ windowMs: 60000, max: 5 }));
-app.use('/api/auth/verify-email', rateLimit({ windowMs: 60000, max: 10 }));
-app.use('/api/notifications', rateLimit({ windowMs: 60000, max: 60 }));
-app.use('/api/groups', rateLimit({ windowMs: 60000, max: 60 }));
-app.use('/api/profiles', rateLimit({ windowMs: 60000, max: 60 }));
-app.use('/api/stories', rateLimit({ windowMs: 60000, max: 30 }));
-app.use('/api/blocks', rateLimit({ windowMs: 60000, max: 30 }));
-app.use('/api/public', rateLimit({ windowMs: 60000, max: 120 }));
-
-/* Public maintenance status (accessible even during maintenance) */
-app.get('/api/maintenance', (_req, res) => {
-  getMaintenanceMode()
-    .then((m) => res.json(m))
-    .catch(() => res.json({ enabled: false, message: null }));
-});
-
-/* Maintenance check (blocks non-staff when enabled) */
-app.use('/api', maintenanceCheck);
-
-/* Request timeout (30s for regular, 60s for uploads) */
-app.use('/api', requestTimeout(30000));
-
-/* Socket.IO */
-const io = setupSocket(httpServer, allowedOrigins);
-app.set('io', io);
-
-/* REST API (all routers auto-wrap async handlers) */
-app.use('/api/auth', patchRouter(authRouter));
-app.use('/api/auth', patchRouter(securityRouter));
-app.use('/api/captcha', patchRouter(captchaRouter));
-app.use('/api/contact', patchRouter(contactRouter));
-app.use('/api/communities', patchRouter(communitiesRouter));
-app.use('/api/messages', patchRouter(messagesRouter));
-app.use('/api/conversations', patchRouter(conversationsRouter));
-app.use('/api/onboarding', patchRouter(onboardingRouter));
-app.use('/api/profiles', patchRouter(profilesRouter));
-app.use('/api/groups', patchRouter(groupsRouter));
-app.use('/api/contacts', patchRouter(contactsRouter));
-app.use('/api/stories', patchRouter(storiesRouter));
-app.use('/api/notifications', patchRouter(notificationsRouter));
-app.use('/api/search', patchRouter(searchRouter));
-app.use('/api/admin', patchRouter(adminRouter));
-app.use('/api/status', patchRouter(statusRouter));
-app.use('/api/public', patchRouter(publicRouter));
-app.use('/api/link-preview', patchRouter(linkPreviewRouter));
-app.use('/api/blocks', patchRouter(blocksRouter));
-app.use('/api/gifs', patchRouter(gifsRouter));
-app.use('/api/calls', patchRouter(callsRouter));
-app.use('/api/videos', patchRouter(videosRouter));
-app.use('/api/posts', patchRouter(postsRouter));
-app.use('/api/trends', patchRouter(trendsRouter));
-
-/* Health check */
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() });
-});
-
-/* API 404, JSON, not the SPA fallback */
-app.use('/api', (_req, res) => {
-  res.status(404).json({ error: 'Not Found' });
-});
-
-/* Frontend static files (built React app) */
-const clientDist = resolve(__dirname, '../../client/dist');
-app.use(express.static(clientDist, { maxAge: '7d', immutable: true, index: false }));
-
-/* Downloads (installer, etc.) */
-const downloadsDir = resolve(__dirname, '../downloads');
-app.use('/downloads', express.static(downloadsDir));
-
-/* Uploaded videos & thumbnails */
-const uploadsDir = resolve(__dirname, '../uploads');
-app.use('/uploads', express.static(uploadsDir));
-
-/* Sitemap XML dynamique (posts, profils, communautés, hashtags) */
-app.get('/sitemap.xml', async (_req, res) => {
+async function start() {
   try {
-    const xml = await buildSitemap();
-    res.set('Cache-Control', `public, max-age=${Math.floor((5 * 60 * 1000) / 1000)}`);
-    res.type('application/xml');
-    res.send(xml);
-  } catch {
-    res.status(500).send('Internal Server Error');
-  }
-});
+    await pool.getConnection().then((c: any) => { c.release(); console.log('[DB] Connecté'); });
+    await runMigrations();
 
-/* Robots.txt pointant vers le sitemap */
-app.get('/robots.txt', (_req, res) => {
-  res.type('text/plain');
-  res.send(robotsTxt());
-});
-
-/* IndexNow key file verification */
-if (INDEXNOW_KEY) {
-  app.get(`/${INDEXNOW_KEY}.txt`, (_req, res) => {
-    res.type('text/plain');
-    res.send(indexNowKeyFileContent());
-  });
-}
-
-/* SEO & embeds sociaux : injection serveur des meta OG/Twitter selon l'URL */
-let indexHtmlCache: string | null = null;
-function getIndexHtml(): string {
-  if (indexHtmlCache !== null) return indexHtmlCache;
-  indexHtmlCache = readFileSync(resolve(clientDist, 'index.html'), 'utf8');
-  return indexHtmlCache;
-}
-
-/* Pages qui ne doivent pas être indexées (routes protégées / auth) */
-const NOINDEX_PATHS = [
-  /^\/auth/,
-  /^\/forgot-password/,
-  /^\/reset-password/,
-  /^\/verify-email/,
-  /^\/notifications/,
-  /^\/messages/,
-  /^\/hashtag\//,
-  /^\/settings/,
-  /^\/search/,
-  /^\/admin/,
-];
-
-app.get('*', async (req, res) => {
-  try {
-    const pathname = req.path;
-    const canonicalUrl = `${SITE_URL}${pathname}`;
-    const seo = await buildSeo(pathname, canonicalUrl).catch(() => defaultSeo(canonicalUrl));
-    let html = getIndexHtml();
-    if (html.includes('<!--seo-meta-->')) {
-      html = html.replace('<!--seo-meta-->', () => seoMetaTags(seo));
+    if (isProd) {
+      app.use(express.static(distPath));
+      app.get('*', (_req, res) => {
+        res.sendFile(resolve(distPath, 'index.html'));
+      });
+      app.listen(PORT, () => console.log(`[SERVER] Production sur port ${PORT}`));
+    } else {
+      const { createServer } = await import('vite');
+      const vite = await createServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+        root: resolve(__dirname, '../../client'),
+        configFile: resolve(__dirname, '../../client/vite.config.ts'),
+      });
+      app.use(vite.middlewares);
+      app.listen(PORT, () => console.log(`[SERVER] Dev sur port ${PORT} (Vite middleware)`));
     }
-    if (NOINDEX_PATHS.some((re) => re.test(pathname))) {
-      html = html.replace(
-        '<meta name="robots" content="index, follow" />',
-        () => '<meta name="robots" content="noindex, nofollow" />',
-      );
-    }
-    res.set('Cache-Control', 'no-cache');
-    res.type('html');
-    res.send(html);
-  } catch {
-    res.set('Cache-Control', 'no-cache');
-    res.sendFile(resolve(clientDist, 'index.html'));
-  }
-});
-
-/* Express error middleware (must be last) */
-app.use(errorHandler);
-
-/* Process handlers */
-setupProcessHandlers(async () => {
-  try {
-    await pool.end();
-  } catch {}
-  httpServer.close();
-});
-
-/* Run DB migrations then start */
-const PORT = parseInt(process.env.PORT || '7285', 10);
-
-runMigrations()
-  .then(async () => {
-    /* File asynchrone : emails, webhooks, notifications */
-    setQueueIo(io);
-    registerQueueHandlers();
-    startQueueWorker();
-
-    /* Start ephemeral messages cleanup every 30 seconds */
-    setInterval(async () => {
-      try {
-        const deleted = await cleanExpiredEphemeralMessages();
-        if (deleted.length > 0) {
-          for (const { type, convId, key } of deleted) {
-            const room = type === 'dm' ? `dm:${convId}` : `group:${convId}`;
-            io.to(room).emit('message:removed', { convId, key });
-          }
-        }
-      } catch {
-        /* silent */
-      }
-    }, 30000);
-
-    setInterval(
-      () => {
-        purgeExpiredSessions().catch(() => {});
-        purgeOldLoginHistory().catch(() => {});
-        purgeExpiredCommunityBans().catch(() => {});
-      },
-      60 * 60 * 1000,
-    ).unref();
-
-    httpServer.listen(PORT, '0.0.0.0', () => {
-      console.log(`🟢 Wouaff server running on http://0.0.0.0:${PORT}`);
-      if (isCaptchaRequired() && !isCaptchaEnabled()) {
-        console.warn(
-          '[CAPTCHA] Aucun TURNSTILE_SECRET_KEY configuré : les formulaires protégés (inscription, mot de passe oublié, contact) seront refusés. Définissez la clé ou CAPTCHA_DISABLED=1 pour les débloquer.',
-        );
-      }
-    });
-  })
-  .catch((err) => {
-    console.error('Migration failed:', err);
+  } catch (err) {
+    console.error('[STARTUP] Erreur:', err);
     process.exit(1);
-  });
+  }
+}
+
+start();

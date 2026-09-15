@@ -1,44 +1,21 @@
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light';
+type Theme = 'dark';
 
-interface ThemeState {
+interface ThemeContextType {
   theme: Theme;
-  toggleTheme: () => void;
-  setTheme: (t: Theme) => void;
 }
 
-const ThemeContext = createContext<ThemeState>({
-  theme: 'dark',
-  toggleTheme: () => {},
-  setTheme: () => {},
-});
+const ThemeContext = createContext<ThemeContextType>({ theme: 'dark' });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === 'undefined') return 'dark';
-    const stored = localStorage.getItem('wouaff-theme');
-    return stored === 'dark' || stored === 'light' ? stored : 'dark';
-  });
+  const [theme] = useState<Theme>('dark');
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('wouaff-theme', theme);
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) {
-      meta.setAttribute('content', theme === 'light' ? '#ffffff' : '#000000');
-    }
-  }, [theme]);
-
-  const toggleTheme = useCallback(() => {
-    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    document.documentElement.setAttribute('data-theme', 'dark');
   }, []);
 
-  const setTheme = useCallback((t: Theme) => setThemeState(t), []);
-
-  const value = useMemo(() => ({ theme, toggleTheme, setTheme }), [theme, toggleTheme, setTheme]);
-
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={{ theme }}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

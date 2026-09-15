@@ -1,1 +1,0 @@
-ALTER TABLE videos ADD COLUMN deletionUrl TEXT DEFAULT NULL;
