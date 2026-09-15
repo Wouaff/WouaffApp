@@ -39,8 +39,10 @@ export default function RightSidebar() {
     } catch {}
   };
 
+  /* Colonnes : 275 + 600 + 350 = 1225px. En dessous de 1280px la colonne de droite
+     comprime le fil : on la masque plutôt que de tasser la colonne centrale. */
   return (
-    <aside className="w-[350px] h-screen overflow-y-auto sticky top-0 pl-8 py-3 pr-6 hidden lg:block">
+    <aside className="w-[350px] h-screen overflow-y-auto sticky top-0 pl-8 py-3 pr-6 hidden xl:block">
       <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 mb-4">
         <h2 className="font-extrabold text-xl mb-3">Who to follow</h2>
         {suggestions.map((s) => (

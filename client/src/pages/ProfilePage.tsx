@@ -5,6 +5,7 @@ import ComposeModal from '../components/ComposeModal';
 import PostCard, { type Post } from '../components/PostCard';
 import RightSidebar from '../components/RightSidebar';
 import Sidebar from '../components/Sidebar';
+import VerifiedBadge from '../components/VerifiedBadge';
 import { api } from '../services/api';
 
 interface Profile {
@@ -112,7 +113,7 @@ export default function ProfilePage() {
 
         <div className="px-4 pb-4 relative">
           <div className="flex justify-between items-end -mt-[68px] mb-3">
-            <div className="w-[134px] h-[134px] rounded-full border-4 border-[var(--bg-primary)] bg-[var(--bg-tertiary)] flex items-center justify-center text-4xl font-bold overflow-hidden">
+            <div className="w-[134px] h-[134px] rounded-full ring-4 ring-[var(--bg-secondary)] bg-[var(--bg-tertiary)] flex items-center justify-center text-4xl font-bold overflow-hidden">
               {profile.avatar ? (
                 <img src={profile.avatar} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -143,7 +144,7 @@ export default function ProfilePage() {
           <div>
             <div className="flex items-center gap-1.5">
               <h2 className="font-extrabold text-xl">{profile.displayName || profile.pseudo}</h2>
-              {profile.verified && <span className="text-[var(--accent)]">✓</span>}
+              {profile.verified && <VerifiedBadge className="w-5 h-5" />}
             </div>
             <p className="text-[var(--text-secondary)] text-[15px]">@{profile.pseudo}</p>
           </div>

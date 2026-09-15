@@ -39,7 +39,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="flex">
-          <div className="w-[250px] flex-shrink-0 border-r border-[var(--border-color)] py-2">
+          <div className="w-[200px] xl:w-[250px] flex-shrink-0 border-r border-[var(--border-color)] py-2">
             {SETTINGS_TABS.map(({ id, label, icon: Icon, description }) => (
               <button
                 key={id}
@@ -58,14 +58,14 @@ export default function SettingsPage() {
                     >
                       {label}
                     </div>
-                    <div className="text-xs text-[var(--text-secondary)]">{description}</div>
+                    <div className="text-xs text-[var(--text-secondary)] hidden xl:block">{description}</div>
                   </div>
                 </div>
               </button>
             ))}
           </div>
 
-          <div className="flex-1 p-6">
+          <div className="flex-1 min-w-0 p-6">
             {activeTab === 'account' && <AccountTab />}
             {activeTab === 'profile' && <ProfileTab user={user} refresh={refresh} />}
             {activeTab === 'security' && <SecurityTab />}
@@ -125,7 +125,7 @@ function ProfileTab({ user, refresh }: { user: any; refresh: () => Promise<unkno
 
   return (
     <div>
-      <div className="h-[200px] bg-[var(--bg-tertiary)] rounded-xl mb-4 relative overflow-hidden">
+      <div className="h-[160px] bg-[var(--bg-tertiary)] rounded-xl relative overflow-hidden">
         {user?.banner && <img src={user.banner} alt="" className="w-full h-full object-cover" />}
         <button className="absolute bottom-3 right-3 p-2 bg-[var(--bg-primary)]/80 rounded-full text-[var(--text-primary)]">
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -134,18 +134,19 @@ function ProfileTab({ user, refresh }: { user: any; refresh: () => Promise<unkno
         </button>
       </div>
 
-      <div className="flex items-center gap-4 mb-6">
-        <div className="w-[100px] h-[100px] rounded-full bg-[var(--bg-tertiary)] border-4 border-[var(--bg-primary)] flex items-center justify-center text-3xl font-bold overflow-hidden -mt-16">
-          {user?.avatar ? (
-            <img src={user.avatar} alt="" className="w-full h-full object-cover" />
-          ) : (
-            user?.pseudo[0].toUpperCase()
-          )}
-        </div>
-        <div>
-          <div className="font-bold">{user?.displayName || user?.pseudo}</div>
-          <div className="text-sm text-[var(--text-secondary)]">@{user?.pseudo}</div>
-        </div>
+      {/* L'avatar chevauche la moitié de la bannière, le nom reste sous l'avatar
+          (sinon l'avatar posé à -64px recouvre la bannière et le nom). */}
+      <div className="w-20 h-20 -mt-10 ml-4 rounded-full bg-[var(--bg-tertiary)] ring-4 ring-[var(--bg-secondary)] flex items-center justify-center text-2xl font-bold overflow-hidden">
+        {user?.avatar ? (
+          <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+        ) : (
+          user?.pseudo?.[0]?.toUpperCase() || '?'
+        )}
+      </div>
+
+      <div className="mt-3 mb-6">
+        <div className="font-bold truncate">{user?.displayName || user?.pseudo}</div>
+        <div className="text-sm text-[var(--text-secondary)] truncate">@{user?.pseudo}</div>
       </div>
 
       <h3 className="font-extrabold text-xl mb-2">Edit profile</h3>
