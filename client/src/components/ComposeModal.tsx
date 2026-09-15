@@ -1,5 +1,5 @@
 import { Film, Image, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
 interface ComposeModalProps {
@@ -11,23 +11,87 @@ export default function ComposeModal({ onClose, onPosted }: ComposeModalProps) {
   const { user } = useAuth();
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 30 * 1024 * 1024) {
+      alert('Le fichier ne doit pas dépasser 30 Mo');
+      return;
+    }
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    if (!isImage && !isVideo) {
+      alert('Type de fichier non supporté');
+      return;
+    }
+    setMediaFile(file);
+    setMediaType(isVideo ? 'video' : 'image');
+    setMediaPreview(URL.createObjectURL(file));
+  };
+
+  const removeMedia = () => {
+    if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+    setMediaFile(null);
+    setMediaPreview(null);
+    setMediaType(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handlePost = async () => {
-    if (!text.trim() || text.length > 280 || posting) return;
+    if ((!text.trim() && !mediaFile) || text.length > 280 || posting) return;
     setPosting(true);
     try {
+      let imageUrl: string | null = null;
+      let videoUrl: string | null = null;
+
+      if (mediaFile) {
+        const formData = new FormData();
+        formData.append('file', mediaFile);
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        });
+        if (uploadRes.ok) {
+          const { url, type } = await uploadRes.json();
+          if (type === 'video') {
+            videoUrl = url;
+          } else {
+            imageUrl = url;
+          }
+        }
+      }
+
       const res = await fetch('/api/posts', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text.trim() }),
+        body: JSON.stringify({
+          text: text.trim() || null,
+          image: imageUrl,
+          video: videoUrl,
+        }),
       });
       if (res.ok) {
         onPosted();
         onClose();
       }
-    } catch {}
+    } catch {
+      // silent
+    }
     setPosting(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handlePost();
+    }
   };
 
   return (
@@ -43,10 +107,10 @@ export default function ComposeModal({ onClose, onPosted }: ComposeModalProps) {
           </button>
           <button
             onClick={handlePost}
-            disabled={!text.trim() || text.length > 280 || posting}
+            disabled={(!text.trim() && !mediaFile) || text.length > 280 || posting}
             className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-full px-5 py-1.5 text-sm transition-colors"
           >
-            Post
+            {posting ? '...' : 'Post'}
           </button>
         </div>
         <div className="flex gap-3 p-4">
@@ -60,21 +124,59 @@ export default function ComposeModal({ onClose, onPosted }: ComposeModalProps) {
           <div className="flex-1 min-w-0">
             <div className="font-bold text-[var(--text-primary)]">{user?.pseudo}</div>
             <textarea
-              autoFocus
               value={text}
               onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="What's happening?"
               className="w-full bg-transparent text-[var(--text-primary)] text-lg placeholder-[var(--text-secondary)] outline-none resize-none border-none mt-2 min-h-[120px]"
               rows={5}
             />
+
+            {mediaPreview && (
+              <div className="relative mt-2 mb-2 rounded-2xl overflow-hidden border border-[var(--border-color)]">
+                <button
+                  onClick={removeMedia}
+                  className="absolute top-2 right-2 z-10 bg-[var(--bg-primary)]/80 rounded-full p-1 hover:bg-[var(--bg-primary)] transition-colors"
+                >
+                  <X className="w-4 h-4 text-[var(--text-primary)]" />
+                </button>
+                {mediaType === 'video' ? (
+                  <video src={mediaPreview} className="w-full max-h-[300px] object-cover" controls preload="metadata">
+                    <track kind="captions" label="Français" srcLang="fr" src="" />
+                  </video>
+                ) : (
+                  <img src={mediaPreview} alt="" className="w-full max-h-[300px] object-cover" />
+                )}
+              </div>
+            )}
           </div>
         </div>
         <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-color)]">
           <div className="flex gap-2">
-            <button className="p-2 rounded-full hover:bg-[var(--accent)]/10 text-[var(--accent)] transition-colors">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg,video/quicktime"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 rounded-full hover:bg-[var(--accent)]/10 text-[var(--accent)] transition-colors"
+            >
               <Image className="w-5 h-5" />
             </button>
-            <button className="p-2 rounded-full hover:bg-[var(--accent)]/10 text-[var(--accent)] transition-colors">
+            <button
+              onClick={() => {
+                if (fileInputRef.current) {
+                  fileInputRef.current.accept = 'video/mp4,video/webm,video/ogg,video/quicktime';
+                  fileInputRef.current.click();
+                  fileInputRef.current.accept =
+                    'image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg,video/quicktime';
+                }
+              }}
+              className="p-2 rounded-full hover:bg-[var(--accent)]/10 text-[var(--accent)] transition-colors"
+            >
               <Film className="w-5 h-5" />
             </button>
           </div>

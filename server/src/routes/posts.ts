@@ -19,6 +19,7 @@ function enrichPost(p: any, userId: string) {
     id: p.id,
     text: p.text,
     image: p.image,
+    video: p.video,
     createdAt: p.created_at,
     likesCount: p.likes_count,
     repostsCount: p.reposts_count,
@@ -82,15 +83,15 @@ router.get('/feed', authMiddleware, async (req, res) => {
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { text, image, repostOf } = req.body;
+    const { text, image, video, repostOf } = req.body;
     const uid = (req as any).user.uid;
-    if (!text && !image && !repostOf) {
+    if (!text && !image && !video && !repostOf) {
       return res.status(400).json({ error: 'Le tweet ne peut pas être vide' });
     }
     if (text && text.length > 280) {
       return res.status(400).json({ error: 'Le tweet ne peut pas dépasser 280 caractères' });
     }
-    const postId = await createPost(uid, text || null, image || null, repostOf);
+    const postId = await createPost(uid, text || null, image || null, repostOf, video || null);
     res.json({ id: postId });
   } catch (err) {
     console.error('[POSTS] Create error:', err);
@@ -195,6 +196,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       id: post.id,
       text: post.text,
       image: post.image,
+      video: post.video,
       createdAt: post.created_at,
       likesCount: likesCount?.count || 0,
       repostsCount: repostsCount?.count || 0,

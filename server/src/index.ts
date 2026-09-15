@@ -1,17 +1,18 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { basename, resolve, dirname } from 'node:path';
+import { existsSync } from 'node:fs';
+import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import express from 'express';
 import pool from './config/database.js';
 import { runMigrations } from './config/migrate.js';
 import authRoutes from './routes/auth.js';
+import notificationsRoutes from './routes/notifications.js';
 import postsRoutes from './routes/posts.js';
 import profilesRoutes from './routes/profiles.js';
 import socialRoutes from './routes/social.js';
-import notificationsRoutes from './routes/notifications.js';
 import trendsRoutes from './routes/trends.js';
+import uploadRoutes from './routes/upload.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -40,10 +41,16 @@ app.use('/api/profiles', profilesRoutes);
 app.use('/api', socialRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/trends', trendsRoutes);
+app.use('/api/upload', uploadRoutes);
+
+app.use('/uploads', express.static(resolve(__dirname, '../../uploads')));
 
 async function start() {
   try {
-    await pool.getConnection().then((c: any) => { c.release(); console.log('[DB] Connecté'); });
+    await pool.getConnection().then((c: any) => {
+      c.release();
+      console.log('[DB] Connecté');
+    });
     await runMigrations();
 
     if (isProd) {

@@ -6,6 +6,9 @@ client/dist/
 server/dist/
 client/release/
 
+# User uploads
+server/uploads/
+
 # Environment & secrets
 .env
 .env.*

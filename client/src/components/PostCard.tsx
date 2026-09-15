@@ -16,6 +16,7 @@ export interface Post {
   id: number;
   text: string | null;
   image: string | null;
+  video: string | null;
   createdAt: string;
   likesCount: number;
   repostsCount: number;
@@ -112,6 +113,14 @@ export default function PostCard({ post, onDelete }: { post: Post; onDelete?: (i
         {post.image && (
           <div className="mt-3 rounded-2xl overflow-hidden border border-[var(--border-color)]">
             <img src={post.image} alt="" className="w-full max-h-[500px] object-cover" />
+          </div>
+        )}
+
+        {post.video && (
+          <div className="mt-3 rounded-2xl overflow-hidden border border-[var(--border-color)]">
+            <video src={post.video} className="w-full max-h-[500px] object-cover" controls preload="metadata">
+              <track kind="captions" label="Français" srcLang="fr" src="" />
+            </video>
           </div>
         )}
 

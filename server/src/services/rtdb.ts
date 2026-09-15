@@ -85,10 +85,16 @@ export async function getTrendingHashtags(days = 0, limit = 10): Promise<Hashtag
   return countHashtags(rows.map((row) => row.text)).slice(0, Math.max(1, Math.trunc(limit)));
 }
 
-export async function createPost(uid: string, text: string | null, image: string | null, repostOf?: number) {
+export async function createPost(
+  uid: string,
+  text: string | null,
+  image: string | null,
+  repostOf?: number,
+  video?: string | null,
+) {
   const result = await query<{ insertId: number }>(
-    'INSERT INTO posts (uid, text, image, repost_of) VALUES (?, ?, ?, ?)',
-    [uid, text, image, repostOf || null],
+    'INSERT INTO posts (uid, text, image, video, repost_of) VALUES (?, ?, ?, ?, ?)',
+    [uid, text, image, video || null, repostOf || null],
   );
   return result.insertId;
 }
