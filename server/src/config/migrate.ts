@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { PoolConnection } from 'mysql2/promise';
@@ -15,17 +15,31 @@ async function ensureMigrationsTable(connection: PoolConnection): Promise<void> 
   );
 }
 
+/* Le dossier de migrations peut manquer (dépôt sans SQL, déploiement partiel) : un
+   readdirSync en aveugle ferait échouer le démarrage du serveur. */
+export function findMigrationsDir(candidates: string[]): string | null {
+  return candidates.find((dir) => existsSync(dir) && statSync(dir).isDirectory()) ?? null;
+}
+
 export async function runMigrations(): Promise<void> {
+  const rootDir = resolve(__dirname, '../../');
+  const migrationsDir = findMigrationsDir([
+    resolve(__dirname, '../migrations'),
+    resolve(rootDir, 'src/migrations'),
+  ]);
+  if (!migrationsDir) {
+    console.warn('[MIGRATE] Aucun dossier de migrations trouvé : schéma non vérifié');
+    return;
+  }
+
   const connection = await pool.getConnection();
   try {
-    const rootDir = resolve(__dirname, '../../');
-    const srcMigrations = resolve(rootDir, 'src/migrations');
-    const distMigrations = resolve(__dirname, '../migrations');
-    const migrationsDir = existsSync(distMigrations) ? distMigrations : srcMigrations;
-
     const files = readdirSync(migrationsDir)
       .filter((f) => f.endsWith('.sql'))
       .sort();
+    if (files.length === 0) {
+      console.warn(`[MIGRATE] Aucune migration dans ${migrationsDir} : la base doit exister`);
+    }
 
     await ensureMigrationsTable(connection);
     const [appliedRows] = (await connection.query('SELECT filename FROM schema_migrations')) as [

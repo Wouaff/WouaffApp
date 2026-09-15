@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc && node --input-type=module -e \"import{cpSync}from'node:fs';cpSync('src/migrations','dist/migrations',{recursive:true});\"",
+    "build": "tsc && node --input-type=module -e \"import{existsSync,cpSync}from'node:fs';if(existsSync('src/migrations'))cpSync('src/migrations','dist/migrations',{recursive:true});else console.log('[BUILD] src/migrations absent : rien a copier');\"",
     "build:client": "npm --prefix ../client run build",
     "clean": "node clean.mjs",
     "build:all": "npm run clean && npm run build:client && npm run build",
