@@ -14,7 +14,8 @@ export default function Sidebar({ onCompose }: { onCompose: () => void }) {
   ];
 
   return (
-    <aside className="w-[275px] h-screen flex flex-col justify-between border-r border-[var(--border-color)] px-4 py-3 sticky top-0 overflow-y-auto">
+    /* Sous 768px la colonne de gauche laisse la place à la barre de navigation basse. */
+    <aside className="hidden md:flex w-[275px] h-screen flex-col justify-between border-r border-[var(--border-color)] px-4 py-3 sticky top-0 overflow-y-auto">
       <div>
         <div className="flex items-center gap-2 px-3 py-3 mb-1">
           <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-8 h-8 rounded-lg" />

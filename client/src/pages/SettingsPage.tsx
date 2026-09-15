@@ -25,7 +25,7 @@ export default function SettingsPage() {
   const [showCompose, setShowCompose] = useState(false);
 
   return (
-    <div className="flex min-h-screen justify-center">
+    <div className="flex min-h-screen justify-center pb-16 md:pb-0">
       <Sidebar onCompose={() => setShowCompose(true)} />
 
       <main className="flex-1 min-w-0 border-r border-[var(--border-color)] max-w-[600px] bg-[var(--bg-secondary)]">
@@ -38,8 +38,8 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="flex">
-          <div className="w-[200px] xl:w-[250px] flex-shrink-0 border-r border-[var(--border-color)] py-2">
+        <div className="flex flex-col md:flex-row">
+          <div className="w-full md:w-[200px] xl:w-[250px] flex-shrink-0 border-b md:border-b-0 md:border-r border-[var(--border-color)] py-2">
             {SETTINGS_TABS.map(({ id, label, icon: Icon, description }) => (
               <button
                 key={id}

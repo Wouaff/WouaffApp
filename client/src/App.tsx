@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import MobileNav from './components/MobileNav';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ThemeProvider } from './hooks/useTheme';
 import './index.css';
@@ -104,6 +105,7 @@ export default function App() {
             }
           >
             <AppRoutes />
+            <MobileNav />
           </Suspense>
         </AuthProvider>
       </ThemeProvider>

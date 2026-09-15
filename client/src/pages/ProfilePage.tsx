@@ -70,7 +70,7 @@ export default function ProfilePage() {
 
   if (loading)
     return (
-      <div className="flex min-h-screen justify-center">
+      <div className="flex min-h-screen justify-center pb-16 md:pb-0">
         <Sidebar onCompose={() => setShowCompose(true)} />
         <main className="flex-1 min-w-0 max-w-[600px] border-r border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-center justify-center">
           <div className="spinner" />
@@ -81,7 +81,7 @@ export default function ProfilePage() {
 
   if (!profile)
     return (
-      <div className="flex min-h-screen justify-center">
+      <div className="flex min-h-screen justify-center pb-16 md:pb-0">
         <Sidebar onCompose={() => setShowCompose(true)} />
         <main className="flex-1 min-w-0 max-w-[600px] border-r border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)]">
           User not found
@@ -91,7 +91,7 @@ export default function ProfilePage() {
     );
 
   return (
-    <div className="flex min-h-screen justify-center">
+    <div className="flex min-h-screen justify-center pb-16 md:pb-0">
       <Sidebar onCompose={() => setShowCompose(true)} />
 
       <main className="flex-1 min-w-0 border-r border-[var(--border-color)] max-w-[600px] bg-[var(--bg-secondary)]">

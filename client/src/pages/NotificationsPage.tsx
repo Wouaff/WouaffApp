@@ -80,7 +80,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="flex min-h-screen justify-center">
+    <div className="flex min-h-screen justify-center pb-16 md:pb-0">
       <Sidebar onCompose={() => setShowCompose(true)} />
 
       <main className="flex-1 min-w-0 border-r border-[var(--border-color)] max-w-[600px] bg-[var(--bg-secondary)]">
