@@ -77,6 +77,7 @@ app.use(
     next();
   },
   express.static(uploadsDir, { maxAge: '7d', index: false, dotfiles: 'deny' }),
+  (_req, res) => res.status(404).end(),
 );
 
 /* Une route /api inconnue répond en JSON, pas avec le fallback HTML de la SPA. */

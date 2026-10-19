@@ -10,14 +10,7 @@
   <link rel="apple-touch-icon" href="/assets/pwa/apple-touch-icon-180.png" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <script>
-    /* Applique le thème choisi avant le premier rendu (évite un flash sombre). */
-    try {
-      const p = localStorage.getItem('wouaff-theme') || 'dark';
-      const t = p === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : p;
-      document.documentElement.setAttribute('data-theme', t);
-    } catch {}
-  </script>
+  <script src="/theme.js"></script>
   <title>Wouaff</title>
   <style>
     html, body { margin: 0; padding: 0; }
