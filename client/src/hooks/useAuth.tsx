@@ -33,13 +33,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await apiLogout();
+    try {
+      await apiLogout();
+    } catch {
+      /* même hors-ligne, on referme la session côté client */
+    }
     setUser(null);
   }, []);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  /* Une requête a reçu un 401 : la session a expiré ou a été révoquée. */
+  useEffect(() => {
+    const onUnauthorized = () => setUser(null);
+    window.addEventListener('wouaff:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('wouaff:unauthorized', onUnauthorized);
+  }, []);
 
   return <AuthContext.Provider value={{ user, loading, refresh, logout }}>{children}</AuthContext.Provider>;
 }

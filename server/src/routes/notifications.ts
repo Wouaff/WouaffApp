@@ -1,52 +1,32 @@
 import { Router } from 'express';
-import { query } from '../config/database.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, currentUser } from '../middleware/auth.js';
 import { getNotifications, getUnreadNotificationCount, markNotificationsRead } from '../services/rtdb.js';
+import { toInt } from '../utils/validation.js';
 
 const router = Router();
 
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const uid = (req as any).user.uid;
-    const limit = Math.min(Number(req.query.limit) || 50, 100);
-    const offset = Number(req.query.offset) || 0;
-    const notifications = await getNotifications(uid, limit, offset);
-
-    // Enrich with actor info
-    const enriched = await Promise.all(
-      notifications.map(async (n) => {
-        let actor: any = null;
-        if (n.actor_uid) {
-          actor = await query<any>('SELECT uid, pseudo, displayName, avatar, verified FROM users WHERE uid = ?', [
-            n.actor_uid,
-          ]).then((rows) => rows[0] || null);
-        }
-        let post: any = null;
-        if (n.post_id) {
-          post = await query<any>('SELECT id, text FROM posts WHERE id = ?', [n.post_id]).then(
-            (rows) => rows[0] || null,
-          );
-        }
-        return {
-          id: n.id,
-          type: n.type,
-          read: !!n.is_read,
-          createdAt: n.created_at,
-          actor: actor
-            ? {
-                uid: actor.uid,
-                pseudo: actor.pseudo,
-                displayName: actor.displayName,
-                avatar: actor.avatar,
-                verified: !!actor.verified,
-              }
-            : null,
-          post: post ? { id: post.id, text: post.text } : null,
-        };
-      }),
+    const uid = currentUser(req).uid;
+    const rows = await getNotifications(uid, toInt(req.query.limit, 50, 1, 100), toInt(req.query.offset, 0, 0, 100000));
+    res.json(
+      rows.map((n) => ({
+        id: n.id,
+        type: n.type,
+        read: !!n.is_read,
+        createdAt: n.created_at,
+        actor: n.actor_uid
+          ? {
+              uid: n.actor_uid,
+              pseudo: n.actor_pseudo,
+              displayName: n.actor_name,
+              avatar: n.actor_avatar,
+              verified: !!n.actor_verified,
+            }
+          : null,
+        post: n.post_id ? { id: n.post_id, text: n.post_text } : null,
+      })),
     );
-
-    res.json(enriched);
   } catch (err) {
     console.error('[NOTIFS] Get error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -55,9 +35,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
 router.get('/unread', authMiddleware, async (req, res) => {
   try {
-    const uid = (req as any).user.uid;
-    const count = await getUnreadNotificationCount(uid);
-    res.json({ count });
+    res.json({ count: await getUnreadNotificationCount(currentUser(req).uid) });
   } catch (err) {
     console.error('[NOTIFS] Unread error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -66,8 +44,7 @@ router.get('/unread', authMiddleware, async (req, res) => {
 
 router.put('/read', authMiddleware, async (req, res) => {
   try {
-    const uid = (req as any).user.uid;
-    await markNotificationsRead(uid);
+    await markNotificationsRead(currentUser(req).uid);
     res.json({ ok: true });
   } catch (err) {
     console.error('[NOTIFS] Read error:', err);

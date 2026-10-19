@@ -4,7 +4,7 @@ Wouaff est un réseau social français open source, sans publicité, dont les do
 
 ## À propos
 
-Wouaff propose des posts, vidéos, communautés, et messages privés chiffrés de bout en bout. Le code source est disponible sur GitHub.
+Wouaff propose des posts (texte, images, vidéos), des réponses, des reposts, des abonnements, des notifications et une recherche. Le code source est disponible sur GitHub.
 
 - Site : https://wouaff.app
 - Code source : https://github.com/Wouaff/WouaffApp
@@ -13,15 +13,17 @@ Wouaff propose des posts, vidéos, communautés, et messages privés chiffrés d
 ## Pages principales
 
 - [Accueil](https://wouaff.app/)
-- [Communautés](https://wouaff.app/communities)
-- [Download](https://wouaff.app/download)
+- [Explorer](https://wouaff.app/explore)
 - [Authentification](https://wouaff.app/auth)
+- [Conditions](https://wouaff.app/legal/conditions)
+- [Confidentialité](https://wouaff.app/legal/confidentialite)
 
 ## API
 
-Le serveur expose une API REST sur `/api/`. Les endpoints principaux :
+L'API REST est exposée sous `/api/` et nécessite une session (cookie). Principaux endpoints :
 
-- `GET /api/posts` — fil d'actualité
-- `GET /api/communities` — liste des communautés
-- `GET /api/search` — recherche
-- `GET /api/public/profile/:wouaffId` — profil public
+- `GET /api/posts/feed` — fil (`tab=for-you|following`, `tag`, `q`, `limit`, `offset`)
+- `GET /api/posts/:id` — détail d'un post
+- `GET /api/profiles/:pseudo` — profil
+- `GET /api/search?q=` — recherche de comptes
+- `GET /api/trends` — hashtags tendance

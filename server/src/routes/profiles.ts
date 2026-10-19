@@ -1,32 +1,41 @@
 import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
-import { authMiddleware } from '../middleware/auth.js';
-import { findUserByPseudo, updateUser } from '../services/rtdb.js';
+import { authMiddleware, currentUser } from '../middleware/auth.js';
+import { fetchPosts, filters } from '../services/postQuery.js';
+import { findUserByPseudo, isBlockedEitherWay, updateUser } from '../services/rtdb.js';
+import { isSafeUploadPath, normalizeWebsite, toInt } from '../utils/validation.js';
 
 const router = Router();
 
+interface UserListRow {
+  uid: string;
+  pseudo: string;
+  displayName: string | null;
+  avatar: string | null;
+  verified: number;
+  isFollowing: number;
+}
+
 router.get('/:pseudo', authMiddleware, async (req, res) => {
   try {
-    const pseudo = req.params.pseudo;
-    const user = await findUserByPseudo(pseudo);
+    const user = await findUserByPseudo(req.params.pseudo);
     if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
-    const myUid = (req as any).user.uid;
-    const followersCount = await getOne<{ count: number }>(
-      'SELECT COUNT(*) as count FROM follows WHERE followed_uid = ?',
-      [user.uid],
-    );
-    const followingCount = await getOne<{ count: number }>(
-      'SELECT COUNT(*) as count FROM follows WHERE follower_uid = ?',
-      [user.uid],
-    );
-    const tweetsCount = await getOne<{ count: number }>(
-      'SELECT COUNT(*) as count FROM posts WHERE uid = ? AND repost_of IS NULL',
-      [user.uid],
-    );
-    const isFollowingUser = await getOne<any>(
-      'SELECT follower_uid FROM follows WHERE follower_uid = ? AND followed_uid = ?',
-      [myUid, user.uid],
-    );
+    const myUid = currentUser(req).uid;
+    const [counts, isFollowingUser, blockedByMe, blockedMe] = await Promise.all([
+      getOne<{ followers: number; following: number; posts: number }>(
+        `SELECT
+           (SELECT COUNT(*) FROM follows WHERE followed_uid = ?) AS followers,
+           (SELECT COUNT(*) FROM follows WHERE follower_uid = ?) AS following,
+           (SELECT COUNT(*) FROM posts WHERE uid = ? AND repost_of IS NULL) AS posts`,
+        [user.uid, user.uid, user.uid],
+      ),
+      getOne<unknown>('SELECT follower_uid FROM follows WHERE follower_uid = ? AND followed_uid = ?', [
+        myUid,
+        user.uid,
+      ]),
+      getOne<unknown>('SELECT blocker_uid FROM blocks WHERE blocker_uid = ? AND blocked_uid = ?', [myUid, user.uid]),
+      getOne<unknown>('SELECT blocker_uid FROM blocks WHERE blocker_uid = ? AND blocked_uid = ?', [user.uid, myUid]),
+    ]);
     res.json({
       uid: user.uid,
       pseudo: user.pseudo,
@@ -38,10 +47,12 @@ router.get('/:pseudo', authMiddleware, async (req, res) => {
       website: user.website,
       verified: !!user.verified,
       createdAt: user.createdAt,
-      followersCount: followersCount?.count || 0,
-      followingCount: followingCount?.count || 0,
-      tweetsCount: tweetsCount?.count || 0,
+      followersCount: counts?.followers || 0,
+      followingCount: counts?.following || 0,
+      tweetsCount: counts?.posts || 0,
       isFollowing: !!isFollowingUser,
+      isBlocked: !!blockedByMe,
+      hasBlockedMe: !!blockedMe,
       isOwn: myUid === user.uid,
     });
   } catch (err) {
@@ -52,15 +63,43 @@ router.get('/:pseudo', authMiddleware, async (req, res) => {
 
 router.put('/me', authMiddleware, async (req, res) => {
   try {
-    const uid = (req as any).user.uid;
-    const { displayName, bio, location, website, avatar, banner } = req.body;
+    const uid = currentUser(req).uid;
+    const { displayName, bio, location, website, avatar, banner } = req.body ?? {};
     const fields: Record<string, unknown> = {};
-    if (displayName !== undefined) fields.displayName = displayName;
-    if (bio !== undefined) fields.bio = bio;
-    if (location !== undefined) fields.location = location;
-    if (website !== undefined) fields.website = website;
-    if (avatar !== undefined) fields.avatar = avatar;
-    if (banner !== undefined) fields.banner = banner;
+
+    const text = (value: unknown, max: number, label: string): string | null | undefined | Error => {
+      if (value === undefined) return undefined;
+      if (value === null) return null;
+      if (typeof value !== 'string' || value.trim().length > max)
+        return new Error(`${label} : ${max} caractères maximum`);
+      return value.trim() || null;
+    };
+
+    for (const [key, raw, max, label] of [
+      ['displayName', displayName, 50, 'Nom affiché'],
+      ['bio', bio, 160, 'Bio'],
+      ['location', location, 100, 'Localisation'],
+    ] as const) {
+      const v = text(raw, max, label);
+      if (v instanceof Error) return res.status(400).json({ error: v.message });
+      if (v !== undefined) fields[key] = v;
+    }
+
+    if (website !== undefined) {
+      const url = normalizeWebsite(website);
+      if (url === undefined)
+        return res.status(400).json({ error: 'Site web invalide (http:// ou https:// uniquement)' });
+      fields.website = url;
+    }
+    for (const [key, value] of [
+      ['avatar', avatar],
+      ['banner', banner],
+    ] as const) {
+      if (value === undefined) continue;
+      if (value !== null && !isSafeUploadPath(value)) return res.status(400).json({ error: 'Image invalide' });
+      fields[key] = value;
+    }
+
     await updateUser(uid, fields);
     res.json({ ok: true });
   } catch (err) {
@@ -71,46 +110,100 @@ router.put('/me', authMiddleware, async (req, res) => {
 
 router.get('/:pseudo/posts', authMiddleware, async (req, res) => {
   try {
-    const pseudo = req.params.pseudo;
-    const user = await findUserByPseudo(pseudo);
+    const user = await findUserByPseudo(req.params.pseudo);
     if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
-    const myUid = (req as any).user.uid;
-    const limit = Math.min(Number(req.query.limit) || 50, 100);
-    const offset = Number(req.query.offset) || 0;
-    const posts = await query<any[]>(
-      `SELECT p.*, u.pseudo, u.displayName, u.avatar, u.verified,
-        (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count,
-        (SELECT COUNT(*) FROM posts WHERE repost_of = p.id) as reposts_count,
-        (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count,
-        (SELECT COUNT(*) FROM likes WHERE post_id = p.id AND uid = ?) as user_liked,
-        (SELECT COUNT(*) FROM posts WHERE uid = ? AND repost_of = p.id) as user_reposted
-        FROM posts p JOIN users u ON p.uid = u.uid
-        WHERE p.uid = ? ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
-      [myUid, myUid, user.uid, limit, offset],
-    );
+    const myUid = currentUser(req).uid;
+    if (user.uid !== myUid && (await isBlockedEitherWay(myUid, user.uid))) return res.json([]);
+    const filter = req.query.tab === 'reposts' ? filters.profileReposts(user.uid) : filters.profilePosts(user.uid);
     res.json(
-      posts.map((p) => ({
-        id: p.id,
-        text: p.text,
-        image: p.image,
-        createdAt: p.created_at,
-        likesCount: p.likes_count,
-        repostsCount: p.reposts_count,
-        commentsCount: p.comments_count,
-        userLiked: !!p.user_liked,
-        userReposted: !!p.user_reposted,
-        repostOf: p.repost_of,
-        user: {
-          uid: p.uid,
-          pseudo: p.pseudo,
-          displayName: p.displayName,
-          avatar: p.avatar,
-          verified: !!p.verified,
-        },
-      })),
+      await fetchPosts(myUid, filter, toInt(req.query.limit, 20, 1, 100), toInt(req.query.offset, 0, 0, 100000)),
     );
   } catch (err) {
     console.error('[PROFILES] Posts error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.get('/:pseudo/replies', authMiddleware, async (req, res) => {
+  try {
+    const user = await findUserByPseudo(req.params.pseudo);
+    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    const myUid = currentUser(req).uid;
+    if (user.uid !== myUid && (await isBlockedEitherWay(myUid, user.uid))) return res.json([]);
+    const limit = toInt(req.query.limit, 20, 1, 100);
+    const offset = toInt(req.query.offset, 0, 0, 100000);
+    const rows = await query<
+      { id: number; text: string; created_at: string; post_id: number; post_text: string | null; post_pseudo: string }[]
+    >(
+      `SELECT c.id, c.text, c.created_at, p.id AS post_id, p.text AS post_text, pu.pseudo AS post_pseudo
+       FROM comments c
+       JOIN posts p ON p.id = c.post_id
+       JOIN users pu ON pu.uid = p.uid
+       WHERE c.uid = ?
+       ORDER BY c.created_at DESC, c.id DESC
+       LIMIT ${limit} OFFSET ${offset}`,
+      [user.uid],
+    );
+    res.json(
+      rows.map((r) => ({
+        id: r.id,
+        text: r.text,
+        createdAt: r.created_at,
+        post: { id: r.post_id, text: r.post_text, pseudo: r.post_pseudo },
+      })),
+    );
+  } catch (err) {
+    console.error('[PROFILES] Replies error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+async function followList(req: Parameters<typeof currentUser>[0], column: 'follower_uid' | 'followed_uid') {
+  const user = await findUserByPseudo((req.params as { pseudo: string }).pseudo);
+  if (!user) return null;
+  const myUid = currentUser(req).uid;
+  const other = column === 'follower_uid' ? 'followed_uid' : 'follower_uid';
+  const limit = toInt(req.query.limit, 30, 1, 100);
+  const offset = toInt(req.query.offset, 0, 0, 100000);
+  const rows = await query<UserListRow[]>(
+    `SELECT u.uid, u.pseudo, u.displayName, u.avatar, u.verified,
+            (SELECT COUNT(*) FROM follows mine WHERE mine.follower_uid = ? AND mine.followed_uid = u.uid) AS isFollowing
+     FROM follows f JOIN users u ON u.uid = f.${column}
+     WHERE f.${other} = ?
+       AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_uid = ? AND b.blocked_uid = u.uid) OR (b.blocker_uid = u.uid AND b.blocked_uid = ?))
+     ORDER BY f.created_at DESC
+     LIMIT ${limit} OFFSET ${offset}`,
+    [myUid, user.uid, myUid, myUid],
+  );
+  return rows.map((r) => ({
+    uid: r.uid,
+    pseudo: r.pseudo,
+    displayName: r.displayName,
+    avatar: r.avatar,
+    verified: !!r.verified,
+    isFollowing: !!r.isFollowing,
+    isOwn: r.uid === myUid,
+  }));
+}
+
+router.get('/:pseudo/followers', authMiddleware, async (req, res) => {
+  try {
+    const list = await followList(req, 'follower_uid');
+    if (!list) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    res.json(list);
+  } catch (err) {
+    console.error('[PROFILES] Followers error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.get('/:pseudo/following', authMiddleware, async (req, res) => {
+  try {
+    const list = await followList(req, 'followed_uid');
+    if (!list) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    res.json(list);
+  } catch (err) {
+    console.error('[PROFILES] Following error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

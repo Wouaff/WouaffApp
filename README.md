@@ -6,7 +6,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)
 ![Express](https://img.shields.io/badge/Express-4.21-000000?logo=express&logoColor=white)
-![Electron](https://img.shields.io/badge/Electron-33-47848F?logo=electron&logoColor=white)
+![Electron](https://img.shields.io/badge/Electron-44-47848F?logo=electron&logoColor=white)
 ![License](https://img.shields.io/badge/License-Custom-blue)
 
 ---
@@ -36,7 +36,7 @@
 
 ## 🛡️ La souveraineté Wouaff
 
-À l'origine une application de messagerie, **Wouaff** se transforme en réseau social souverain, sans équivalent en France. Nos engagements sont clairs :
+À l'origine une application de messagerie, **Wouaff** est devenu un réseau social souverain. Nos engagements sont clairs :
 
 - 🇫🇷 **Hébergement 100 % français** — toutes les données restent sur le territoire national.
 - ⚖️ **RGPD & lois européennes** — le droit français et européen s'appliquent, sans compromis.
@@ -48,135 +48,118 @@ Le projet suit une approche **« privacy by design »** : la souveraineté numé
 
 ## ✨ Fonctionnalités
 
-### ✅ Actuelles
+- 🏠 **Fil** « Pour toi » (chronologique) et « Abonnements », scroll infini.
+- ✍️ **Posts** de 280 caractères max avec image ou vidéo (30 Mo), reposts, likes, réponses, #hashtags, @mentions et liens cliquables.
+- 🔎 **Explorer** : recherche de comptes et de posts, tendances, pages `#hashtag`.
+- 👤 **Profils** : photo, bannière, bio, abonnés / abonnements, onglets Posts · Réponses · Reposts.
+- 🔔 **Notifications** (likes, reposts, réponses, mentions, abonnements) avec badge de non-lus.
+- 🛡️ **Modération côté utilisateur** : blocage, signalement, suppression de ses posts et commentaires.
+- 🔐 **Compte** : double authentification (appli TOTP), sessions visibles et révocables, mot de passe oublié et confirmation d'e-mail (SMTP), captcha Turnstile (optionnel).
+- 🇪🇺 **RGPD** : export des données et suppression définitive du compte depuis Paramètres → Confidentialité.
+- 🎨 Thème clair / sombre / automatique · 📱 PWA installable · 🖥️ appli de bureau (Electron).
 
-- 🏠 **Page d'accueil façon réseau social** (Twitter / Instagram / Mastodon) : fil d'actualité, boîte de publication, tendances en France, suggestions de comptes.
-- 🔐 **Connexion & inscription** — email, mot de passe sécurisé, vérification d'email.
-- 🎨 **Thèmes** clair / sombre.
-- 📱 **Cross-platform** : Web (PWA), Desktop (Electron), Mobile (PWA).
+### 🚧 Pas (encore) dans cette version
 
-### 🚀 À venir
-
-- 💬 **Messagerie** — réintégrée au réseau social, comme sur Instagram ou Twitter (actuellement accessible sur `/chat`).
-- 📡 **Fil d'actualité connecté au backend** — le front-end est en place, le back-end arrive.
-- 📞 Appels, stories, groupes, etc.
+Messagerie privée, communautés, stories, appels, administration web. Elles existaient dans l'ancienne version et ont été retirées lors de la réécriture allégée (voir l'historique git).
 
 ---
 
 ## 🧱 Stack technique
 
-| Couche       | Technologies                                                                |
-|--------------|-----------------------------------------------------------------------------|
-| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS                                    |
-| **Backend**  | Express 4, Socket.IO, MySQL (mysql2)                                        |
-| **Desktop**  | Electron 33, electron-builder                                               |
-| **Security** | ECDH + AES-256-GCM (E2EE), bcrypt, sessions httpOnly                        |
-| **Real-time**| Socket.IO (messagerie, appels, typing, présence)                            |
+| Couche       | Technologies                                                    |
+|--------------|-----------------------------------------------------------------|
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS                        |
+| **Backend**  | Express 4, MySQL / MariaDB (mysql2), nodemailer                 |
+| **Desktop**  | Electron, electron-builder                                      |
+| **Sécurité** | bcrypt, sessions httpOnly, TOTP, rate-limit, CSP, validations   |
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Démarrage
 
-### 📋 Prérequis
+### Prérequis
 
-- Node.js 18+
-- MySQL 8+
-- npm (ou pnpm)
+- Node.js 20+ (testé sur 22)
+- MySQL 8+ ou MariaDB 10.6+, avec une **base vide** (par défaut `wouaff`, jeu de caractères utf8mb4)
 
-### 📥 Installation
+### Installation
 
 ```bash
-# Cloner le dépôt
-git clone https://github.com/ton-username/wouaff.git
-cd wouaff
+git clone https://github.com/Wouaff/WouaffApp.git
+cd WouaffApp
+npm install                 # outils du dépôt (Biome)
+npm --prefix server install
+npm --prefix client install
 
-# Installer les dépendances
-cd client && npm install
-cd ../server && npm install
-cd ..
-
-# Configurer l'environnement
 cp server/.env.example server/.env
-cp client/.env.example client/.env
-# Éditez les fichiers .env avec votre configuration
-
-# Lancer les migrations DB (auto au démarrage du server)
-cd server && npm run dev
+cp client/.env.example client/.env   # optionnel (captcha)
+# éditer server/.env : identifiants MySQL, APP_URL, SMTP éventuel
 ```
 
-### 🛠️ Développement
+Les tables sont créées automatiquement au démarrage du serveur (`server/src/migrations`).
+
+> ⚠️ Utilise une base **neuve**. Une base issue de l'ancienne version (tables `profiles`, `post_likes`…) n'est pas compatible.
+
+### Développement
 
 ```bash
-# Terminal 1 — Serveur
-cd server
-npm run dev
-
-# Terminal 2 — Client
-cd client
-npm run dev
+npm run dev     # serveur Express + Vite (HMR) sur http://localhost:7285
 ```
 
-Le client tourne sur `http://localhost:5173` et proxyfie les requêtes API vers le serveur sur `http://localhost:7285`. Une fois connecté, vous arrivez sur la page d'accueil ; l'ancienne messagerie reste accessible sur `/chat`.
+Variante : `npm --prefix client run dev` lance Vite seul sur `:5173` et proxifie `/api` et `/uploads` vers `:7285`.
 
-### 📦 Build production
+### Production
 
 ```bash
-cd client && npm run build
-cd ../server && npm run build
-cd ..
-npm run start:prod
+npm run build
+NODE_ENV=production npm start
 ```
 
-### 🖥️ Desktop (Electron)
+Derrière un reverse proxy, définis `TRUST_PROXY=1` pour que le rate-limit voie la vraie IP.
+
+### Desktop (Electron)
 
 ```bash
 cd client
-npm run electron:dev    # Mode développement
-npm run electron:build  # Build production (Windows/Mac/Linux)
+npm run dev:electron      # développement
+npm run build:electron    # installeur Windows (autres : :mac, :linux)
 ```
+
+En production l'appli charge `https://wouaff.app` (changeable avec `WOUAFF_URL`) ; si le site est injoignable, elle affiche l'interface embarquée.
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-wouaff/
-├── client/          # React SPA (Vite + TypeScript)
-│   ├── src/
-│   │   ├── components/   # UI components
-│   │   │   ├── Home/         # Page d'accueil (fil social)
-│   │   │   ├── Auth/         # Connexion / inscription
-│   │   │   ├── Chat/         # Messagerie (à réintégrer)
-│   │   │   └── ...
-│   │   ├── data/         # Données de démonstration (tendances, suggestions)
-│   │   ├── hooks/        # React contexts (Auth, Call, Theme)
-│   │   ├── pages/        # Route pages
-│   │   ├── services/     # API client, Socket.IO, E2EE, WebRTC
-│   │   ├── types/        # TypeScript definitions
-│   │   └── utils/        # Helpers
-│   └── electron/         # Electron main process
-├── server/          # Express API (TypeScript)
-│   ├── src/
-│   │   ├── config/       # Database, migrations
-│   │   ├── middleware/    # Auth, rate limit, error handling
-│   │   ├── routes/       # REST API endpoints
-│   │   ├── services/     # Business logic, storage
-│   │   ├── socket/       # Socket.IO server
-│   │   └── types/        # TypeScript definitions
-│   └── migrations/       # SQL migration files
-└── docs/            # Documentation
+WouaffApp/
+├── client/                 # SPA React (Vite + TypeScript) + Electron
+│   ├── src/components/     # PostCard, ComposeBox, Sidebar, AppShell…
+│   ├── src/pages/          # Feed, Explore, Post, Profile, Settings, Login…
+│   ├── src/hooks/          # useAuth, useTheme, usePaged, useUnread
+│   ├── src/services/       # client API
+│   └── electron/           # processus principal Electron
+└── server/                 # API Express (TypeScript)
+    └── src/
+        ├── config/         # base de données, migrations, captcha
+        ├── middleware/     # auth, rate-limit, en-têtes de sécurité, erreurs
+        ├── routes/         # auth, posts, profiles, social, notifications, trends, upload
+        ├── services/       # accès données (rtdb.ts), requête du fil, e-mails
+        └── migrations/     # 001_init.sql, 002…, 003…
 ```
-
 
 ---
 
 ## 🔐 Sécurité
 
-- 🍪 **Auth par session** : cookies httpOnly, sessions expirantes et révocables.
-- 🚦 **Rate limiting** : protection par endpoint contre les abus.
-- 🧱 **Requêtes SQL paramétrées** et validation des entrées sensibles côté serveur.
-- 🛡️ **CSRF** : cookies SameSite.
-- 🕵️ **Journalisation minimale** : pas de traçage d'activité dans l'application ; les journaux techniques et alertes de sécurité sont envoyés vers un canal privé de l'équipe.
+- 🍪 Sessions par cookie `httpOnly` + `SameSite=Lax`, expirantes, révocables ; purge automatique des sessions expirées.
+- 🔑 Mots de passe hachés (bcrypt), double authentification TOTP, réinitialisation par jeton à usage unique.
+- 🚦 Rate-limit global et renforcé sur la connexion, l'inscription, les publications et les envois.
+- 🧱 Requêtes SQL paramétrées, entrées validées côté serveur (pseudos réservés, URL http(s) uniquement, médias limités aux uploads).
+- 📎 Uploads : extension déduite du type MIME, `nosniff` et CSP restrictive sur `/uploads`.
+- 🕵️ Aucun suivi d'activité ; les journaux techniques restent sur le serveur.
+
+Voir [SECURITY.md](SECURITY.md) pour signaler une faille.
 
 ---
 

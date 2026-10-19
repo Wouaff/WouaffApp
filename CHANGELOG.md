@@ -1,3 +1,14 @@
+[19/10/2026]
+- FIX : le schéma SQL est maintenant créé par `001_init.sql` (avant : aucune table n'était définie) ; `003_security_moderation.sql` ajoute blocages, signalements, jetons et colonnes 2FA
+- FIX : les médias uploadés s'affichent (le dossier d'écriture et le dossier servi étaient différents)
+- SÉCURITÉ : extension des uploads dérivée du type MIME, `nosniff` + CSP sur /uploads, URL de site web limitée à http(s), avatar/bannière limités aux uploads, pseudos réservés, rate-limit (API, connexion, inscription, publication), en-têtes de sécurité, erreurs asynchrones attrapées, arrêt propre
+- FIX : les reposts affichent le post d'origine ; les vidéos s'affichent sur les profils ; plus de notifications en double sur like/abonnement ; les commentaires notifient avec le type `comment`
+- NOUVEAU : page de post + commentaires, pages hashtag, recherche (comptes et posts), @mentions, liens cliquables, listes d'abonnés/abonnements, blocage, signalement, suppression de post, scroll infini, badge de notifications
+- NOUVEAU : double authentification (TOTP), sessions visibles et révocables, changement de mot de passe, mot de passe oublié et vérification d'e-mail (SMTP optionnel), export des données et suppression du compte (RGPD), captcha Turnstile optionnel
+- NOUVEAU : interface en français, thème clair/sombre/auto, upload d'avatar et de bannière, pages légales, PWA installable (manifest + service worker)
+- FIX : Electron charge le site en production (cookies et /api fonctionnent), barre de titre native, présence Discord alimentée
+- NETTOYAGE : dépendances mortes retirées (socket.io, simple-peer, ionic, otplib, simplewebauthn…), README / llms.txt / .env.example réécrits
+
 [25/06/2026]
 - NOUVEAU : Feed vidéo TikTok-like (/feed)
   * Nouvel onglet "Feed" dans la barre de navigation (remplace Explorer)

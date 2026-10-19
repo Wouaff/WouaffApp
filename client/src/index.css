@@ -19,6 +19,49 @@
   --like-color: #f91880;
   --repost-color: #00ba7c;
   --danger: #f4212e;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+}
+
+/* Thème clair (le sombre reste le défaut : voir useTheme). */
+:root[data-theme="light"] {
+  --bg-primary: #eef2f7;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e5eaf1;
+  --bg-hover: #f1f5f9;
+  --bg-modal: rgba(15, 23, 42, 0.45);
+  --text-primary: #0f172a;
+  --text-secondary: #526071;
+  --text-link: #0369a1;
+  --border-color: #d5dce6;
+  --accent: #0a84c6;
+  --accent-hover: #0870a8;
+  --danger: #d4202c;
+}
+
+/* Le preflight de Tailwind est désactivé : sans cette base, les classes `border-*` fixent une
+   largeur mais le style reste « none », donc aucune bordure ne s'affiche. */
+*,
+::before,
+::after {
+  border-width: 0;
+  border-style: solid;
+  border-color: var(--border-color);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+img,
+video {
+  max-width: 100%;
 }
 
 * {

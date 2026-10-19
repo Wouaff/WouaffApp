@@ -1,153 +1,167 @@
 import { Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import ComposeModal from '../components/ComposeModal';
-import RightSidebar from '../components/RightSidebar';
-import Sidebar from '../components/Sidebar';
+import { Link, useSearchParams } from 'react-router-dom';
+import AppShell from '../components/AppShell';
+import PageHeader, { Tabs } from '../components/PageHeader';
+import type { Post } from '../components/PostCard';
+import PostList from '../components/PostList';
+import UserRow, { type UserSummary } from '../components/UserRow';
+import { usePaged } from '../hooks/usePaged';
 import { api } from '../services/api';
-
-const TABS = ['For you', 'Trending', 'News', 'Sports', 'Entertainment', 'Technology'] as const;
 
 interface Trend {
   tag: string;
   count: number;
 }
 
+const TABS = ['accounts', 'posts'] as const;
+const LABELS = { accounts: 'Comptes', posts: 'Posts' };
+
 export default function ExplorePage() {
-  const [tab, setTab] = useState<string>('For you');
-  const [search, setSearch] = useState('');
+  const [params, setParams] = useSearchParams();
+  const urlQuery = params.get('q') ?? '';
+  const [input, setInput] = useState(urlQuery);
+  const [query, setQuery] = useState(urlQuery.trim());
+  const [tab, setTab] = useState<(typeof TABS)[number]>('accounts');
   const [trends, setTrends] = useState<Trend[]>([]);
-  const [showCompose, setShowCompose] = useState(false);
+  const [suggestions, setSuggestions] = useState<UserSummary[]>([]);
+  const [users, setUsers] = useState<UserSummary[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+
+  /* L'URL (?q=) est la source de vérité : on s'aligne dessus (recherche depuis la colonne de droite). */
+  useEffect(() => {
+    setInput(urlQuery);
+    setQuery(urlQuery.trim());
+  }, [urlQuery]);
+
+  /* Saisie : on attend 300 ms sans frappe avant de chercher. */
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const next = input.trim();
+      setQuery(next);
+      setParams(next ? { q: next } : {}, { replace: true });
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [input, setParams]);
 
   useEffect(() => {
     api
       .get<Trend[]>('/trends')
       .then(setTrends)
       .catch(() => setTrends([]));
-  }, []);
-
-  return (
-    <div className="flex min-h-screen justify-center pb-16 md:pb-0">
-      <Sidebar onCompose={() => setShowCompose(true)} />
-
-      <main className="flex-1 min-w-0 border-r border-[var(--border-color)] max-w-[600px] bg-[var(--bg-secondary)]">
-        <div className="sticky top-0 z-40 bg-[var(--bg-secondary)]/80 backdrop-blur-md">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <Link
-              to="/"
-              className="text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] p-2 rounded-full transition-colors"
-            >
-              ←
-            </Link>
-            <h1 className="font-bold text-xl">Explore</h1>
-          </div>
-
-          <div className="px-4 pb-3">
-            <div className="flex items-center gap-3 bg-[var(--bg-secondary)] rounded-full px-4 py-2.5 border border-transparent focus-within:border-[var(--accent)]">
-              <Search className="w-5 h-5 text-[var(--text-secondary)]" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search Wouaff"
-                className="bg-transparent text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none flex-1 text-[15px]"
-              />
-            </div>
-          </div>
-
-          <div className="flex border-b border-[var(--border-color)]">
-            {TABS.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex-1 py-3 text-sm font-medium transition-colors relative hover:bg-[var(--bg-tertiary)] ${
-                  tab === t ? 'text-[var(--text-primary)] font-bold' : 'text-[var(--text-secondary)]'
-                }`}
-              >
-                {t}
-                {tab === t && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-[var(--accent)] rounded-full" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h2 className="font-extrabold text-xl px-4 py-3">Trends for you</h2>
-          {trends.length === 0 && <p className="px-4 py-3 text-sm text-[var(--text-secondary)]">No trends yet</p>}
-          {trends.map((t, i) => (
-            <div key={t.tag} className="px-4 py-3 border-b border-[var(--border-color)]">
-              <span className="text-sm text-[var(--text-secondary)]">{i + 1} · Trending</span>
-              <div className="font-bold text-[var(--text-primary)] mt-0.5 break-all">{t.tag}</div>
-              <span className="text-sm text-[var(--text-secondary)]">
-                {t.count} {t.count > 1 ? 'posts' : 'post'}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="px-4 py-3">
-          <h2 className="font-extrabold text-xl mb-3">Who to follow</h2>
-          <WhoToFollowInline />
-        </div>
-      </main>
-
-      <RightSidebar />
-
-      {showCompose && <ComposeModal onClose={() => setShowCompose(false)} onPosted={() => {}} />}
-    </div>
-  );
-}
-
-function WhoToFollowInline() {
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
     api
-      .get<any[]>('/suggestions')
+      .get<UserSummary[]>('/suggestions')
       .then(setSuggestions)
       .catch(() => {});
   }, []);
 
-  const handleFollow = async (pseudo: string, uid: string) => {
-    try {
-      await api.post(`/follows/${pseudo}`);
-      setFollowingMap((prev) => ({ ...prev, [uid]: !prev[uid] }));
-    } catch {}
-  };
+  useEffect(() => {
+    if (!query) {
+      setUsers([]);
+      return;
+    }
+    let cancelled = false;
+    setUsersLoading(true);
+    api
+      .get<UserSummary[]>(`/search?q=${encodeURIComponent(query)}`)
+      .then((r) => !cancelled && setUsers(r))
+      .catch(() => !cancelled && setUsers([]))
+      .finally(() => !cancelled && setUsersLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
+
+  const posts = usePaged<Post>(
+    (offset) =>
+      query && tab === 'posts'
+        ? api.get<Post[]>(`/posts/feed?q=${encodeURIComponent(query)}&offset=${offset}`)
+        : Promise.resolve([]),
+    `${query}|${tab}`,
+  );
+
+  const searching = query.length > 0;
 
   return (
-    <div className="space-y-1">
-      {suggestions.map((s) => (
-        <div key={s.uid} className="flex items-center gap-3 py-3">
-          <Link
-            to={`/${s.pseudo}`}
-            className="w-10 h-10 rounded-full bg-[var(--bg-tertiary)] flex-shrink-0 flex items-center justify-center text-sm font-bold overflow-hidden"
-          >
-            {s.avatar ? (
-              <img src={s.avatar} alt="" className="w-full h-full object-cover" />
-            ) : (
-              (s.pseudo || '?')[0].toUpperCase()
-            )}
-          </Link>
-          <Link to={`/${s.pseudo}`} className="flex-1 min-w-0">
-            <div className="font-bold text-sm truncate">{s.displayName || s.pseudo}</div>
-            <div className="text-sm text-[var(--text-secondary)] truncate">@{s.pseudo}</div>
-          </Link>
-          <button
-            onClick={() => handleFollow(s.pseudo, s.uid)}
-            className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors border ${
-              followingMap[s.uid]
-                ? 'bg-[var(--accent)] text-white border-transparent'
-                : 'bg-transparent text-[var(--text-primary)] border-[var(--border-color)] hover:border-[var(--text-secondary)]'
-            }`}
-          >
-            {followingMap[s.uid] ? 'Following' : 'Follow'}
-          </button>
+    <AppShell>
+      <PageHeader title="Explorer" back="/">
+        <div className="px-4 pb-3">
+          <div className="flex items-center gap-3 bg-[var(--bg-tertiary)] rounded-full px-4 py-2.5 border border-transparent focus-within:border-[var(--accent)]">
+            <Search className="w-5 h-5 text-[var(--text-secondary)]" />
+            <input
+              type="search"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Rechercher sur Wouaff"
+              aria-label="Rechercher sur Wouaff"
+              className="bg-transparent text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none flex-1 text-[15px]"
+            />
+          </div>
         </div>
-      ))}
-    </div>
+        {searching && <Tabs tabs={TABS} value={tab} onChange={setTab} labels={LABELS} />}
+      </PageHeader>
+
+      {searching ? (
+        tab === 'accounts' ? (
+          <div className="px-4">
+            {usersLoading && users.length === 0 && (
+              <div className="flex justify-center py-8">
+                <div className="spinner" />
+              </div>
+            )}
+            {!usersLoading && users.length === 0 && (
+              <p className="py-10 text-center text-[var(--text-secondary)]">
+                Aucun compte ne correspond à « {query} ».
+              </p>
+            )}
+            {users.map((u) => (
+              <UserRow key={u.uid} user={u} />
+            ))}
+          </div>
+        ) : (
+          <PostList
+            posts={posts.items}
+            loading={posts.loading}
+            loadingMore={posts.loadingMore}
+            hasMore={posts.hasMore}
+            error={posts.error}
+            emptyText={`Aucun post ne correspond à « ${query} ».`}
+            onLoadMore={posts.loadMore}
+            onRetry={posts.reload}
+            onDelete={(id) => posts.setItems((prev) => prev.filter((p) => p.feedId !== id))}
+            onBlocked={(uid) => posts.setItems((prev) => prev.filter((p) => p.user.uid !== uid))}
+          />
+        )
+      ) : (
+        <>
+          <h2 className="font-extrabold text-xl px-4 py-3">Tendances</h2>
+          {trends.length === 0 && (
+            <p className="px-4 pb-4 text-sm text-[var(--text-secondary)]">Pas encore de tendances.</p>
+          )}
+          {trends.map((t, i) => (
+            <Link
+              key={t.tag}
+              to={`/tag/${encodeURIComponent(t.tag.replace(/^#/, ''))}`}
+              className="block px-4 py-3 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)]/50 hover:no-underline"
+            >
+              <span className="text-sm text-[var(--text-secondary)]">{i + 1} · Tendance</span>
+              <div className="font-bold text-[var(--text-primary)] mt-0.5 break-all">{t.tag}</div>
+              <span className="text-sm text-[var(--text-secondary)]">
+                {t.count} {t.count > 1 ? 'posts' : 'post'}
+              </span>
+            </Link>
+          ))}
+
+          {suggestions.length > 0 && (
+            <div className="px-4 py-3">
+              <h2 className="font-extrabold text-xl mb-1">À suivre</h2>
+              {suggestions.map((s) => (
+                <UserRow key={s.uid} user={s} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </AppShell>
   );
 }

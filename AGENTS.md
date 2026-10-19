@@ -10,11 +10,12 @@ Ces règles s'appliquent à toute modification de ce dépôt par un agent IA.
 - Ne jamais logger, renvoyer dans une réponse API, ni committer une valeur secrète, même dans un commentaire.
 - Si une valeur sensible apparaît dans une requête/réponse DTO, c'est un bug de sécurité — la retirer immédiatement (ex. `email`, `passwordHash`, `publicKey` ne doivent pas fuiter).
 
-Référence : `server/src/services/discordWebhook.ts` (webhooks) — les URLs doivent venir de `process.env`, jamais du code.
+Exemples de configuration par variables d'environnement : `server/src/services/mailer.ts` (SMTP_*) et `server/src/config/captcha.ts` (TURNSTILE_*). Voir `server/.env.example`.
 
 ## Règles générales
 
 - Respecter les conventions du projet : React + TypeScript (client) / Express + MySQL (server), Tailwind + CSS variables, lucide-react.
 - Toujours lancer après modification : `npm run lint` (repo root), `npx tsc -b` (client), `npx tsc --noEmit` (server).
 - Ne pas supprimer de fonctionnalité existante ; préférer des changements ciblés et réutiliser les composants/hooks/services déjà présents.
-- La version desktop et la version mobile web (Ionic, sous 768px) coexistent : ne pas casser le rendu desktop quand on modifie du mobile.
+- Le rendu desktop (colonnes, ≥ 768px) et le rendu mobile (barre de navigation basse, < 768px) coexistent : ne pas casser l'un en modifiant l'autre.
+- Un chemin d'upload (`/uploads/...`) est la seule URL de média acceptée côté serveur ; une URL de site web n'est acceptée qu'en http(s). Ne pas assouplir ces validations.

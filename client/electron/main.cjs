@@ -3,6 +3,9 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const isDev = process.env.NODE_ENV === 'development';
+/* En production l'appli charge le site (même origine => cookies de session et /api fonctionnent). */
+const APP_URL = (process.env.WOUAFF_URL || 'https://wouaff.app').replace(/\/$/, '');
+const DEV_URL = process.env.VITE_DEV_URL || 'http://localhost:5173';
 
 let mainWindow = null;
 let splashWindow = null;
@@ -79,9 +82,9 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    frame: false,
+    autoHideMenuBar: true,
     show: false,
-    backgroundColor: '#0b0b11',
+    backgroundColor: '#020617',
     icon: path.join(
       __dirname,
       '..',
@@ -100,9 +103,17 @@ function createWindow() {
   });
 
   if (isDev) {
-    mainWindow.loadURL(process.env.VITE_DEV_URL || 'http://localhost:5173');
+    mainWindow.loadURL(DEV_URL);
   } else {
-    mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+    let fallbackTried = false;
+    mainWindow.loadURL(APP_URL);
+    /* Hors-ligne / serveur injoignable : on affiche au moins l'interface embarquée. */
+    mainWindow.webContents.on('did-fail-load', (_event, code, _desc, _url, isMainFrame) => {
+      const localIndex = path.join(__dirname, '..', 'dist', 'index.html');
+      if (!isMainFrame || code === -3 || fallbackTried || !fs.existsSync(localIndex)) return;
+      fallbackTried = true;
+      mainWindow.loadFile(localIndex);
+    });
   }
 
   mainWindow.once('ready-to-show', () => {
@@ -119,8 +130,8 @@ function createWindow() {
   });
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const allowed = isDev ? process.env.VITE_DEV_URL || 'http://localhost:5173' : 'file://';
-    if (!url.startsWith(allowed)) {
+    const allowed = isDev ? [DEV_URL] : [APP_URL, 'file://'];
+    if (!allowed.some((prefix) => url.startsWith(prefix))) {
       event.preventDefault();
       if (url.startsWith('http://') || url.startsWith('https://')) shell.openExternal(url);
     }

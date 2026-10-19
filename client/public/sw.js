@@ -1,4 +1,4 @@
-const VERSION = 'wouaff-v1';
+const VERSION = 'wouaff-v2';
 const CORE_ASSETS = ['/', '/index.html', '/manifest.webmanifest'];
 
 /* Cache les ressources du shell de l'app à l'installation */

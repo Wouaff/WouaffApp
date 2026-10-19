@@ -1,11 +1,28 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="fr" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#020617" />
+  <meta name="description" content="Wouaff — le réseau social français et souverain. Zéro pub, tes données restent en France." />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/assets/logo/icon.ico" />
+  <link rel="apple-touch-icon" href="/assets/pwa/apple-touch-icon-180.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <script>
+    /* Applique le thème choisi avant le premier rendu (évite un flash sombre). */
+    try {
+      const p = localStorage.getItem('wouaff-theme') || 'dark';
+      const t = p === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : p;
+      document.documentElement.setAttribute('data-theme', t);
+    } catch {}
+  </script>
   <title>Wouaff</title>
   <style>
-    html, body { margin: 0; padding: 0; background: #020617; }
+    html, body { margin: 0; padding: 0; }
+    html[data-theme='dark'], html[data-theme='dark'] body { background: #020617; }
+    html[data-theme='light'], html[data-theme='light'] body { background: #eef2f7; }
   </style>
 </head>
 <body>

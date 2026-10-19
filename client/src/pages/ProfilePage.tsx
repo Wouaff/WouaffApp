@@ -1,11 +1,16 @@
-import { ArrowLeft, Calendar, LinkIcon, MapPin } from 'lucide-react';
+import { Calendar, LinkIcon, MapPin } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import ComposeModal from '../components/ComposeModal';
-import PostCard, { type Post } from '../components/PostCard';
-import RightSidebar from '../components/RightSidebar';
-import Sidebar from '../components/Sidebar';
+import AppShell from '../components/AppShell';
+import Avatar from '../components/Avatar';
+import FollowButton from '../components/FollowButton';
+import PageHeader, { Tabs } from '../components/PageHeader';
+import type { Post } from '../components/PostCard';
+import PostList from '../components/PostList';
+import RichText from '../components/RichText';
 import VerifiedBadge from '../components/VerifiedBadge';
+import { usePaged } from '../hooks/usePaged';
+import { monthYear, timeAgo } from '../lib/time';
 import { api } from '../services/api';
 
 interface Profile {
@@ -23,202 +28,241 @@ interface Profile {
   followingCount: number;
   tweetsCount: number;
   isFollowing: boolean;
+  isBlocked: boolean;
+  hasBlockedMe: boolean;
   isOwn: boolean;
 }
 
-const TABS = ['Posts', 'Replies', 'Reposts'] as const;
+interface Reply {
+  id: number;
+  text: string;
+  createdAt: string;
+  post: { id: number; text: string | null; pseudo: string };
+}
+
+const TABS = ['posts', 'replies', 'reposts'] as const;
+const LABELS = { posts: 'Posts', replies: 'Réponses', reposts: 'Reposts' };
 
 export default function ProfilePage() {
-  const { pseudo } = useParams<{ pseudo: string }>();
+  const { pseudo = '' } = useParams<{ pseudo: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [tab, setTab] = useState<string>('Posts');
-  const [showCompose, setShowCompose] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<'loading' | 'ok' | 'missing'>('loading');
+  const [tab, setTab] = useState<(typeof TABS)[number]>('posts');
 
-  const fetchProfile = useCallback(async () => {
-    if (!pseudo) return;
+  const loadProfile = useCallback(async () => {
     try {
-      const data = await api.get<Profile>(`/profiles/${pseudo}`);
-      setProfile(data);
-      const postsData = await api.get<Post[]>(`/profiles/${pseudo}/posts`);
-      setPosts(postsData);
-    } catch {}
-    setLoading(false);
+      setProfile(await api.get<Profile>(`/profiles/${encodeURIComponent(pseudo)}`));
+      setStatus('ok');
+    } catch {
+      setStatus('missing');
+    }
   }, [pseudo]);
 
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    setStatus('loading');
+    setTab('posts');
+    loadProfile();
+  }, [loadProfile]);
 
-  const handleFollow = async () => {
+  const posts = usePaged<Post>(
+    (offset) =>
+      tab === 'replies'
+        ? Promise.resolve([])
+        : api.get<Post[]>(`/profiles/${encodeURIComponent(pseudo)}/posts?tab=${tab}&offset=${offset}`),
+    `${pseudo}|${tab}`,
+  );
+  const replies = usePaged<Reply>(
+    (offset) =>
+      tab === 'replies'
+        ? api.get<Reply[]>(`/profiles/${encodeURIComponent(pseudo)}/replies?offset=${offset}`)
+        : Promise.resolve([]),
+    `${pseudo}|${tab}`,
+  );
+
+  const toggleBlock = async () => {
     if (!profile) return;
+    if (
+      !profile.isBlocked &&
+      !window.confirm(`Bloquer @${profile.pseudo} ? Vous ne verrez plus vos contenus respectifs.`)
+    ) {
+      return;
+    }
     try {
-      await api.post(`/follows/${profile.pseudo}`);
-      setProfile({
-        ...profile,
-        isFollowing: !profile.isFollowing,
-        followersCount: profile.isFollowing ? profile.followersCount - 1 : profile.followersCount + 1,
-      });
-    } catch {}
+      await api.post(`/blocks/${profile.pseudo}`);
+      await loadProfile();
+      posts.reload();
+    } catch {
+      /* inchangé */
+    }
   };
 
-  const handleDelete = (id: number) => {
-    setPosts((prev) => prev.filter((p) => p.id !== id));
-    setProfile((p) => (p ? { ...p, tweetsCount: p.tweetsCount - 1 } : p));
-  };
-
-  if (loading)
+  if (status === 'loading') {
     return (
-      <div className="flex min-h-screen justify-center pb-16 md:pb-0">
-        <Sidebar onCompose={() => setShowCompose(true)} />
-        <main className="flex-1 min-w-0 max-w-[600px] border-r border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-center justify-center">
+      <AppShell>
+        <div className="flex justify-center py-24">
           <div className="spinner" />
-        </main>
-        <RightSidebar />
-      </div>
+        </div>
+      </AppShell>
     );
-
-  if (!profile)
+  }
+  if (status === 'missing' || !profile) {
     return (
-      <div className="flex min-h-screen justify-center pb-16 md:pb-0">
-        <Sidebar onCompose={() => setShowCompose(true)} />
-        <main className="flex-1 min-w-0 max-w-[600px] border-r border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)]">
-          User not found
-        </main>
-        <RightSidebar />
-      </div>
+      <AppShell>
+        <PageHeader title="Profil" back="/" />
+        <div className="text-center py-16 text-[var(--text-secondary)]">Ce compte n'existe pas.</div>
+      </AppShell>
     );
+  }
 
   return (
-    <div className="flex min-h-screen justify-center pb-16 md:pb-0">
-      <Sidebar onCompose={() => setShowCompose(true)} />
+    <AppShell onPosted={posts.reload}>
+      <PageHeader
+        title={profile.displayName || profile.pseudo}
+        subtitle={`${profile.tweetsCount} ${profile.tweetsCount > 1 ? 'posts' : 'post'}`}
+        back="/"
+      />
 
-      <main className="flex-1 min-w-0 border-r border-[var(--border-color)] max-w-[600px] bg-[var(--bg-secondary)]">
-        <div className="sticky top-0 z-40 bg-[var(--bg-secondary)]/80 backdrop-blur-md border-b border-[var(--border-color)]">
-          <div className="flex items-center gap-6 px-4 py-2">
-            <Link to="/" className="p-2 rounded-full hover:bg-[var(--bg-tertiary)] transition-colors">
-              <ArrowLeft className="w-5 h-5 text-[var(--text-primary)]" />
-            </Link>
-            <div>
-              <h1 className="font-bold text-xl leading-tight">{profile.displayName || profile.pseudo}</h1>
-              <p className="text-sm text-[var(--text-secondary)]">{profile.tweetsCount} Posts</p>
-            </div>
-          </div>
-        </div>
+      <div className="h-[200px] bg-[var(--bg-tertiary)]">
+        {profile.banner && <img src={profile.banner} alt="" className="w-full h-full object-cover" />}
+      </div>
 
-        <div className="h-[200px] bg-[var(--bg-tertiary)]">
-          {profile.banner && <img src={profile.banner} alt="" className="w-full h-full object-cover" />}
-        </div>
-
-        <div className="px-4 pb-4 relative">
-          <div className="flex justify-between items-end -mt-[68px] mb-3">
-            <div className="relative z-10 w-[134px] h-[134px] rounded-full ring-4 ring-[var(--bg-secondary)] bg-[var(--bg-tertiary)] flex items-center justify-center text-4xl font-bold overflow-hidden">
-              {profile.avatar ? (
-                <img src={profile.avatar} alt="" className="w-full h-full object-cover" />
-              ) : (
-                (profile.pseudo || '?')[0].toUpperCase()
-              )}
-            </div>
-            {profile.isOwn ? (
-              <Link
-                to="/settings"
-                className="px-5 py-2 rounded-full border border-[var(--border-color)] text-[var(--text-primary)] font-bold hover:bg-[var(--bg-tertiary)] transition-colors"
-              >
-                Edit profile
-              </Link>
-            ) : (
-              <button
-                onClick={handleFollow}
-                className={`px-5 py-2 rounded-full font-bold transition-colors border ${
-                  profile.isFollowing
-                    ? 'bg-[var(--accent)] text-white border-transparent'
-                    : 'bg-transparent text-[var(--text-primary)] border-[var(--border-color)] hover:border-[var(--text-secondary)]'
-                }`}
-              >
-                {profile.isFollowing ? 'Following' : 'Follow'}
-              </button>
-            )}
-          </div>
-
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h2 className="font-extrabold text-xl">{profile.displayName || profile.pseudo}</h2>
-              {profile.verified && <VerifiedBadge className="w-5 h-5" />}
-            </div>
-            <p className="text-[var(--text-secondary)] text-[15px]">@{profile.pseudo}</p>
-          </div>
-
-          {profile.bio && (
-            <p className="text-[var(--text-primary)] text-[15px] mt-3 whitespace-pre-wrap">{profile.bio}</p>
-          )}
-
-          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm text-[var(--text-secondary)]">
-            {profile.location && (
-              <span className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                {profile.location}
-              </span>
-            )}
-            {profile.website && (
-              <a
-                href={profile.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[var(--accent)] hover:underline"
-              >
-                <LinkIcon className="w-4 h-4" />
-                {profile.website.replace(/^https?:\/\//, '')}
-              </a>
-            )}
-            <span className="flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              Joined {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-            </span>
-          </div>
-
-          <div className="flex gap-5 mt-3 text-[15px]">
-            <span>
-              <strong className="text-[var(--text-primary)]">{profile.followingCount}</strong>{' '}
-              <span className="text-[var(--text-secondary)]">Following</span>
-            </span>
-            <span>
-              <strong className="text-[var(--text-primary)]">{profile.followersCount}</strong>{' '}
-              <span className="text-[var(--text-secondary)]">Followers</span>
-            </span>
-            <span>
-              <strong className="text-[var(--text-primary)]">{profile.tweetsCount}</strong>{' '}
-              <span className="text-[var(--text-secondary)]">Posts</span>
-            </span>
-          </div>
-        </div>
-
-        <div className="flex border-b border-[var(--border-color)]">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 py-3 text-sm font-medium transition-colors relative hover:bg-[var(--bg-tertiary)] ${
-                tab === t ? 'text-[var(--text-primary)] font-bold' : 'text-[var(--text-secondary)]'
-              }`}
+      <div className="px-4 pb-4 relative">
+        <div className="flex justify-between items-end -mt-[68px] mb-3">
+          <Avatar
+            src={profile.avatar}
+            name={profile.pseudo}
+            className="relative z-10 w-[134px] h-[134px] text-4xl ring-4 ring-[var(--bg-secondary)]"
+          />
+          {profile.isOwn ? (
+            <Link
+              to="/settings?tab=profile"
+              className="px-5 py-2 rounded-full border border-[var(--border-color)] text-[var(--text-primary)] font-bold hover:bg-[var(--bg-tertiary)] transition-colors hover:no-underline"
             >
-              {t}
-              {tab === t && (
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-[var(--accent)] rounded-full" />
+              Modifier le profil
+            </Link>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleBlock}
+                className="px-4 py-2 rounded-full border border-[var(--border-color)] text-sm font-bold text-[var(--text-primary)] hover:border-[var(--danger)] hover:text-[var(--danger)] transition-colors"
+              >
+                {profile.isBlocked ? 'Débloquer' : 'Bloquer'}
+              </button>
+              {!profile.isBlocked && !profile.hasBlockedMe && (
+                <FollowButton
+                  key={profile.uid}
+                  pseudo={profile.pseudo}
+                  initialFollowing={profile.isFollowing}
+                  size="md"
+                  onChange={(following) =>
+                    setProfile((p) =>
+                      p ? { ...p, isFollowing: following, followersCount: p.followersCount + (following ? 1 : -1) } : p,
+                    )
+                  }
+                />
               )}
-            </button>
-          ))}
+            </div>
+          )}
         </div>
 
-        {posts.map((post) => (
-          <PostCard key={post.id} post={post} onDelete={handleDelete} />
-        ))}
-        {posts.length === 0 && <div className="text-center py-12 text-[var(--text-secondary)]">No posts yet</div>}
-      </main>
+        <div>
+          <div className="flex items-center gap-1.5">
+            <h2 className="font-extrabold text-xl">{profile.displayName || profile.pseudo}</h2>
+            {profile.verified && <VerifiedBadge className="w-5 h-5" />}
+          </div>
+          <p className="text-[var(--text-secondary)] text-[15px]">@{profile.pseudo}</p>
+        </div>
 
-      <RightSidebar />
+        {profile.bio && (
+          <p className="text-[var(--text-primary)] text-[15px] mt-3 whitespace-pre-wrap break-words">
+            <RichText text={profile.bio} />
+          </p>
+        )}
 
-      {showCompose && <ComposeModal onClose={() => setShowCompose(false)} onPosted={fetchProfile} />}
-    </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm text-[var(--text-secondary)]">
+          {profile.location && (
+            <span className="flex items-center gap-1">
+              <MapPin className="w-4 h-4" />
+              {profile.location}
+            </span>
+          )}
+          {profile.website && /^https?:\/\//i.test(profile.website) && (
+            <a
+              href={profile.website}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="flex items-center gap-1 text-[var(--accent)] hover:underline"
+            >
+              <LinkIcon className="w-4 h-4" />
+              {profile.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+            </a>
+          )}
+          <span className="flex items-center gap-1">
+            <Calendar className="w-4 h-4" />A rejoint Wouaff en {monthYear(profile.createdAt)}
+          </span>
+        </div>
+
+        <div className="flex gap-5 mt-3 text-[15px]">
+          <Link to={`/${profile.pseudo}/following`} className="hover:underline text-[var(--text-primary)]">
+            <strong>{profile.followingCount}</strong> <span className="text-[var(--text-secondary)]">abonnements</span>
+          </Link>
+          <Link to={`/${profile.pseudo}/followers`} className="hover:underline text-[var(--text-primary)]">
+            <strong>{profile.followersCount}</strong>{' '}
+            <span className="text-[var(--text-secondary)]">{profile.followersCount > 1 ? 'abonnés' : 'abonné'}</span>
+          </Link>
+        </div>
+      </div>
+
+      <Tabs tabs={TABS} value={tab} onChange={setTab} labels={LABELS} />
+
+      {profile.hasBlockedMe ? (
+        <div className="text-center py-12 text-[var(--text-secondary)]">
+          Tu ne peux pas voir les posts de ce compte.
+        </div>
+      ) : profile.isBlocked ? (
+        <div className="text-center py-12 text-[var(--text-secondary)]">Tu as bloqué @{profile.pseudo}.</div>
+      ) : tab === 'replies' ? (
+        replies.loading ? (
+          <div className="flex justify-center py-12">
+            <div className="spinner" />
+          </div>
+        ) : replies.items.length === 0 ? (
+          <div className="text-center py-12 text-[var(--text-secondary)]">Aucune réponse pour le moment.</div>
+        ) : (
+          replies.items.map((r) => (
+            <Link
+              key={r.id}
+              to={`/post/${r.post.id}`}
+              className="block px-4 py-3 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)]/50 hover:no-underline"
+            >
+              <p className="text-sm text-[var(--text-secondary)] truncate">
+                En réponse à @{r.post.pseudo} · {timeAgo(r.createdAt)}
+              </p>
+              <p className="text-[15px] text-[var(--text-primary)] whitespace-pre-wrap break-words mt-0.5">{r.text}</p>
+            </Link>
+          ))
+        )
+      ) : (
+        <PostList
+          posts={posts.items}
+          loading={posts.loading}
+          loadingMore={posts.loadingMore}
+          hasMore={posts.hasMore}
+          error={posts.error}
+          emptyText={tab === 'reposts' ? 'Aucun repost pour le moment.' : 'Aucun post pour le moment.'}
+          onLoadMore={posts.loadMore}
+          onRetry={posts.reload}
+          onDelete={(id) => {
+            posts.setItems((prev) => prev.filter((p) => p.feedId !== id));
+            if (tab === 'posts') setProfile((p) => (p ? { ...p, tweetsCount: Math.max(0, p.tweetsCount - 1) } : p));
+          }}
+          onBlocked={() => {
+            loadProfile();
+            posts.reload();
+          }}
+        />
+      )}
+    </AppShell>
   );
 }

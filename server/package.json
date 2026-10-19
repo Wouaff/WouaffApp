@@ -13,11 +13,9 @@
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
-    "@simplewebauthn/server": "^14.0.2",
     "@types/compression": "^1.8.1",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
-    "cookie": "^2.0.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -25,8 +23,6 @@
     "multer": "^2.3.0",
     "mysql2": "^3.22.4",
     "nodemailer": "^9.1.1",
-    "otplib": "^13.4.1",
-    "socket.io": "^4.8.0",
     "uuid": "^14.0.2"
   },
   "devDependencies": {

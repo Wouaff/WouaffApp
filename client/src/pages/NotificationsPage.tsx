@@ -1,167 +1,131 @@
-import { AtSign, Heart, Repeat2, UserPlus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { AtSign, Heart, MessageCircle, Repeat2, UserPlus } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import ComposeModal from '../components/ComposeModal';
-import RightSidebar from '../components/RightSidebar';
-import Sidebar from '../components/Sidebar';
+import AppShell from '../components/AppShell';
+import Avatar from '../components/Avatar';
+import PageHeader, { Tabs } from '../components/PageHeader';
+import { UNREAD_REFRESH_EVENT } from '../hooks/useUnread';
+import { timeAgo } from '../lib/time';
 import { api } from '../services/api';
 
-const TABS = ['All', 'Verified', 'Mentions', 'VERIF'] as const;
-
-interface NotifActor {
-  uid: string;
-  pseudo: string;
-  displayName: string | null;
-  avatar: string | null;
-  verified: boolean;
-}
+const TABS = ['all', 'mentions', 'follows', 'activity'] as const;
+const LABELS = { all: 'Tout', mentions: 'Mentions', follows: 'Abonnés', activity: 'Activité' };
 
 interface Notification {
   id: number;
   type: string;
   read: boolean;
   createdAt: string;
-  actor: NotifActor | null;
+  actor: { uid: string; pseudo: string; displayName: string | null; avatar: string | null; verified: boolean } | null;
   post: { id: number; text: string | null } | null;
+}
+
+const MESSAGES: Record<string, string> = {
+  follow: "s'est abonné à ton compte",
+  like: 'a aimé ton post',
+  repost: 'a reposté ton post',
+  comment: 'a répondu à ton post',
+  mention: "t'a mentionné",
+};
+
+function Icon({ type }: { type: string }) {
+  const cls = 'w-8 h-8';
+  switch (type) {
+    case 'follow':
+      return <UserPlus className={`${cls} text-[var(--accent)]`} />;
+    case 'like':
+      return <Heart className={`${cls} text-[var(--like-color)] fill-current`} />;
+    case 'repost':
+      return <Repeat2 className={`${cls} text-[var(--repost-color)]`} />;
+    case 'comment':
+      return <MessageCircle className={`${cls} text-[var(--accent)]`} />;
+    default:
+      return <AtSign className={`${cls} text-[var(--accent)]`} />;
+  }
 }
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [tab, setTab] = useState<string>('All');
-  const [showCompose, setShowCompose] = useState(false);
+  const [tab, setTab] = useState<(typeof TABS)[number]>('all');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    api
-      .get<Notification[]>('/notifications')
-      .then((data) => {
-        setNotifications(data);
-        setLoading(false);
-        api.put('/notifications/read').catch(() => {});
-      })
-      .catch(() => setLoading(false));
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await api.get<Notification[]>('/notifications');
+      setNotifications(data);
+      /* On les marque lues, puis on remet le badge à jour. */
+      api
+        .put('/notifications/read')
+        .then(() => window.dispatchEvent(new Event(UNREAD_REFRESH_EVENT)))
+        .catch(() => {});
+    } catch {
+      setError('Impossible de charger les notifications.');
+    }
+    setLoading(false);
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const filtered = notifications.filter((n) => {
-    if (tab === 'Verified') return n.type === 'follow';
-    if (tab === 'Mentions') return n.type === 'mention';
-    if (tab === 'VERIF') return n.type === 'like' || n.type === 'repost';
+    if (tab === 'mentions') return n.type === 'mention' || n.type === 'comment';
+    if (tab === 'follows') return n.type === 'follow';
+    if (tab === 'activity') return n.type === 'like' || n.type === 'repost';
     return true;
   });
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'follow':
-        return <UserPlus className="w-8 h-8 text-[var(--accent)]" />;
-      case 'like':
-        return <Heart className="w-8 h-8 text-[var(--like-color)] fill-current" />;
-      case 'repost':
-        return <Repeat2 className="w-8 h-8 text-[var(--repost-color)]" />;
-      case 'mention':
-        return <AtSign className="w-8 h-8 text-[var(--accent)]" />;
-      default:
-        return <Heart className="w-8 h-8 text-[var(--text-secondary)]" />;
-    }
-  };
-
-  const getMessage = (type: string) => {
-    switch (type) {
-      case 'follow':
-        return 'followed you';
-      case 'like':
-        return 'liked your post';
-      case 'repost':
-        return 'reposted your post';
-      case 'mention':
-        return 'mentioned you';
-      default:
-        return 'interacted with you';
-    }
-  };
-
   return (
-    <div className="flex min-h-screen justify-center pb-16 md:pb-0">
-      <Sidebar onCompose={() => setShowCompose(true)} />
+    <AppShell>
+      <PageHeader title="Notifications" back="/">
+        <Tabs tabs={TABS} value={tab} onChange={setTab} labels={LABELS} />
+      </PageHeader>
 
-      <main className="flex-1 min-w-0 border-r border-[var(--border-color)] max-w-[600px] bg-[var(--bg-secondary)]">
-        <div className="sticky top-0 z-40 bg-[var(--bg-secondary)]/80 backdrop-blur-md">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <Link
-              to="/"
-              className="text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] p-2 rounded-full transition-colors"
-            >
-              ←
-            </Link>
-            <h1 className="font-bold text-xl">Notifications</h1>
-          </div>
-
-          <div className="flex border-b border-[var(--border-color)]">
-            {TABS.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex-1 py-3 text-sm font-medium transition-colors relative hover:bg-[var(--bg-tertiary)] ${
-                  tab === t ? 'text-[var(--text-primary)] font-bold' : 'text-[var(--text-secondary)]'
-                }`}
-              >
-                {t}
-                {tab === t && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-[var(--accent)] rounded-full" />
-                )}
-              </button>
-            ))}
-          </div>
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="spinner" />
         </div>
-
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="spinner" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-[var(--text-secondary)]">No notifications</div>
-        ) : (
-          filtered.map((n) => (
-            <div
+      ) : error ? (
+        <div className="text-center py-12 text-[var(--text-secondary)]">
+          <p className="mb-3">{error}</p>
+          <button type="button" onClick={load} className="font-bold text-[var(--accent)]">
+            Réessayer
+          </button>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 text-[var(--text-secondary)]">Aucune notification</div>
+      ) : (
+        filtered.map((n) => {
+          const target = n.post ? `/post/${n.post.id}` : n.actor ? `/${n.actor.pseudo}` : '/';
+          return (
+            <Link
               key={n.id}
-              className={`flex gap-3 px-4 py-4 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)]/50 transition-colors ${!n.read ? 'bg-[var(--accent)]/5' : ''}`}
+              to={target}
+              className={`flex gap-3 px-4 py-4 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)]/50 transition-colors hover:no-underline ${!n.read ? 'bg-[var(--accent)]/5' : ''}`}
             >
-              <div className="flex-shrink-0 mt-1">{getIcon(n.type)}</div>
+              <div className="flex-shrink-0 mt-1">
+                <Icon type={n.type} />
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  {n.actor && (
-                    <Link
-                      to={`/${n.actor.pseudo}`}
-                      className="w-8 h-8 rounded-full bg-[var(--bg-tertiary)] flex-shrink-0 flex items-center justify-center text-xs font-bold overflow-hidden"
-                    >
-                      {n.actor.avatar ? (
-                        <img src={n.actor.avatar} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        (n.actor.pseudo || '?')[0].toUpperCase()
-                      )}
-                    </Link>
-                  )}
+                  {n.actor && <Avatar src={n.actor.avatar} name={n.actor.pseudo} className="w-8 h-8 text-xs" />}
                   <p className="text-[var(--text-primary)]">
-                    <Link to={`/${n.actor?.pseudo}`} className="font-bold hover:underline">
-                      {n.actor?.displayName || n.actor?.pseudo || 'Someone'}
-                    </Link>{' '}
-                    {getMessage(n.type)}
+                    <span className="font-bold">{n.actor?.displayName || n.actor?.pseudo || 'Quelqu’un'}</span>{' '}
+                    {MESSAGES[n.type] ?? 'a interagi avec toi'}
                   </p>
                 </div>
                 {n.post && (
-                  <p className="text-sm text-[var(--text-secondary)] mt-1 truncate">{n.post.text || 'View post'}</p>
+                  <p className="text-sm text-[var(--text-secondary)] mt-1 truncate">{n.post.text || 'Voir le post'}</p>
                 )}
-                <span className="text-xs text-[var(--text-secondary)]">
-                  {new Date(n.createdAt).toLocaleDateString()}
-                </span>
+                <span className="text-xs text-[var(--text-secondary)]">{timeAgo(n.createdAt)}</span>
               </div>
-            </div>
-          ))
-        )}
-      </main>
-
-      <RightSidebar />
-
-      {showCompose && <ComposeModal onClose={() => setShowCompose(false)} onPosted={() => {}} />}
-    </div>
+            </Link>
+          );
+        })
+      )}
+    </AppShell>
   );
 }

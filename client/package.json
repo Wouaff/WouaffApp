@@ -1,7 +1,7 @@
 {
   "name": "wouaff-client",
   "version": "1.0.1",
-  "description": "Wouaff — Chat privé et sécurisé",
+  "description": "Wouaff — le réseau social français et souverain",
   "author": "Biston",
   "private": true,
   "type": "module",
@@ -19,70 +19,16 @@
     "preview": "vite preview",
     "postinstall": "electron-builder install-app-deps"
   },
-  "build": {
-    "appId": "com.wouaff.app",
-    "productName": "Wouaff",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "package.json"
-    ],
-    "extraResources": [],
-    "win": {
-      "target": [
-        "nsis"
-      ],
-      "icon": "public/assets/logo/icon.png"
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ],
-      "icon": "public/assets/logo/icon.png",
-      "category": "public.app-category.social-networking"
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ],
-      "icon": "public/assets/logo",
-      "category": "Network"
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "youtsuhodev",
-      "repo": "wouaff-app"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "installerLanguages": [
-        "fr_FR",
-        "en_US"
-      ]
-    }
-  },
   "dependencies": {
-    "@ionic/react": "^8.8.17",
-    "@simplewebauthn/browser": "^14.0.0",
-    "events": "^3.3.0",
     "lucide-react": "^1.17.0",
-    "process": "^0.11.10",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0",
-    "simple-peer": "^9.11.1",
-    "socket.io-client": "^4.8.0"
+    "react-router-dom": "^6.28.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@types/simple-peer": "^9.11.9",
     "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.5.2",
     "concurrently": "^9.1.0",

@@ -1,7 +1,7 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
-import { createPool } from 'mysql2/promise';
+import { createPool, type PoolConnection } from 'mysql2/promise';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, '../../.env') });
@@ -11,6 +11,7 @@ const pool = createPool({
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'wouaff',
+  /* Évite que mysql2 renvoie les BIGINT/COUNT en chaîne quand ils dépassent 2^53 : on reste en nombres. */
   waitForConnections: true,
   connectionLimit: 20,
   queueLimit: 50,
@@ -71,16 +72,20 @@ export async function getOne<T>(sql: string, params?: unknown[]): Promise<T | nu
   return rows.length > 0 ? rows[0] : null;
 }
 
-export async function queryPaginated<T>(
-  sql: string,
-  params: unknown[],
-  limit: number = 50,
-  offset: number = 0,
-): Promise<{ rows: T; total: number }> {
-  const countSql = `SELECT COUNT(*) as total FROM (${sql}) as _count`;
-  const [{ total }] = await query<[{ total: number }]>(countSql, params.slice(0, -2));
-  const rows = await query<T>(`${sql} LIMIT ? OFFSET ?`, [...params, limit, offset]);
-  return { rows, total };
+/* Exécute `fn` dans une transaction ; rollback automatique si elle lève. */
+export async function withTransaction<T>(fn: (conn: PoolConnection) => Promise<T>): Promise<T> {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const result = await fn(conn);
+    await conn.commit();
+    return result;
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 export default pool;
