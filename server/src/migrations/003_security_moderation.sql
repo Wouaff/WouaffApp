@@ -7,9 +7,7 @@ CREATE TABLE IF NOT EXISTS blocks (
   blocked_uid VARCHAR(128) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (blocker_uid, blocked_uid),
-  KEY idx_blocks_blocked (blocked_uid),
-  CONSTRAINT fk_blocks_blocker FOREIGN KEY (blocker_uid) REFERENCES users (uid) ON DELETE CASCADE,
-  CONSTRAINT fk_blocks_blocked FOREIGN KEY (blocked_uid) REFERENCES users (uid) ON DELETE CASCADE
+  KEY idx_blocks_blocked (blocked_uid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE IF NOT EXISTS reports (
   id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -18,14 +16,12 @@ CREATE TABLE IF NOT EXISTS reports (
   reported_uid VARCHAR(128) NULL,
   reason VARCHAR(500) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  KEY idx_reports_post (post_id),
-  CONSTRAINT fk_reports_reporter FOREIGN KEY (reporter_uid) REFERENCES users (uid) ON DELETE CASCADE
+  KEY idx_reports_post (post_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE IF NOT EXISTS auth_tokens (
   token_hash CHAR(64) NOT NULL PRIMARY KEY,
   uid VARCHAR(128) NOT NULL,
   type VARCHAR(20) NOT NULL,
   expires_at BIGINT NOT NULL,
-  KEY idx_auth_tokens_uid (uid),
-  CONSTRAINT fk_auth_tokens_user FOREIGN KEY (uid) REFERENCES users (uid) ON DELETE CASCADE
+  KEY idx_auth_tokens_uid (uid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
