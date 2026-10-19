@@ -15,14 +15,31 @@ export interface CurrentUser {
   totpEnabled: boolean;
   mailEnabled: boolean;
   createdAt: number;
+  role: 'user' | 'moderator' | 'admin';
+  status: 'active' | 'suspended' | 'banned';
+  suspendedUntil: number | null;
+  statusReason: string | null;
+  recoveryCodesLeft: number;
 }
 
-export async function login(email: string, password: string, code?: string) {
-  return api.post<{ uid: string; pseudo: string }>('/auth/login', { email, password, code });
+export async function login(email: string, password: string, code?: string, captchaToken?: string) {
+  return api.post<{ uid: string; pseudo: string }>('/auth/login', { email, password, code, captchaToken });
 }
 
-export async function register(pseudo: string, email: string, password: string, captchaToken?: string) {
-  return api.post<{ uid: string; pseudo: string }>('/auth/register', { pseudo, email, password, captchaToken });
+export async function register(
+  pseudo: string,
+  email: string,
+  password: string,
+  captchaToken?: string,
+  ageConfirmed = false,
+) {
+  return api.post<{ uid: string; pseudo: string }>('/auth/register', {
+    pseudo,
+    email,
+    password,
+    captchaToken,
+    ageConfirmed,
+  });
 }
 
 export async function logout() {

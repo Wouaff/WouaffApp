@@ -93,7 +93,8 @@ export async function fetchPosts(
      JOIN users ru ON ru.uid = p.uid
      JOIN posts s ON s.id = COALESCE(p.repost_of, p.id)
      JOIN users su ON su.uid = s.uid
-     WHERE NOT EXISTS (
+     WHERE ru.status <> 'banned' AND su.status <> 'banned'
+       AND NOT EXISTS (
              SELECT 1 FROM blocks b
              WHERE (b.blocker_uid = ? AND b.blocked_uid IN (p.uid, s.uid))
                 OR (b.blocked_uid = ? AND b.blocker_uid IN (p.uid, s.uid)))

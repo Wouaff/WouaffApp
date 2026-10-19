@@ -53,14 +53,14 @@ Le projet suit une approche **« privacy by design »** : la souveraineté numé
 - 🔎 **Explorer** : recherche de comptes et de posts, tendances, pages `#hashtag`.
 - 👤 **Profils** : photo, bannière, bio, abonnés / abonnements, onglets Posts · Réponses · Reposts.
 - 🔔 **Notifications** (likes, reposts, réponses, mentions, abonnements) avec badge de non-lus.
-- 🛡️ **Modération côté utilisateur** : blocage, signalement, suppression de ses posts et commentaires.
-- 🔐 **Compte** : double authentification (appli TOTP), sessions visibles et révocables, mot de passe oublié et confirmation d'e-mail (SMTP), captcha Turnstile (optionnel).
+- 🛡️ **Modération** : blocage, signalement par catégorie avec retour au signaleur, file de modération (`/admin`), sanctions (avertissement, suppression, suspension, bannissement), journal des actions, décisions notifiées avec motif.
+- 🔐 **Compte** : double authentification (appli TOTP), sessions visibles et révocables, codes de secours, mot de passe oublié, changement de pseudo et d'e-mail, confirmation d'e-mail (SMTP), captcha Cap auto-hébergé (optionnel), cookie de session `__Host-` en HTTPS.
 - 🇪🇺 **RGPD** : export des données et suppression définitive du compte depuis Paramètres → Confidentialité.
 - 🎨 Thème clair / sombre / automatique · 📱 PWA installable · 🖥️ appli de bureau (Electron).
 
 ### 🚧 Pas (encore) dans cette version
 
-Messagerie privée, communautés, stories, appels, administration web. Elles existaient dans l'ancienne version et ont été retirées lors de la réécriture allégée (voir l'historique git).
+Messagerie privée, communautés, stories, appels. Elles existaient dans l'ancienne version et ont été retirées lors de la réécriture allégée (voir l'historique git).
 
 ---
 
@@ -92,10 +92,26 @@ npm --prefix server install
 npm --prefix client install
 
 cp server/.env.example server/.env
-cp client/.env.example client/.env   # optionnel (captcha)
 # éditer server/.env : identifiants MySQL, APP_URL, SMTP éventuel
 # recommandé : TOTP_ENCRYPTION_KEY=$(openssl rand -hex 32) pour chiffrer les secrets 2FA en base
 ```
+
+Premier administrateur (après une inscription normale) :
+
+```bash
+npm --prefix server run build
+npm --prefix server run role -- ton_pseudo admin     # ou moderator / user
+```
+
+Les administrateurs nomment ensuite les modérateurs depuis `/admin` → Utilisateurs.
+
+#### Captcha Cap (optionnel, auto-hébergé)
+
+```bash
+CAP_ADMIN_KEY=une-longue-valeur-secrète docker compose -f cap/docker-compose.yml up -d
+```
+
+Ouvre `http://127.0.0.1:3001`, connecte-toi avec `CAP_ADMIN_KEY`, crée une clé de site (laisse l'instrumentation désactivée), puis renseigne `CAP_URL`, `CAP_SITE_KEY` et `CAP_SECRET` dans `server/.env`. Cap ne doit pas être exposé publiquement : seul le serveur Wouaff le contacte.
 
 Les tables sont créées automatiquement au démarrage du serveur (`server/src/migrations`).
 

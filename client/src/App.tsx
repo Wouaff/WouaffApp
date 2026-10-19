@@ -14,6 +14,7 @@ const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const FollowListPage = lazy(() => import('./pages/FollowListPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/AuthFlowPages').then((m) => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage = lazy(() => import('./pages/AuthFlowPages').then((m) => ({ default: m.ResetPasswordPage })));
@@ -69,6 +70,7 @@ function AppRoutes() {
       <Route path="/post/:id" element={protectedPage(<PostPage />)} />
       <Route path="/notifications" element={protectedPage(<NotificationsPage />)} />
       <Route path="/settings" element={protectedPage(<SettingsPage />)} />
+      <Route path="/admin" element={protectedPage(<AdminPage />)} />
       <Route path="/:pseudo/followers" element={protectedPage(<FollowListPage kind="followers" />)} />
       <Route path="/:pseudo/following" element={protectedPage(<FollowListPage kind="following" />)} />
       <Route path="/:pseudo" element={protectedPage(<ProfilePage />)} />

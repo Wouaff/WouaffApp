@@ -23,7 +23,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!res.ok) {
     const body = (await res.json().catch(() => ({ error: 'Erreur réseau' }))) as Record<string, unknown>;
     /* Session expirée en cours d'usage : on prévient l'AuthProvider (hors écran de connexion). */
-    if (res.status === 401 && !path.startsWith('/auth/')) {
+    if ((res.status === 401 && !path.startsWith('/auth/')) || body.code === 'ACCOUNT_BANNED') {
       window.dispatchEvent(new Event('wouaff:unauthorized'));
     }
     throw new ApiError(typeof body.error === 'string' ? body.error : `Erreur ${res.status}`, res.status, body);

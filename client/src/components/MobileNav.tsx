@@ -1,4 +1,4 @@
-import { Bell, Home, Search, Settings, User } from 'lucide-react';
+import { Bell, Home, Search, Settings, ShieldCheck, User } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useUnread } from '../hooks/useUnread';
@@ -15,6 +15,9 @@ export default function MobileNav() {
     { to: '/notifications', icon: Bell, label: 'Notifs', badge: unread },
     { to: `/${user.pseudo}`, icon: User, label: 'Profil', badge: 0 },
     { to: '/settings', icon: Settings, label: 'Réglages', badge: 0 },
+    ...(user.role === 'moderator' || user.role === 'admin'
+      ? [{ to: '/admin', icon: ShieldCheck, label: 'Modération', badge: 0 }]
+      : []),
   ];
 
   return (

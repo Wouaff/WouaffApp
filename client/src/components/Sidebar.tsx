@@ -1,4 +1,4 @@
-import { Bell, Feather, Home, LogOut, Search, Settings, User } from 'lucide-react';
+import { Bell, Feather, Home, LogOut, Search, Settings, ShieldCheck, User } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useUnread } from '../hooks/useUnread';
@@ -14,6 +14,9 @@ export default function Sidebar({ onCompose }: { onCompose: () => void }) {
     { to: '/notifications', icon: Bell, label: 'Notifications', badge: unread },
     { to: `/${user?.pseudo}`, icon: User, label: 'Profil' },
     { to: '/settings', icon: Settings, label: 'Paramètres' },
+    ...(user?.role === 'moderator' || user?.role === 'admin'
+      ? [{ to: '/admin', icon: ShieldCheck, label: 'Modération', badge: 0 }]
+      : []),
   ];
 
   return (

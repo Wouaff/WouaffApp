@@ -1,4 +1,4 @@
-import { AtSign, Heart, MessageCircle, Repeat2, UserPlus } from 'lucide-react';
+import { AtSign, CheckCircle2, Heart, MessageCircle, Repeat2, ShieldAlert, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppShell from '../components/AppShell';
@@ -18,6 +18,8 @@ interface Notification {
   createdAt: string;
   actor: { uid: string; pseudo: string; displayName: string | null; avatar: string | null; verified: boolean } | null;
   post: { id: number; text: string | null } | null;
+  /* Texte libre des notifications émises par la plateforme (modération). */
+  message: string | null;
 }
 
 const MESSAGES: Record<string, string> = {
@@ -39,6 +41,10 @@ function Icon({ type }: { type: string }) {
       return <Repeat2 className={`${cls} text-[var(--repost-color)]`} />;
     case 'comment':
       return <MessageCircle className={`${cls} text-[var(--accent)]`} />;
+    case 'moderation':
+      return <ShieldAlert className={`${cls} text-[var(--danger)]`} />;
+    case 'report_outcome':
+      return <CheckCircle2 className={`${cls} text-[var(--repost-color)]`} />;
     default:
       return <AtSign className={`${cls} text-[var(--accent)]`} />;
   }
@@ -99,7 +105,16 @@ export default function NotificationsPage() {
         <div className="text-center py-12 text-[var(--text-secondary)]">Aucune notification</div>
       ) : (
         filtered.map((n) => {
-          const target = n.post ? `/post/${n.post.id}` : n.actor ? `/${n.actor.pseudo}` : '/';
+          const isSystem = n.type === 'moderation' || n.type === 'report_outcome';
+          const target = isSystem
+            ? n.type === 'moderation'
+              ? '/legal/regles'
+              : '/'
+            : n.post
+              ? `/post/${n.post.id}`
+              : n.actor
+                ? `/${n.actor.pseudo}`
+                : '/';
           return (
             <Link
               key={n.id}
@@ -110,13 +125,21 @@ export default function NotificationsPage() {
                 <Icon type={n.type} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  {n.actor && <Avatar src={n.actor.avatar} name={n.actor.pseudo} className="w-8 h-8 text-xs" />}
+                {isSystem ? (
                   <p className="text-[var(--text-primary)]">
-                    <span className="font-bold">{n.actor?.displayName || n.actor?.pseudo || 'Quelqu’un'}</span>{' '}
-                    {MESSAGES[n.type] ?? 'a interagi avec toi'}
+                    <span className="font-bold">{n.type === 'moderation' ? 'Modération Wouaff' : 'Signalement'}</span>
+                    {' · '}
+                    {n.message}
                   </p>
-                </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    {n.actor && <Avatar src={n.actor.avatar} name={n.actor.pseudo} className="w-8 h-8 text-xs" />}
+                    <p className="text-[var(--text-primary)]">
+                      <span className="font-bold">{n.actor?.displayName || n.actor?.pseudo || 'Quelqu’un'}</span>{' '}
+                      {MESSAGES[n.type] ?? 'a interagi avec toi'}
+                    </p>
+                  </div>
+                )}
                 {n.post && (
                   <p className="text-sm text-[var(--text-secondary)] mt-1 truncate">{n.post.text || 'Voir le post'}</p>
                 )}

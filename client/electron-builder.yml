@@ -13,8 +13,8 @@ files:
 
 publish:
   - provider: github
-    owner: youtsuhodev
-    repo: wouaff-app
+    owner: Wouaff
+    repo: WouaffApp
 
 win:
   target:

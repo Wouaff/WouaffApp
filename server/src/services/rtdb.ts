@@ -23,6 +23,14 @@ export interface User {
   /* Dernier pas TOTP (30 s) déjà consommé : empêche de rejouer un code. */
   totp_last_step: number | null;
   createdAt: number;
+  /* 'user' | 'moderator' | 'admin' */
+  role: string;
+  /* 'active' | 'suspended' | 'banned' */
+  status: string;
+  suspended_until: number | null;
+  status_reason: string | null;
+  age_confirmed_at: number | null;
+  pseudo_changed_at: number | null;
 }
 
 /* ── Utilisateurs ───────────────────────────────────────────────────────────── */
@@ -46,13 +54,12 @@ export async function findUserByUid(uid: string) {
 }
 
 export async function createUser(uid: string, pseudo: string, email: string, passwordHash: string) {
-  await query('INSERT INTO users (uid, pseudo, email, passwordHash, createdAt) VALUES (?, ?, ?, ?, ?)', [
-    uid,
-    pseudo,
-    email.trim().toLowerCase(),
-    passwordHash,
-    Date.now(),
-  ]);
+  const now = Date.now();
+  /* L'inscription n'est possible qu'après confirmation de l'âge minimum : on ne garde que la date de cette confirmation. */
+  await query(
+    'INSERT INTO users (uid, pseudo, email, passwordHash, createdAt, age_confirmed_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [uid, pseudo, email.trim().toLowerCase(), passwordHash, now, now],
+  );
 }
 
 const UPDATABLE_USER_FIELDS = new Set([
@@ -67,6 +74,13 @@ const UPDATABLE_USER_FIELDS = new Set([
   'totp_secret',
   'totp_enabled',
   'totp_last_step',
+  'pseudo',
+  'email',
+  'pseudo_changed_at',
+  'role',
+  'status',
+  'suspended_until',
+  'status_reason',
 ]);
 
 export async function updateUser(uid: string, fields: Record<string, unknown>) {
@@ -156,23 +170,35 @@ export async function purgeExpiredSessions() {
 
 const hashToken = sha256Hex;
 
-export async function createAuthToken(uid: string, type: 'reset' | 'verify', ttlMs: number): Promise<string> {
+export type AuthTokenType = 'reset' | 'verify' | 'email';
+
+/* `payload` : donnée liée au jeton (pour 'email', la nouvelle adresse à confirmer). */
+export async function createAuthToken(
+  uid: string,
+  type: AuthTokenType,
+  ttlMs: number,
+  payload?: string,
+): Promise<string> {
   const token = randomBytes(32).toString('hex');
   await query('DELETE FROM auth_tokens WHERE uid = ? AND type = ?', [uid, type]);
-  await query('INSERT INTO auth_tokens (token_hash, uid, type, expires_at) VALUES (?, ?, ?, ?)', [
+  await query('INSERT INTO auth_tokens (token_hash, uid, type, expires_at, payload) VALUES (?, ?, ?, ?, ?)', [
     hashToken(token),
     uid,
     type,
     Date.now() + ttlMs,
+    payload ?? null,
   ]);
   return token;
 }
 
-/* Retourne l'uid et consomme le jeton, ou null s'il est inconnu/expiré. */
-export async function consumeAuthToken(token: string, type: 'reset' | 'verify'): Promise<string | null> {
+/* Consomme le jeton (usage unique) et renvoie son contenu, ou null s'il est inconnu/expiré. */
+export async function consumeAuthTokenFull(
+  token: string,
+  type: AuthTokenType,
+): Promise<{ uid: string; payload: string | null } | null> {
   const hash = hashToken(token);
-  const row = await getOne<{ uid: string; expires_at: number }>(
-    'SELECT uid, expires_at FROM auth_tokens WHERE token_hash = ? AND type = ?',
+  const row = await getOne<{ uid: string; expires_at: number; payload: string | null }>(
+    'SELECT uid, expires_at, payload FROM auth_tokens WHERE token_hash = ? AND type = ?',
     [hash, type],
   );
   if (!row) return null;
@@ -182,7 +208,74 @@ export async function consumeAuthToken(token: string, type: 'reset' | 'verify'):
     type,
   ]);
   if (result.affectedRows !== 1) return null;
-  return row.expires_at < Date.now() ? null : row.uid;
+  return row.expires_at < Date.now() ? null : { uid: row.uid, payload: row.payload };
+}
+
+/* Retourne l'uid et consomme le jeton, ou null s'il est inconnu/expiré. */
+export async function consumeAuthToken(token: string, type: AuthTokenType): Promise<string | null> {
+  return (await consumeAuthTokenFull(token, type))?.uid ?? null;
+}
+
+/* ── Codes de secours (2FA) ─────────────────────────────────────────────────── */
+
+/* Alphabet sans caractères ambigus (0/O, 1/I/L). 10 caractères = ~50 bits par code. */
+const RECOVERY_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+export const RECOVERY_CODE_COUNT = 10;
+
+function normalizeRecoveryCode(code: string): string {
+  return code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function hashRecoveryCode(uid: string, code: string): string {
+  return sha256Hex(`wouaff-recovery:${uid}:${normalizeRecoveryCode(code)}`);
+}
+
+/** Forme d'un code de secours saisi (par opposition à un code TOTP à 6 chiffres). */
+export function looksLikeRecoveryCode(code: string): boolean {
+  return normalizeRecoveryCode(code).length === 10;
+}
+
+/* Remplace les codes existants par un nouveau lot ; renvoie les codes en clair (affichés une seule fois). */
+export async function regenerateRecoveryCodes(uid: string): Promise<string[]> {
+  const codes: string[] = [];
+  for (let i = 0; i < RECOVERY_CODE_COUNT; i++) {
+    const bytes = randomBytes(10);
+    let raw = '';
+    for (const b of bytes) raw += RECOVERY_ALPHABET[b % RECOVERY_ALPHABET.length];
+    codes.push(`${raw.slice(0, 5)}-${raw.slice(5)}`);
+  }
+  await withTransaction(async (conn) => {
+    await conn.execute('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
+    for (const code of codes) {
+      await conn.execute('INSERT IGNORE INTO recovery_codes (uid, code_hash) VALUES (?, ?)', [
+        uid,
+        hashRecoveryCode(uid, code),
+      ]);
+    }
+  });
+  return codes;
+}
+
+/* Consomme un code de secours (usage unique, atomique). */
+export async function consumeRecoveryCode(uid: string, code: string): Promise<boolean> {
+  if (!looksLikeRecoveryCode(code)) return false;
+  const result = await query<{ affectedRows: number }>(
+    'UPDATE recovery_codes SET used_at = ? WHERE uid = ? AND code_hash = ? AND used_at IS NULL',
+    [Date.now(), uid, hashRecoveryCode(uid, code)],
+  );
+  return result.affectedRows === 1;
+}
+
+export async function countRecoveryCodes(uid: string): Promise<number> {
+  const row = await getOne<{ n: number }>(
+    'SELECT COUNT(*) AS n FROM recovery_codes WHERE uid = ? AND used_at IS NULL',
+    [uid],
+  );
+  return Number(row?.n ?? 0);
+}
+
+export async function deleteRecoveryCodes(uid: string) {
+  await query('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
 }
 
 /* ── Tendances ──────────────────────────────────────────────────────────────── */
@@ -242,6 +335,23 @@ export async function deletePost(postId: number, uid: string): Promise<boolean> 
     [postId, uid],
   );
   if (!row) return false;
+  await purgePost(row);
+  return true;
+}
+
+/* Suppression d'un post par la modération (sans condition d'auteur). */
+export async function deletePostAsModerator(postId: number): Promise<boolean> {
+  const row = await getOne<{ id: number; image: string | null; video: string | null }>(
+    'SELECT id, image, video FROM posts WHERE id = ?',
+    [postId],
+  );
+  if (!row) return false;
+  await purgePost(row);
+  return true;
+}
+
+async function purgePost(row: { id: number; image: string | null; video: string | null }) {
+  const postId = row.id;
   await withTransaction(async (conn) => {
     await conn.execute('DELETE FROM posts WHERE repost_of = ?', [postId]);
     await conn.execute('DELETE FROM likes WHERE post_id = ?', [postId]);
@@ -251,7 +361,6 @@ export async function deletePost(postId: number, uid: string): Promise<boolean> 
   });
   /* Le média du post part aussi du disque (droit à l'effacement), sauf s'il sert encore ailleurs. */
   await removeUploadsIfUnreferenced([row.image, row.video]);
-  return true;
 }
 
 export async function toggleLike(uid: string, postId: number) {
@@ -327,18 +436,21 @@ export async function listBlocked(uid: string) {
   );
 }
 
+export const REPORT_CATEGORIES = ['spam', 'harassment', 'hate', 'violence', 'illegal', 'sexual', 'other'] as const;
+export type ReportCategory = (typeof REPORT_CATEGORIES)[number];
+
 export async function createReport(
   reporterUid: string,
   postId: number | null,
   reportedUid: string | null,
   reason: string | null,
+  category: ReportCategory = 'other',
+  excerpt: string | null = null,
 ) {
-  await query('INSERT IGNORE INTO reports (reporter_uid, post_id, reported_uid, reason) VALUES (?, ?, ?, ?)', [
-    reporterUid,
-    postId,
-    reportedUid,
-    reason,
-  ]);
+  await query(
+    'INSERT IGNORE INTO reports (reporter_uid, post_id, reported_uid, reason, category, post_excerpt) VALUES (?, ?, ?, ?, ?, ?)',
+    [reporterUid, postId, reportedUid, reason, category, excerpt ? excerpt.slice(0, 300) : null],
+  );
 }
 
 /* ── Notifications ──────────────────────────────────────────────────────────── */
@@ -361,6 +473,16 @@ export async function createNotification(uid: string, type: string, actorUid: st
     type,
     actorUid,
     postId ?? null,
+  ]);
+}
+
+/* Notification émise par la plateforme (modération) : pas d'acteur, un message libre. */
+export async function createSystemNotification(uid: string, type: string, message: string, postId?: number) {
+  await query('INSERT INTO notifications (uid, type, actor_uid, post_id, message) VALUES (?, ?, NULL, ?, ?)', [
+    uid,
+    type,
+    postId ?? null,
+    message.slice(0, 500),
   ]);
 }
 
@@ -388,6 +510,7 @@ export interface NotificationRow {
   actor_name: string | null;
   actor_avatar: string | null;
   actor_verified: number | null;
+  message: string | null;
 }
 
 export async function getNotifications(uid: string, limit = 50, offset = 0) {
@@ -396,7 +519,7 @@ export async function getNotifications(uid: string, limit = 50, offset = 0) {
   return query<NotificationRow[]>(
     `SELECT n.id, n.type, n.is_read, n.created_at, n.post_id, p.text AS post_text,
             a.uid AS actor_uid, a.pseudo AS actor_pseudo, a.displayName AS actor_name,
-            a.avatar AS actor_avatar, a.verified AS actor_verified
+            a.avatar AS actor_avatar, a.verified AS actor_verified, n.message
      FROM notifications n
      LEFT JOIN users a ON a.uid = n.actor_uid
      LEFT JOIN posts p ON p.id = n.post_id
@@ -447,7 +570,7 @@ export async function getComments(postId: number, viewerUid: string, limit = 50,
   >(
     `SELECT c.id, c.text, c.created_at, u.uid, u.pseudo, u.displayName, u.avatar, u.verified
      FROM comments c JOIN users u ON c.uid = u.uid
-     WHERE c.post_id = ?
+     WHERE c.post_id = ? AND u.status <> 'banned'
        AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_uid = ? AND b.blocked_uid = c.uid) OR (b.blocker_uid = c.uid AND b.blocked_uid = ?))
      ORDER BY c.created_at ASC, c.id ASC
      LIMIT ${lim} OFFSET ${off}`,
@@ -524,6 +647,7 @@ export async function deleteAccount(uid: string) {
       await conn.execute(sql, [uid, uid]);
     }
     await conn.execute('DELETE FROM auth_tokens WHERE uid = ?', [uid]);
+    await conn.execute('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM sessions WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM posts WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM users WHERE uid = ?', [uid]);

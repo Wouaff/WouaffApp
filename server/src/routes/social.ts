@@ -78,7 +78,7 @@ router.get('/suggestions', authMiddleware, async (req, res) => {
     const suggestions = await query<UserRow[]>(
       `SELECT u.uid, u.pseudo, u.displayName, u.avatar, u.verified
        FROM users u
-       WHERE u.uid <> ?
+       WHERE u.uid <> ? AND u.status <> 'banned'
          AND u.uid NOT IN (SELECT followed_uid FROM follows WHERE follower_uid = ?)
          AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_uid = ? AND b.blocked_uid = u.uid) OR (b.blocker_uid = u.uid AND b.blocked_uid = ?))
        ORDER BY (SELECT COUNT(*) FROM follows f WHERE f.followed_uid = u.uid) DESC, u.createdAt DESC
@@ -101,7 +101,7 @@ router.get('/search', authMiddleware, async (req, res) => {
     const users = await query<UserRow[]>(
       `SELECT u.uid, u.pseudo, u.displayName, u.avatar, u.verified
        FROM users u
-       WHERE (u.pseudo LIKE ? ESCAPE '!' OR u.displayName LIKE ? ESCAPE '!')
+       WHERE (u.pseudo LIKE ? ESCAPE '!' OR u.displayName LIKE ? ESCAPE '!') AND u.status <> 'banned'
          AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_uid = ? AND b.blocked_uid = u.uid) OR (b.blocker_uid = u.uid AND b.blocked_uid = ?))
        ORDER BY (u.pseudo = ?) DESC, u.pseudo
        LIMIT 10`,

@@ -58,6 +58,7 @@ interface SharpInstance {
   metadata(): Promise<{ pages?: number }>;
   rotate(): SharpInstance;
   resize(options: Record<string, unknown>): SharpInstance;
+  webp(options: Record<string, unknown>): SharpInstance;
   toBuffer(): Promise<Buffer>;
 }
 type SharpFactory = (input: string, options?: Record<string, unknown>) => SharpInstance;
@@ -79,26 +80,44 @@ function loadSharp(): Promise<SharpFactory | null> {
   return sharpLoader;
 }
 
-/* Réorientation selon l'EXIF puis ré-encodage sans métadonnées. Faux = image illisible ou corrompue. */
-async function stripImageMetadata(path: string, ext: string): Promise<boolean> {
+/* À quoi sert l'image : un avatar affiché en 40 px n'a pas besoin de 30 Mo. */
+export type UploadKind = 'post' | 'avatar' | 'banner';
+
+const IMAGE_PROFILES: Record<UploadKind, { size: number; fit: 'inside' | 'cover'; toWebp: boolean }> = {
+  post: { size: 2560, fit: 'inside', toWebp: false },
+  avatar: { size: 512, fit: 'cover', toWebp: true },
+  banner: { size: 1600, fit: 'inside', toWebp: true },
+};
+
+/* Réorientation selon l'EXIF, redimensionnement, ré-encodage sans métadonnées (et WebP pour les photos de profil).
+   Renvoie le chemin final (l'extension peut changer en .webp), ou null si l'image est illisible/corrompue. */
+async function processImage(path: string, ext: string, kind: UploadKind): Promise<string | null> {
   const sharp = await loadSharp();
-  if (!sharp) return true;
+  if (!sharp) return path;
+  const profile = IMAGE_PROFILES[kind];
   try {
-    if (ext === 'webp' && ((await sharp(path).metadata()).pages ?? 1) > 1) return true; // WebP animé : laissé tel quel
-    const out = await sharp(path, { limitInputPixels: 80_000_000 })
+    if (ext === 'webp' && ((await sharp(path).metadata()).pages ?? 1) > 1) return path; // WebP animé : laissé tel quel
+    let image = sharp(path, { limitInputPixels: 80_000_000 })
       .rotate()
-      .resize({ width: 2560, height: 2560, fit: 'inside', withoutEnlargement: true })
-      .toBuffer();
-    await writeFile(path, out);
-    return true;
+      .resize({ width: profile.size, height: profile.size, fit: profile.fit, withoutEnlargement: true });
+    const toWebp = profile.toWebp && ext !== 'webp';
+    if (toWebp) image = image.webp({ quality: 82 });
+    const out = await image.toBuffer();
+    const target = toWebp ? `${path.slice(0, path.length - ext.length)}webp` : path;
+    await writeFile(target, out);
+    if (target !== path) await unlink(path).catch(() => {});
+    return target;
   } catch {
-    return false;
+    return null;
   }
 }
 
 /* Contrôle un fichier fraîchement reçu : type réel, extension cohérente, métadonnées retirées.
    Renvoie null (et supprime le fichier) s'il n'est pas un média valide. */
-export async function finalizeUpload(filePath: string): Promise<{ filename: string; type: 'image' | 'video' } | null> {
+export async function finalizeUpload(
+  filePath: string,
+  kind: UploadKind = 'post',
+): Promise<{ filename: string; type: 'image' | 'video' } | null> {
   let detected: DetectedMedia | null = null;
   try {
     const handle = await open(filePath, 'r');
@@ -124,10 +143,12 @@ export async function finalizeUpload(filePath: string): Promise<{ filename: stri
     await rename(filePath, finalPath);
   }
   if (detected.type === 'image' && ['jpg', 'png', 'webp'].includes(detected.ext)) {
-    if (!(await stripImageMetadata(finalPath, detected.ext))) {
+    const processed = await processImage(finalPath, detected.ext, kind);
+    if (!processed) {
       await unlink(finalPath).catch(() => {});
       return null;
     }
+    finalPath = processed;
   }
   return { filename: basename(finalPath), type: detected.type };
 }

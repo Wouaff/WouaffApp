@@ -4,7 +4,10 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import Avatar from '../components/Avatar';
+import { inputClass, outlineBtn, primaryBtn } from '../components/formStyles';
+import { EmailForm, PseudoForm } from '../components/IdentityForms';
 import PageHeader from '../components/PageHeader';
+import RecoveryCodes from '../components/RecoveryCodes';
 import { useAuth } from '../hooks/useAuth';
 import { type ThemePreference, useTheme } from '../hooks/useTheme';
 import { fullDate } from '../lib/time';
@@ -20,13 +23,6 @@ const SETTINGS_TABS = [
 ] as const;
 
 type TabId = (typeof SETTINGS_TABS)[number]['id'];
-
-const inputClass =
-  'w-full bg-transparent border border-[var(--border-color)] rounded-lg px-4 py-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors';
-const primaryBtn =
-  'bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-bold rounded-full px-6 py-2.5 transition-colors';
-const outlineBtn =
-  'px-4 py-1.5 rounded-full border border-[var(--border-color)] text-[var(--text-primary)] font-bold text-sm hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50';
 
 function Feedback({ ok, error }: { ok?: string; error?: string }) {
   if (error)
@@ -99,7 +95,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="flex-1 min-w-0 p-6">
-          {user && active === 'account' && <AccountTab user={user} />}
+          {user && active === 'account' && <AccountTab user={user} refresh={refresh} />}
           {user && active === 'profile' && <ProfileTab user={user} refresh={refresh} />}
           {user && active === 'security' && <SecurityTab user={user} refresh={refresh} />}
           {active === 'display' && <DisplayTab />}
@@ -112,7 +108,7 @@ export default function SettingsPage() {
 
 /* ── Compte ─────────────────────────────────────────────────────────────────── */
 
-function AccountTab({ user }: { user: CurrentUser }) {
+function AccountTab({ user, refresh }: { user: CurrentUser; refresh: () => Promise<unknown> }) {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [saving, setSaving] = useState(false);
@@ -138,27 +134,13 @@ function AccountTab({ user }: { user: CurrentUser }) {
   return (
     <div>
       <h2 className="font-extrabold text-xl mb-2">Informations du compte</h2>
-      <p className="text-sm text-[var(--text-secondary)] mb-6">Ton pseudo et ton adresse e-mail.</p>
+      <p className="text-sm text-[var(--text-secondary)] mb-6">
+        Ton pseudo et ton adresse e-mail (le mot de passe est demandé pour les modifier).
+      </p>
 
       <div className="border border-[var(--border-color)] rounded-xl overflow-hidden mb-8">
-        <div className="px-4 py-3 border-b border-[var(--border-color)]">
-          <div className="text-sm text-[var(--text-secondary)]">PSEUDO</div>
-          <div className="font-bold text-[var(--text-primary)] mt-1">@{user.pseudo}</div>
-          <p className="text-xs text-[var(--text-secondary)] mt-1">
-            Le pseudo est défini à l'inscription et ne peut pas être modifié.
-          </p>
-        </div>
-        <div className="px-4 py-3">
-          <div className="text-sm text-[var(--text-secondary)]">E-MAIL</div>
-          <div className="font-bold text-[var(--text-primary)] mt-1">{user.email}</div>
-          <p className="text-xs text-[var(--text-secondary)] mt-1">
-            {user.emailVerified
-              ? 'Adresse confirmée.'
-              : user.mailEnabled
-                ? 'Adresse non confirmée : vérifie ta boîte mail.'
-                : 'Adresse non confirmée.'}
-          </p>
-        </div>
+        <PseudoForm user={user} refresh={refresh} />
+        <EmailForm user={user} refresh={refresh} />
       </div>
 
       <h3 className="font-extrabold text-lg mb-3">Changer de mot de passe</h3>
@@ -222,7 +204,7 @@ function ProfileTab({ user, refresh }: { user: CurrentUser; refresh: () => Promi
     try {
       const form = new FormData();
       form.append('file', file);
-      const { url } = await api.upload<{ url: string }>('/upload', form);
+      const { url } = await api.upload<{ url: string }>(`/upload?kind=${kind}`, form);
       await api.put('/profiles/me', { [kind]: url });
       await refresh();
       setOk(kind === 'avatar' ? 'Photo mise à jour.' : 'Bannière mise à jour.');
@@ -391,6 +373,8 @@ function SecurityTab({ user, refresh }: { user: CurrentUser; refresh: () => Prom
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [disabling, setDisabling] = useState(false);
+  const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState('');
   const [error, setError] = useState('');
@@ -424,9 +408,10 @@ function SecurityTab({ user, refresh }: { user: CurrentUser; refresh: () => Prom
 
   const enable = () =>
     run(async () => {
-      await api.post('/auth/2fa/enable', { code });
+      const r = await api.post<{ recoveryCodes: string[] }>('/auth/2fa/enable', { code });
       setSetup(null);
       setCode('');
+      setRecoveryCodes(r.recoveryCodes);
       await refresh();
       setOk('Double authentification activée.');
     });
@@ -439,6 +424,16 @@ function SecurityTab({ user, refresh }: { user: CurrentUser; refresh: () => Prom
       setCode('');
       await refresh();
       setOk('Double authentification désactivée.');
+    });
+
+  const regenerate = () =>
+    run(async () => {
+      const r = await api.post<{ recoveryCodes: string[] }>('/auth/2fa/recovery-codes', { password, code });
+      setRegenerating(false);
+      setPassword('');
+      setCode('');
+      setRecoveryCodes(r.recoveryCodes);
+      await refresh();
     });
 
   const revoke = (id: string) =>
@@ -531,17 +526,17 @@ function SecurityTab({ user, refresh }: { user: CurrentUser; refresh: () => Prom
             />
             <input
               type="text"
-              inputMode="numeric"
-              aria-label="Code à 6 chiffres"
-              placeholder="Code à 6 chiffres"
+              autoComplete="one-time-code"
+              aria-label="Code à 6 chiffres ou code de secours"
+              placeholder="Code à 6 chiffres ou code de secours"
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={(e) => setCode(e.target.value.replace(/[^A-Za-z0-9-]/g, '').slice(0, 11))}
               className={inputClass}
             />
             <div className="flex gap-2">
               <button
                 type="button"
-                disabled={busy || !password || code.length !== 6}
+                disabled={busy || !password || code.length < 6}
                 onClick={disable}
                 className={primaryBtn}
               >
@@ -562,6 +557,72 @@ function SecurityTab({ user, refresh }: { user: CurrentUser; refresh: () => Prom
           </div>
         )}
       </div>
+      {recoveryCodes && <RecoveryCodes codes={recoveryCodes} onDone={() => setRecoveryCodes(null)} />}
+
+      {user.totpEnabled && !setup && !disabling && !recoveryCodes && (
+        <div className="border border-[var(--border-color)] rounded-xl p-4 mb-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-bold text-[var(--text-primary)]">CODES DE SECOURS</div>
+              <div className="text-sm text-[var(--text-secondary)]">
+                {user.recoveryCodesLeft > 0
+                  ? `${user.recoveryCodesLeft} code${user.recoveryCodesLeft > 1 ? 's' : ''} restant${user.recoveryCodesLeft > 1 ? 's' : ''}`
+                  : 'Aucun code : génères-en pour ne pas être bloqué si tu perds ton téléphone.'}
+              </div>
+            </div>
+            {!regenerating && (
+              <button type="button" disabled={busy} className={outlineBtn} onClick={() => setRegenerating(true)}>
+                Nouveaux codes
+              </button>
+            )}
+          </div>
+          {regenerating && (
+            <div className="mt-4 space-y-3">
+              <p className="text-sm text-[var(--text-secondary)]">Les anciens codes cesseront de fonctionner.</p>
+              <input
+                type="password"
+                aria-label="Mot de passe"
+                placeholder="Mot de passe"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={inputClass}
+                autoComplete="current-password"
+              />
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                aria-label="Code à 6 chiffres"
+                placeholder="Code à 6 chiffres de ton application"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className={inputClass}
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={busy || !password || code.length !== 6}
+                  onClick={regenerate}
+                  className={primaryBtn}
+                >
+                  Générer
+                </button>
+                <button
+                  type="button"
+                  className={outlineBtn}
+                  onClick={() => {
+                    setRegenerating(false);
+                    setPassword('');
+                    setCode('');
+                  }}
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       <Feedback ok={ok} error={error} />
 
       <h2 className="font-extrabold text-xl mt-8 mb-2">Appareils connectés</h2>
@@ -767,11 +828,11 @@ function PrivacyTab() {
           {user?.totpEnabled && (
             <input
               type="text"
-              inputMode="numeric"
-              aria-label="Code à 6 chiffres"
-              placeholder="Code à 6 chiffres"
+              autoComplete="one-time-code"
+              aria-label="Code à 6 chiffres ou code de secours"
+              placeholder="Code à 6 chiffres ou code de secours"
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={(e) => setCode(e.target.value.replace(/[^A-Za-z0-9-]/g, '').slice(0, 11))}
               className={inputClass}
               required
             />

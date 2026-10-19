@@ -11,7 +11,9 @@ import { errorHandler, setupProcessHandlers } from './middleware/errorHandler.js
 import { originCheck } from './middleware/originCheck.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { securityHeaders } from './middleware/security.js';
+import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
+import captchaRoutes from './routes/captcha.js';
 import notificationsRoutes from './routes/notifications.js';
 import postsRoutes from './routes/posts.js';
 import profilesRoutes from './routes/profiles.js';
@@ -101,6 +103,8 @@ app.get('/api/health', async (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/captcha', captchaRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/posts', postsRoutes);
 app.use('/api/profiles', profilesRoutes);
 app.use('/api', socialRoutes);

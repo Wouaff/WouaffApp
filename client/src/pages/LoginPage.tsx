@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Turnstile, { captchaEnabled } from '../components/Turnstile';
+import Captcha, { useCaptchaEnabled } from '../components/Captcha';
 import { useAuth } from '../hooks/useAuth';
 import { ApiError, errorMessage } from '../services/api';
 import { login, register } from '../services/auth';
@@ -17,23 +17,30 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [needs2fa, setNeeds2fa] = useState(false);
+  const [ageOk, setAgeOk] = useState(false);
+  const captchaEnabled = useCaptchaEnabled();
   const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaKey, setCaptchaKey] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (mode === 'register' && captchaEnabled && !captchaToken) {
+    if (mode === 'register' && !ageOk) {
+      setError('Tu dois avoir au moins 15 ans pour créer un compte');
+      return;
+    }
+    if (captchaEnabled && !captchaToken) {
       setError('Valide le captcha avant de continuer');
       return;
     }
     setLoading(true);
     try {
       if (mode === 'login') {
-        await login(email, password, needs2fa ? code : undefined);
+        await login(email, password, needs2fa ? code : undefined, captchaToken || undefined);
       } else {
-        await register(pseudo, email, password, captchaToken || undefined);
+        await register(pseudo, email, password, captchaToken || undefined, ageOk);
       }
       const me = await refresh();
       if (!me) {
@@ -43,6 +50,9 @@ export default function LoginPage() {
     } catch (err) {
       if (err instanceof ApiError && err.data.needs2fa) setNeeds2fa(true);
       setError(errorMessage(err));
+      /* Un jeton ne sert qu'une fois : on en redemande un pour la tentative suivante. */
+      setCaptchaToken('');
+      setCaptchaKey((k) => k + 1);
     }
     setLoading(false);
   };
@@ -52,6 +62,8 @@ export default function LoginPage() {
     setError('');
     setNeeds2fa(false);
     setCode('');
+    setCaptchaToken('');
+    setCaptchaKey((k) => k + 1);
   };
 
   return (
@@ -135,17 +147,18 @@ export default function LoginPage() {
           {needs2fa && (
             <div>
               <label htmlFor="code" className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-                Code de ton application d'authentification
+                Code de ton application d'authentification, ou code de secours
               </label>
               <input
                 id="code"
                 type="text"
-                inputMode="numeric"
                 autoComplete="one-time-code"
+                autoCapitalize="characters"
+                spellCheck={false}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) => setCode(e.target.value.replace(/[^A-Za-z0-9-]/g, '').slice(0, 11))}
                 className={inputClass}
-                placeholder="123456"
+                placeholder="123456 ou ABCDE-FGH23"
                 required
                 // biome-ignore lint/a11y/noAutofocus: le champ vient d'apparaître après la première étape de connexion
                 autoFocus
@@ -153,7 +166,19 @@ export default function LoginPage() {
             </div>
           )}
 
-          {mode === 'register' && <Turnstile onToken={setCaptchaToken} onError={setError} />}
+          {mode === 'register' && (
+            <label className="flex items-start gap-3 text-sm text-[var(--text-primary)] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={ageOk}
+                onChange={(e) => setAgeOk(e.target.checked)}
+                className="mt-0.5 accent-[var(--accent)]"
+              />
+              <span>J'ai au moins 15 ans.</span>
+            </label>
+          )}
+
+          <Captcha key={captchaKey} onToken={setCaptchaToken} onError={setError} />
 
           <button
             type="submit"

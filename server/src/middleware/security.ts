@@ -15,13 +15,15 @@ export function securityHeaders(isProd: boolean) {
         'Content-Security-Policy',
         [
           "default-src 'self'",
-          "script-src 'self' https://challenges.cloudflare.com",
+          /* 'wasm-unsafe-eval' et blob: : le captcha Cap calcule sa preuve de travail dans un Worker WebAssembly. */
+          "script-src 'self' 'wasm-unsafe-eval'",
+          "worker-src 'self' blob:",
           "style-src 'self' 'unsafe-inline'",
           /* Pas de https: ici : aucune image/vidéo externe (pixel espion, traçage) ne doit se charger. */
           "img-src 'self' data: blob:",
           "media-src 'self' blob:",
           "connect-src 'self'",
-          'frame-src https://challenges.cloudflare.com',
+          "frame-src 'none'",
           "object-src 'none'",
           "base-uri 'self'",
           "frame-ancestors 'none'",

@@ -1,3 +1,11 @@
+[20/10/2026 — 2]
+- NOUVEAU : modération — rôles (utilisateur / modérateur / administrateur), signalements avec catégorie et retour au signaleur, file de traitement dans `/admin`, sanctions (avertissement, suppression de contenu, suspension en lecture seule, bannissement, suppression de compte), journal des actions, décisions notifiées à l'auteur avec motif et voie de contestation (socle « notice and action » du DSA, à faire valider par un juriste) ; `npm --prefix server run role -- <pseudo> admin` crée le premier administrateur
+- NOUVEAU : captcha Cap auto-hébergé (relayé par le serveur, calcul dans le navigateur, aucune ressource externe) à la place de Cloudflare Turnstile, ajouté à la connexion et au mot de passe oublié ; CSP sans `challenges.cloudflare.com`
+- NOUVEAU : codes de secours de la double authentification (10 codes à usage unique, seules les empreintes sont stockées), changement d'adresse e-mail (confirmation par lien sur la nouvelle adresse, alerte sur l'ancienne) et de pseudo (une fois par 30 jours), confirmation de l'âge minimum de 15 ans à l'inscription (seule la confirmation est conservée)
+- SÉCURITÉ : cookie de session `__Host-session_id` en HTTPS, mots de passe courants ou contenant le pseudo/l'e-mail refusés, e-mail confirmé exigé pour publier quand le SMTP est configuré
+- RGPD : avatars redimensionnés (512 px) et bannières (1600 px) en WebP ; l'API de modération n'expose jamais d'adresse e-mail
+- FIX : sur une base neuve, tables aux collations mélangées (erreur 500 sur le fil et les suggestions) corrigées par la migration `008_accounts_moderation.sql` ; publication des mises à jour Electron vers `Wouaff/WouaffApp`
+
 [20/10/2026]
 - SÉCURITÉ : les identifiants de session ne sont plus stockés en clair (hash SHA-256 en base ; les sessions existantes restent valides), requête d'authentification unique, contrôle de l'en-tête Origin sur toute requête qui modifie des données (anti-CSRF), CORS tolérant à un `APP_URL` avec « / » final, CSP sans images/vidéos externes (`https:` retiré)
 - SÉCURITÉ : double authentification — secret TOTP chiffré en base (AES-256-GCM, clé `TOTP_ENCRYPTION_KEY`, optionnelle), un code ne peut plus être rejoué, comparaison à temps constant, refus (et non contournement) si le secret est illisible

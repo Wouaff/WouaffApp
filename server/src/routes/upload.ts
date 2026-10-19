@@ -4,7 +4,7 @@ import multer from 'multer';
 import { patchRouter } from '../middleware/asyncHandler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { byUser, rateLimit } from '../middleware/rateLimit.js';
-import { finalizeUpload, uploadsDir } from '../services/uploads.js';
+import { finalizeUpload, type UploadKind, uploadsDir } from '../services/uploads.js';
 
 /* index.ts importait déjà `uploadsDir` d'ici : on le ré-exporte. */
 export { uploadsDir };
@@ -57,7 +57,9 @@ router.post(
     if (!req.file) {
       return res.status(400).json({ error: 'Aucun fichier fourni' });
     }
-    const result = await finalizeUpload(req.file.path);
+    /* ?kind=avatar|banner : redimensionnement adapté à l'usage (par défaut : image de post). */
+    const kind: UploadKind = req.query.kind === 'avatar' || req.query.kind === 'banner' ? req.query.kind : 'post';
+    const result = await finalizeUpload(req.file.path, kind);
     if (!result) {
       return res.status(400).json({ error: "Ce fichier n'est pas une image ou une vidéo valide" });
     }

@@ -10,7 +10,7 @@ Ces règles s'appliquent à toute modification de ce dépôt par un agent IA.
 - Ne jamais logger, renvoyer dans une réponse API, ni committer une valeur secrète, même dans un commentaire.
 - Si une valeur sensible apparaît dans une requête/réponse DTO, c'est un bug de sécurité — la retirer immédiatement (ex. `email`, `passwordHash`, `publicKey` ne doivent pas fuiter).
 
-Exemples de configuration par variables d'environnement : `server/src/services/mailer.ts` (SMTP_*) et `server/src/config/captcha.ts` (TURNSTILE_*). Voir `server/.env.example`.
+Exemples de configuration par variables d'environnement : `server/src/services/mailer.ts` (SMTP_*) et `server/src/config/captcha.ts` (CAP_*). Voir `server/.env.example`.
 
 ## Règles générales
 

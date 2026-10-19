@@ -3,17 +3,27 @@ import bcrypt from 'bcryptjs';
 import { type Request, type Response, Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { patchRouter } from '../middleware/asyncHandler.js';
-import { authMiddleware, currentUser } from '../middleware/auth.js';
+import {
+  authMiddleware,
+  clearSessionCookies,
+  currentUser,
+  readSessionCookie,
+  setSessionCookie,
+} from '../middleware/auth.js';
 import { verifyCaptcha } from '../middleware/captcha.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { isMailEnabled, sendMail } from '../services/mailer.js';
 import {
   claimTotpStep,
   consumeAuthToken,
+  consumeAuthTokenFull,
+  consumeRecoveryCode,
+  countRecoveryCodes,
   createAuthToken,
   createSession,
   createUser,
   deleteAccount,
+  deleteRecoveryCodes,
   deleteSession,
   deleteSessionOfUser,
   deleteUserSessions,
@@ -21,8 +31,11 @@ import {
   findUserByEmail,
   findUserByPseudo,
   listSessions,
+  looksLikeRecoveryCode,
+  regenerateRecoveryCodes,
   updateUser,
 } from '../services/rtdb.js';
+import { passwordProblem } from '../utils/passwords.js';
 import { generateTotpSecret, totpUri, verifyTotpStep } from '../utils/totp.js';
 import { EMAIL_RE, isValidPassword, PASSWORD_ERROR, PSEUDO_RE, RESERVED_PSEUDOS } from '../utils/validation.js';
 
@@ -32,6 +45,8 @@ const router = patchRouter(Router());
 
 const SESSION_MS = 30 * 24 * 60 * 60 * 1000;
 const BCRYPT_ROUNDS = 12;
+/* Âge minimum de l'inscription : 15 ans (consentement numérique en France). */
+const MIN_AGE = 15;
 /* Hash factice : on compare toujours, que le compte existe ou non (pas d'écart de timing). */
 const DUMMY_HASH = bcrypt.hashSync('wouaff-dummy-password', BCRYPT_ROUNDS);
 
@@ -56,12 +71,7 @@ async function startSession(req: Request, res: Response, uid: string) {
   /* 256 bits aléatoires ; seule l'empreinte de cette valeur est stockée en base. */
   const sessionId = randomBytes(32).toString('hex');
   await createSession(sessionId, uid, Date.now() + SESSION_MS, req.headers['user-agent']);
-  res.cookie('session_id', sessionId, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production' && !req.hostname.includes('localhost'),
-    maxAge: SESSION_MS,
-  });
+  setSessionCookie(req, res, sessionId, SESSION_MS);
 }
 
 async function sendVerificationEmail(uid: string, email: string): Promise<boolean> {
@@ -84,15 +94,28 @@ async function consumeTotp(
   return step !== null && (await claimTotpStep(user.uid, step));
 }
 
+/* Deuxième facteur : code TOTP à 6 chiffres, ou code de secours (à usage unique). */
+async function consumeSecondFactor(
+  user: { uid: string; totp_secret: string | null; totp_last_step: number | null },
+  code: unknown,
+): Promise<boolean> {
+  if (typeof code !== 'string') return false;
+  if (looksLikeRecoveryCode(code)) return consumeRecoveryCode(user.uid, code);
+  return consumeTotp(user, code);
+}
+
 const TOTP_UNAVAILABLE = {
   error: 'La double authentification est momentanément indisponible, contacte le support',
 };
 
 router.post('/register', authLimiter, verifyCaptcha, async (req, res) => {
   try {
-    const { pseudo, email, password } = req.body ?? {};
+    const { pseudo, email, password, ageConfirmed } = req.body ?? {};
     if (typeof pseudo !== 'string' || typeof email !== 'string' || typeof password !== 'string') {
       return res.status(400).json({ error: 'Champs requis manquants' });
+    }
+    if (ageConfirmed !== true) {
+      return res.status(400).json({ error: `Tu dois avoir au moins ${MIN_AGE} ans pour créer un compte` });
     }
     if (!PSEUDO_RE.test(pseudo)) {
       return res
@@ -109,6 +132,8 @@ router.post('/register', authLimiter, verifyCaptcha, async (req, res) => {
     if (!isValidPassword(password)) {
       return res.status(400).json({ error: PASSWORD_ERROR });
     }
+    const weak = passwordProblem(password, { pseudo, email: cleanEmail });
+    if (weak) return res.status(400).json({ error: weak });
     if (await findUserByEmail(cleanEmail)) {
       return res.status(409).json({ error: 'Cet email est déjà utilisé' });
     }
@@ -136,7 +161,7 @@ router.post('/register', authLimiter, verifyCaptcha, async (req, res) => {
   }
 });
 
-router.post('/login', authLimiter, loginByEmailLimiter, async (req, res) => {
+router.post('/login', authLimiter, verifyCaptcha, loginByEmailLimiter, async (req, res) => {
   try {
     const { email, password, code } = req.body ?? {};
     if (typeof email !== 'string' || typeof password !== 'string') {
@@ -147,13 +172,16 @@ router.post('/login', authLimiter, loginByEmailLimiter, async (req, res) => {
     if (!user || !valid) {
       return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
     }
+    if (user.status === 'banned') {
+      return res.status(403).json({ error: 'Ce compte a été banni', code: 'ACCOUNT_BANNED' });
+    }
     if (user.totp_enabled) {
       /* 2FA activée mais secret illisible (clé de chiffrement perdue…) : on refuse plutôt que de laisser passer. */
       if (!user.totp_secret) return res.status(503).json(TOTP_UNAVAILABLE);
       if (typeof code !== 'string' || !code.trim()) {
         return res.status(401).json({ error: 'Code de double authentification requis', needs2fa: true });
       }
-      if (!(await consumeTotp(user, code))) {
+      if (!(await consumeSecondFactor(user, code))) {
         return res.status(401).json({ error: 'Code de double authentification invalide', needs2fa: true });
       }
     }
@@ -166,9 +194,9 @@ router.post('/login', authLimiter, loginByEmailLimiter, async (req, res) => {
 });
 
 router.post('/logout', async (req, res) => {
-  const sessionId = req.cookies?.session_id;
-  if (typeof sessionId === 'string' && sessionId) await deleteSession(sessionId).catch(() => {});
-  res.clearCookie('session_id');
+  const sessionId = readSessionCookie(req);
+  if (sessionId) await deleteSession(sessionId).catch(() => {});
+  clearSessionCookies(req, res);
   res.json({ ok: true });
 });
 
@@ -189,6 +217,11 @@ router.get('/me', authMiddleware, async (req, res) => {
     totpEnabled: !!user.totp_enabled,
     mailEnabled: isMailEnabled(),
     createdAt: user.createdAt,
+    role: user.role,
+    status: user.status,
+    suspendedUntil: user.status === 'suspended' ? user.suspended_until : null,
+    statusReason: user.status === 'active' ? null : user.status_reason,
+    recoveryCodesLeft: user.totp_enabled ? await countRecoveryCodes(user.uid) : 0,
   });
 });
 
@@ -197,9 +230,22 @@ router.get('/me', authMiddleware, async (req, res) => {
 router.post('/verify-email', authLimiter, async (req, res) => {
   const token = typeof req.body?.token === 'string' ? req.body.token : '';
   const uid = token ? await consumeAuthToken(token, 'verify') : null;
-  if (!uid) return res.status(400).json({ error: 'Lien invalide ou expiré' });
-  await updateUser(uid, { emailVerified: 1 });
-  res.json({ ok: true });
+  if (uid) {
+    await updateUser(uid, { emailVerified: 1 });
+    return res.json({ ok: true });
+  }
+  /* Même page pour confirmer une nouvelle adresse e-mail (jeton « email » portant l'adresse). */
+  const change = token ? await consumeAuthTokenFull(token, 'email') : null;
+  if (!change?.payload) return res.status(400).json({ error: 'Lien invalide ou expiré' });
+  try {
+    await updateUser(change.uid, { email: change.payload, emailVerified: 1 });
+  } catch (err) {
+    if ((err as { code?: string }).code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'Cette adresse e-mail est déjà utilisée par un autre compte' });
+    }
+    throw err;
+  }
+  res.json({ ok: true, changed: 'email' });
 });
 
 router.post('/resend-verification', authMiddleware, mailLimiter, async (req, res) => {
@@ -213,7 +259,7 @@ router.post('/resend-verification', authMiddleware, mailLimiter, async (req, res
 
 /* ── Mot de passe oublié / changement ───────────────────────────────────────── */
 
-router.post('/forgot-password', mailLimiter, async (req, res) => {
+router.post('/forgot-password', mailLimiter, verifyCaptcha, async (req, res) => {
   if (!isMailEnabled()) return res.status(503).json({ error: "L'envoi d'e-mails n'est pas configuré sur ce serveur" });
   const email = typeof req.body?.email === 'string' ? req.body.email : '';
   /* Tout le travail (recherche, jeton, envoi) se fait après la réponse : le temps de réponse ne révèle
@@ -237,6 +283,8 @@ router.post('/reset-password', authLimiter, async (req, res) => {
   if (!isValidPassword(password)) {
     return res.status(400).json({ error: PASSWORD_ERROR });
   }
+  const weak = passwordProblem(password);
+  if (weak) return res.status(400).json({ error: weak });
   const uid = typeof token === 'string' && token ? await consumeAuthToken(token, 'reset') : null;
   if (!uid) return res.status(400).json({ error: 'Lien invalide ou expiré' });
   await updateUser(uid, { passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS) });
@@ -253,6 +301,8 @@ router.post('/password', authMiddleware, authLimiter, async (req, res) => {
   if (!isValidPassword(newPassword)) {
     return res.status(400).json({ error: PASSWORD_ERROR });
   }
+  const weak = passwordProblem(newPassword, { pseudo: user.pseudo, email: user.email });
+  if (weak) return res.status(400).json({ error: weak });
   const full = await findUserByEmail(user.email);
   if (!full || !(await bcrypt.compare(currentPassword, full.passwordHash))) {
     return res.status(403).json({ error: 'Mot de passe actuel incorrect' });
@@ -279,7 +329,8 @@ router.post('/2fa/enable', authMiddleware, authLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Code invalide' });
   }
   await updateUser(user.uid, { totp_enabled: 1 });
-  res.json({ ok: true });
+  /* Codes de secours : affichés une seule fois, seule leur empreinte est conservée. */
+  res.json({ ok: true, recoveryCodes: await regenerateRecoveryCodes(user.uid) });
 });
 
 router.post('/2fa/disable', authMiddleware, authLimiter, async (req, res) => {
@@ -290,11 +341,120 @@ router.post('/2fa/disable', authMiddleware, authLimiter, async (req, res) => {
     return res.status(403).json({ error: 'Mot de passe incorrect' });
   }
   if (full.totp_enabled && !full.totp_secret) return res.status(503).json(TOTP_UNAVAILABLE);
-  if (full.totp_secret && !(await consumeTotp(full, code))) {
+  if (full.totp_secret && !(await consumeSecondFactor(full, code))) {
     return res.status(400).json({ error: 'Code invalide' });
   }
   await updateUser(user.uid, { totp_secret: null, totp_enabled: 0, totp_last_step: null });
+  await deleteRecoveryCodes(user.uid);
   res.json({ ok: true });
+});
+
+/* Nouveau lot de codes de secours (les anciens cessent de fonctionner). */
+router.post('/2fa/recovery-codes', authMiddleware, authLimiter, async (req, res) => {
+  const user = currentUser(req);
+  const full = await findUserByEmail(user.email);
+  const { password, code } = req.body ?? {};
+  if (!full || typeof password !== 'string' || !(await bcrypt.compare(password, full.passwordHash))) {
+    return res.status(403).json({ error: 'Mot de passe incorrect' });
+  }
+  if (!full.totp_enabled) return res.status(409).json({ error: "La double authentification n'est pas active" });
+  if (!full.totp_secret) return res.status(503).json(TOTP_UNAVAILABLE);
+  if (!(await consumeTotp(full, code))) return res.status(400).json({ error: 'Code invalide' });
+  res.json({ recoveryCodes: await regenerateRecoveryCodes(user.uid) });
+});
+
+/* ── Changement d'adresse e-mail et de pseudo ───────────────────────────────── */
+
+const PSEUDO_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
+
+/* Mot de passe (et deuxième facteur si actif) exigés pour toute modification sensible de l'identité. */
+async function reauthenticate(req: Request, res: Response) {
+  const user = currentUser(req);
+  const full = await findUserByEmail(user.email);
+  const { password, code } = req.body ?? {};
+  if (!full || typeof password !== 'string' || !(await bcrypt.compare(password, full.passwordHash))) {
+    res.status(403).json({ error: 'Mot de passe incorrect' });
+    return null;
+  }
+  if (full.totp_enabled) {
+    if (!full.totp_secret) {
+      res.status(503).json(TOTP_UNAVAILABLE);
+      return null;
+    }
+    if (!(await consumeSecondFactor(full, code))) {
+      res.status(400).json({ error: 'Code de double authentification invalide', needs2fa: true });
+      return null;
+    }
+  }
+  return full;
+}
+
+router.post('/email', authMiddleware, authLimiter, mailLimiter, async (req, res) => {
+  const newEmail = typeof req.body?.newEmail === 'string' ? req.body.newEmail.trim().toLowerCase() : '';
+  if (!EMAIL_RE.test(newEmail) || newEmail.length > 255) {
+    return res.status(400).json({ error: 'Adresse e-mail invalide' });
+  }
+  const full = await reauthenticate(req, res);
+  if (!full) return;
+  if (newEmail === full.email) return res.status(400).json({ error: "C'est déjà ton adresse e-mail" });
+  if (await findUserByEmail(newEmail)) {
+    return res.status(409).json({ error: 'Cette adresse e-mail est déjà utilisée' });
+  }
+  if (!isMailEnabled()) {
+    /* Sans SMTP, impossible de confirmer la boîte : le changement est direct (mot de passe déjà exigé). */
+    try {
+      await updateUser(full.uid, { email: newEmail });
+    } catch (err) {
+      if ((err as { code?: string }).code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: 'Cette adresse e-mail est déjà utilisée' });
+      }
+      throw err;
+    }
+    return res.json({ ok: true, pending: false, email: newEmail });
+  }
+  const token = await createAuthToken(full.uid, 'email', 24 * 60 * 60 * 1000, newEmail);
+  const sent = await sendMail(
+    newEmail,
+    'Confirme ta nouvelle adresse e-mail — Wouaff',
+    `Tu as demandé à utiliser cette adresse pour ton compte Wouaff.\n\nConfirme en ouvrant ce lien (valable 24 h) :\n${appUrl()}/verify-email?token=${token}\n\nSi ce n'est pas toi, ignore ce message.`,
+  );
+  if (!sent) return res.status(502).json({ error: "Impossible d'envoyer l'e-mail de confirmation" });
+  /* Alerte sur l'ancienne adresse : en cas de piratage, le vrai propriétaire est prévenu. */
+  sendMail(
+    full.email,
+    "Demande de changement d'adresse e-mail — Wouaff",
+    `Une demande de changement d'adresse e-mail a été faite pour ton compte Wouaff. L'adresse actuelle reste valable tant que la nouvelle n'est pas confirmée.\n\nSi ce n'est pas toi, change vite ton mot de passe.`,
+  ).catch(() => {});
+  res.json({ ok: true, pending: true, email: newEmail });
+});
+
+router.post('/pseudo', authMiddleware, authLimiter, async (req, res) => {
+  const user = currentUser(req);
+  const pseudo = typeof req.body?.pseudo === 'string' ? req.body.pseudo.trim() : '';
+  if (!PSEUDO_RE.test(pseudo)) {
+    return res
+      .status(400)
+      .json({ error: 'Le pseudo doit faire 3 à 30 caractères (lettres, chiffres et underscores uniquement)' });
+  }
+  if (RESERVED_PSEUDOS.has(pseudo.toLowerCase())) return res.status(400).json({ error: 'Ce pseudo est réservé' });
+  if (pseudo === user.pseudo) return res.status(400).json({ error: "C'est déjà ton pseudo" });
+  const full = await reauthenticate(req, res);
+  if (!full) return;
+  const last = full.pseudo_changed_at == null ? 0 : Number(full.pseudo_changed_at);
+  if (last && Date.now() - last < PSEUDO_COOLDOWN_MS) {
+    const next = new Date(last + PSEUDO_COOLDOWN_MS).toLocaleDateString('fr-FR');
+    return res.status(429).json({ error: `Tu pourras changer de pseudo à partir du ${next}` });
+  }
+  const taken = await findUserByPseudo(pseudo);
+  if (taken && taken.uid !== full.uid) return res.status(409).json({ error: 'Ce pseudo est déjà pris' });
+  try {
+    await updateUser(full.uid, { pseudo, pseudo_changed_at: Date.now() });
+  } catch (err) {
+    if ((err as { code?: string }).code === 'ER_DUP_ENTRY')
+      return res.status(409).json({ error: 'Ce pseudo est déjà pris' });
+    throw err;
+  }
+  res.json({ ok: true, pseudo });
 });
 
 /* ── Sessions ───────────────────────────────────────────────────────────────── */
@@ -340,12 +500,12 @@ router.delete('/account', authMiddleware, authLimiter, async (req, res) => {
   }
   if (full.totp_enabled) {
     if (!full.totp_secret) return res.status(503).json(TOTP_UNAVAILABLE);
-    if (!(await consumeTotp(full, code))) {
+    if (!(await consumeSecondFactor(full, code))) {
       return res.status(400).json({ error: 'Code de double authentification invalide' });
     }
   }
   await deleteAccount(user.uid);
-  res.clearCookie('session_id');
+  clearSessionCookies(req, res);
   res.json({ ok: true });
 });
 

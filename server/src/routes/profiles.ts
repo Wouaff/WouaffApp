@@ -4,6 +4,13 @@ import { patchRouter } from '../middleware/asyncHandler.js';
 import { authMiddleware, currentUser } from '../middleware/auth.js';
 import { fetchPosts, filters } from '../services/postQuery.js';
 import { findUserByPseudo, isBlockedEitherWay, updateUser } from '../services/rtdb.js';
+
+/* Un compte banni n'a plus de profil public. */
+async function findVisibleUser(pseudo: string) {
+  const user = await findUserByPseudo(pseudo);
+  return user && user.status !== 'banned' ? user : null;
+}
+
 import { uploadExists } from '../services/uploads.js';
 import { isSafeUploadPath, normalizeWebsite, toInt } from '../utils/validation.js';
 
@@ -20,7 +27,7 @@ interface UserListRow {
 
 router.get('/:pseudo', authMiddleware, async (req, res) => {
   try {
-    const user = await findUserByPseudo(req.params.pseudo);
+    const user = await findVisibleUser(req.params.pseudo);
     if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
     const myUid = currentUser(req).uid;
     const [counts, isFollowingUser, blockedByMe, blockedMe] = await Promise.all([
@@ -114,7 +121,7 @@ router.put('/me', authMiddleware, async (req, res) => {
 
 router.get('/:pseudo/posts', authMiddleware, async (req, res) => {
   try {
-    const user = await findUserByPseudo(req.params.pseudo);
+    const user = await findVisibleUser(req.params.pseudo);
     if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
     const myUid = currentUser(req).uid;
     if (user.uid !== myUid && (await isBlockedEitherWay(myUid, user.uid))) return res.json([]);
@@ -130,7 +137,7 @@ router.get('/:pseudo/posts', authMiddleware, async (req, res) => {
 
 router.get('/:pseudo/replies', authMiddleware, async (req, res) => {
   try {
-    const user = await findUserByPseudo(req.params.pseudo);
+    const user = await findVisibleUser(req.params.pseudo);
     if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
     const myUid = currentUser(req).uid;
     if (user.uid !== myUid && (await isBlockedEitherWay(myUid, user.uid))) return res.json([]);
@@ -163,7 +170,7 @@ router.get('/:pseudo/replies', authMiddleware, async (req, res) => {
 });
 
 async function followList(req: Parameters<typeof currentUser>[0], column: 'follower_uid' | 'followed_uid') {
-  const user = await findUserByPseudo((req.params as { pseudo: string }).pseudo);
+  const user = await findVisibleUser((req.params as { pseudo: string }).pseudo);
   if (!user) return null;
   const myUid = currentUser(req).uid;
   const other = column === 'follower_uid' ? 'followed_uid' : 'follower_uid';
@@ -173,7 +180,7 @@ async function followList(req: Parameters<typeof currentUser>[0], column: 'follo
     `SELECT u.uid, u.pseudo, u.displayName, u.avatar, u.verified,
             (SELECT COUNT(*) FROM follows mine WHERE mine.follower_uid = ? AND mine.followed_uid = u.uid) AS isFollowing
      FROM follows f JOIN users u ON u.uid = f.${column}
-     WHERE f.${other} = ?
+     WHERE f.${other} = ? AND u.status <> 'banned'
        AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_uid = ? AND b.blocked_uid = u.uid) OR (b.blocker_uid = u.uid AND b.blocked_uid = ?))
      ORDER BY f.created_at DESC
      LIMIT ${limit} OFFSET ${offset}`,

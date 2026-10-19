@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import Captcha, { useCaptchaEnabled } from '../components/Captcha';
 import { api, errorMessage } from '../services/api';
 
 const inputClass =
@@ -29,16 +30,25 @@ export function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const captchaEnabled = useCaptchaEnabled();
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaKey, setCaptchaKey] = useState(0);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    if (captchaEnabled && !captchaToken) {
+      setError('Valide le captcha avant de continuer');
+      return;
+    }
+    setLoading(true);
     try {
-      await api.post('/auth/forgot-password', { email });
+      await api.post('/auth/forgot-password', { email, captchaToken: captchaToken || undefined });
       setSent(true);
     } catch (err) {
       setError(errorMessage(err));
+      setCaptchaToken('');
+      setCaptchaKey((k) => k + 1);
     }
     setLoading(false);
   };
@@ -70,6 +80,7 @@ export function ForgotPasswordPage() {
             autoComplete="email"
             required
           />
+          <Captcha key={captchaKey} onToken={setCaptchaToken} onError={setError} />
           <button type="submit" disabled={loading} className={buttonClass}>
             {loading ? '…' : 'Envoyer le lien'}
           </button>
@@ -141,6 +152,7 @@ export function VerifyEmailPage() {
   const token = params.get('token') ?? '';
   const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading');
   const [message, setMessage] = useState('');
+  const [changed, setChanged] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -149,8 +161,11 @@ export function VerifyEmailPage() {
       return;
     }
     api
-      .post('/auth/verify-email', { token })
-      .then(() => setState('ok'))
+      .post<{ changed?: string }>('/auth/verify-email', { token })
+      .then((r) => {
+        setChanged(r.changed === 'email');
+        setState('ok');
+      })
       .catch((err) => {
         setState('error');
         setMessage(errorMessage(err));
@@ -165,7 +180,11 @@ export function VerifyEmailPage() {
         </div>
       )}
       {state === 'ok' && (
-        <p className="text-center text-[var(--text-primary)]">Ton adresse e-mail est confirmée. Merci !</p>
+        <p className="text-center text-[var(--text-primary)]">
+          {changed
+            ? 'Ta nouvelle adresse e-mail est confirmée : utilise-la désormais pour te connecter.'
+            : 'Ton adresse e-mail est confirmée. Merci !'}
+        </p>
       )}
       {state === 'error' && <p className="text-center text-[var(--danger)]">{message}</p>}
     </Frame>

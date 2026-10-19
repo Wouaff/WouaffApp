@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { fullDate, timeAgo } from '../lib/time';
 import { api } from '../services/api';
 import Avatar from './Avatar';
+import ReportDialog from './ReportDialog';
 import RichText from './RichText';
 import VerifiedBadge from './VerifiedBadge';
 
@@ -66,6 +67,7 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
   const [repostsCount, setRepostsCount] = useState(post.repostsCount);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState('');
+  const [reporting, setReporting] = useState(false);
 
   const flash = (msg: string) => {
     setNotice(msg);
@@ -125,15 +127,9 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
     }
   };
 
-  const handleReport = async () => {
+  const handleReport = () => {
     setMenuOpen(false);
-    if (!window.confirm('Signaler ce post aux modérateurs ?')) return;
-    try {
-      await api.post(`/posts/${post.id}/report`, {});
-      flash('Merci, le post a été signalé');
-    } catch {
-      flash('Signalement impossible');
-    }
+    setReporting(true);
   };
 
   const handleBlock = async () => {
@@ -333,6 +329,16 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
           </div>
         </div>
       </div>
+      {reporting && (
+        <ReportDialog
+          postId={post.id}
+          onClose={() => setReporting(false)}
+          onDone={() => {
+            setReporting(false);
+            flash('Merci, le post a été signalé');
+          }}
+        />
+      )}
     </article>
   );
 }

@@ -26,6 +26,7 @@ router.get('/', authMiddleware, async (req, res) => {
             }
           : null,
         post: n.post_id ? { id: n.post_id, text: n.post_text } : null,
+        message: n.message,
       })),
     );
   } catch (err) {

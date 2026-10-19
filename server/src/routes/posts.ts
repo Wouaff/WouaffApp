@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { patchRouter } from '../middleware/asyncHandler.js';
-import { authMiddleware, currentUser } from '../middleware/auth.js';
+import { authMiddleware, currentUser, requireVerifiedEmail } from '../middleware/auth.js';
 import { byUser, rateLimit } from '../middleware/rateLimit.js';
 import { fetchPosts, filters } from '../services/postQuery.js';
 import {
@@ -14,6 +14,8 @@ import {
   getComments,
   isBlockedEitherWay,
   notifyMentions,
+  REPORT_CATEGORIES,
+  type ReportCategory,
   toggleLike,
   toggleRepost,
 } from '../services/rtdb.js';
@@ -89,7 +91,7 @@ router.get('/feed', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, postLimiter, async (req, res) => {
+router.post('/', authMiddleware, requireVerifiedEmail, postLimiter, async (req, res) => {
   try {
     const { text, image, video } = req.body ?? {};
     const uid = currentUser(req).uid;
@@ -146,7 +148,7 @@ router.post('/:id/like', authMiddleware, likeLimiter, async (req, res) => {
   }
 });
 
-router.post('/:id/repost', authMiddleware, repostLimiter, async (req, res) => {
+router.post('/:id/repost', authMiddleware, requireVerifiedEmail, repostLimiter, async (req, res) => {
   try {
     const uid = currentUser(req).uid;
     const post = await resolveSourcePost(req.params.id);
@@ -167,7 +169,9 @@ router.post('/:id/report', authMiddleware, reportLimiter, async (req, res) => {
     if (post.uid === currentUser(req).uid)
       return res.status(400).json({ error: 'Tu ne peux pas signaler ton propre post' });
     const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 500) : null;
-    await createReport(currentUser(req).uid, post.id, post.uid, reason || null);
+    const rawCategory = req.body?.category;
+    const category: ReportCategory = REPORT_CATEGORIES.includes(rawCategory) ? rawCategory : 'other';
+    await createReport(currentUser(req).uid, post.id, post.uid, reason || null, category, post.text);
     res.json({ ok: true });
   } catch (err) {
     console.error('[POSTS] Report error:', err);
@@ -175,7 +179,7 @@ router.post('/:id/report', authMiddleware, reportLimiter, async (req, res) => {
   }
 });
 
-router.post('/:id/comment', authMiddleware, commentLimiter, async (req, res) => {
+router.post('/:id/comment', authMiddleware, requireVerifiedEmail, commentLimiter, async (req, res) => {
   try {
     const uid = currentUser(req).uid;
     const post = await resolveSourcePost(req.params.id);

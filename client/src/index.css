@@ -161,3 +161,15 @@ button:disabled {
   justify-content: center;
   z-index: 99999;
 }
+
+/* Captcha Cap : suit le thème de l'application (clair, sombre ou auto). */
+cap-widget {
+  --cap-background: var(--bg-secondary);
+  --cap-border-color: var(--border-color);
+  --cap-color: var(--text-primary);
+  --cap-checkbox-background: var(--bg-tertiary);
+  --cap-checkbox-border: 1px solid var(--border-color);
+  --cap-focus-ring: var(--accent);
+  --cap-spinner-color: var(--accent);
+  --cap-spinner-background-color: var(--border-color);
+}

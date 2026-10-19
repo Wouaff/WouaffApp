@@ -10,6 +10,7 @@
     "build:all": "npm run clean && npm run build:client && npm run build",
     "start": "node dist/index.js",
     "start:prod": "npm run build:all && node dist/index.js",
+    "role": "node dist/scripts/setRole.js",
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {

@@ -7,8 +7,9 @@ const PAGES: Record<string, { title: string; body: string[] }> = {
     title: "Conditions d'utilisation",
     body: [
       "Wouaff est un réseau social français. En créant un compte, tu t'engages à respecter la loi, les règles de la communauté et les autres membres.",
+      'Il faut avoir au moins 15 ans pour créer un compte. Nous ne conservons pas ta date de naissance, seulement la confirmation que tu as l’âge requis.',
       'Tu restes propriétaire de ce que tu publies. En le publiant, tu nous autorises seulement à l’afficher aux personnes à qui il est destiné et à le conserver le temps nécessaire au fonctionnement du service.',
-      'Nous pouvons retirer un contenu ou suspendre un compte qui enfreint les règles ou la loi. Tu peux supprimer ton compte à tout moment depuis les paramètres.',
+      'Nous pouvons retirer un contenu, suspendre ou bannir un compte qui enfreint les règles ou la loi. Chaque décision est notifiée avec son motif, et tu peux la contester en écrivant à contact@wouaff.app. Tu peux supprimer ton compte à tout moment depuis les paramètres.',
       'Le service est fourni en l’état, sans garantie de disponibilité continue.',
     ],
   },
@@ -26,7 +27,8 @@ const PAGES: Record<string, { title: string; body: string[] }> = {
     body: [
       'Respecte les autres : pas de harcèlement, de menaces, de haine ni de discrimination.',
       'Pas de contenu illégal, de spam, d’usurpation d’identité ni de publication de données personnelles d’autrui.',
-      'Utilise le signalement (menu « … » d’un post) pour alerter l’équipe, et le blocage pour ne plus voir un compte.',
+      'Utilise le signalement (menu « … » d’un post) pour alerter l’équipe : choisis une catégorie, un modérateur examine le signalement et tu es informé de la suite donnée. Utilise le blocage pour ne plus voir un compte.',
+      'Sanctions possibles selon la gravité : avertissement, suppression du contenu, suspension temporaire (lecture seule), bannissement.',
     ],
   },
   'a-propos': {
