@@ -94,6 +94,7 @@ npm --prefix client install
 cp server/.env.example server/.env
 cp client/.env.example client/.env   # optionnel (captcha)
 # éditer server/.env : identifiants MySQL, APP_URL, SMTP éventuel
+# recommandé : TOTP_ENCRYPTION_KEY=$(openssl rand -hex 32) pour chiffrer les secrets 2FA en base
 ```
 
 Les tables sont créées automatiquement au démarrage du serveur (`server/src/migrations`).
@@ -112,7 +113,7 @@ Variante : `npm --prefix client run dev` lance Vite seul sur `:5173` et proxifie
 
 ```bash
 npm run build
-NODE_ENV=production npm start
+NODE_ENV=production npm start     # `npm run start:build` = build puis démarrage
 ```
 
 Derrière un reverse proxy, définis `TRUST_PROXY=1` pour que le rate-limit voie la vraie IP.
@@ -145,7 +146,7 @@ WouaffApp/
         ├── middleware/     # auth, rate-limit, en-têtes de sécurité, erreurs
         ├── routes/         # auth, posts, profiles, social, notifications, trends, upload
         ├── services/       # accès données (rtdb.ts), requête du fil, e-mails
-        └── migrations/     # 001_init.sql, 002…, 003…
+        └── migrations/     # 001_init.sql … 007_hardening.sql
 ```
 
 ---
@@ -156,7 +157,8 @@ WouaffApp/
 - 🔑 Mots de passe hachés (bcrypt), double authentification TOTP, réinitialisation par jeton à usage unique.
 - 🚦 Rate-limit global et renforcé sur la connexion, l'inscription, les publications et les envois.
 - 🧱 Requêtes SQL paramétrées, entrées validées côté serveur (pseudos réservés, URL http(s) uniquement, médias limités aux uploads).
-- 📎 Uploads : extension déduite du type MIME, `nosniff` et CSP restrictive sur `/uploads`.
+- 📎 Uploads : type vérifié sur le contenu réel du fichier, EXIF/GPS retiré (`sharp`), `nosniff` et CSP restrictive sur `/uploads`, fichiers effacés avec le post ou le compte.
+- 🔏 Sessions stockées sous forme de hash, secrets 2FA chiffrés (`TOTP_ENCRYPTION_KEY`), codes TOTP à usage unique, contrôle d'`Origin` anti-CSRF.
 - 🕵️ Aucun suivi d'activité ; les journaux techniques restent sur le serveur.
 
 Voir [SECURITY.md](SECURITY.md) pour signaler une faille.

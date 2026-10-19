@@ -1,9 +1,10 @@
 import { Router } from 'express';
+import { patchRouter } from '../middleware/asyncHandler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getTrendingHashtags } from '../services/rtdb.js';
 import { toInt } from '../utils/validation.js';
 
-const router = Router();
+const router = patchRouter(Router());
 
 router.get('/', authMiddleware, async (req, res) => {
   try {

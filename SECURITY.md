@@ -11,7 +11,7 @@
 We take security seriously. If you discover a security vulnerability, please:
 
 1. **Do not** open a public GitHub issue
-2. Send details to the project maintainers via email or open a [draft security advisory](https://github.com/your-username/wouaff/security/advisories/new)
+2. Send details to the project maintainers via email or open a [draft security advisory](https://github.com/Wouaff/WouaffApp/security/advisories/new)
 3. Include:
    - Description of the vulnerability
    - Steps to reproduce

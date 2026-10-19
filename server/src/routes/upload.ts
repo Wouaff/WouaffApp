@@ -1,21 +1,16 @@
 import { randomBytes } from 'node:crypto';
-import { existsSync, mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { Router } from 'express';
 import multer from 'multer';
+import { patchRouter } from '../middleware/asyncHandler.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { rateLimit } from '../middleware/rateLimit.js';
+import { byUser, rateLimit } from '../middleware/rateLimit.js';
+import { finalizeUpload, uploadsDir } from '../services/uploads.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-/* Source unique du dossier d'uploads : index.ts l'importe pour le servir. */
-export const uploadsDir = resolve(__dirname, '../../uploads');
+/* index.ts importait déjà `uploadsDir` d'ici : on le ré-exporte. */
+export { uploadsDir };
 
-if (!existsSync(uploadsDir)) {
-  mkdirSync(uploadsDir, { recursive: true });
-}
-
-/* L'extension vient du type MIME vérifié, jamais du nom de fichier fourni par le client. */
+/* Extension provisoire d'après le type MIME déclaré par le navigateur. Le contenu réel est contrôlé
+   ensuite par finalizeUpload (premiers octets), qui fixe l'extension définitive. */
 const EXT_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -45,12 +40,12 @@ const upload = multer({
   },
 });
 
-const router = Router();
+const router = patchRouter(Router());
 
 router.post(
   '/',
   authMiddleware,
-  rateLimit({ windowMs: 10 * 60 * 1000, max: 40, message: "Trop d'envois, réessaie plus tard" }),
+  rateLimit({ windowMs: 10 * 60 * 1000, max: 40, message: "Trop d'envois, réessaie plus tard", key: byUser }),
   (req, res, next) => {
     upload.single('file')(req, res, (err) => {
       if (!err) return next();
@@ -58,12 +53,15 @@ router.post(
       res.status(400).json({ error: tooBig ? 'Fichier trop volumineux (30 Mo max)' : (err as Error).message });
     });
   },
-  (req, res) => {
+  async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'Aucun fichier fourni' });
     }
-    const type = req.file.mimetype.startsWith('video/') ? 'video' : 'image';
-    res.json({ url: `/uploads/${req.file.filename}`, type });
+    const result = await finalizeUpload(req.file.path);
+    if (!result) {
+      return res.status(400).json({ error: "Ce fichier n'est pas une image ou une vidéo valide" });
+    }
+    res.json({ url: `/uploads/${result.filename}`, type: result.type });
   },
 );
 

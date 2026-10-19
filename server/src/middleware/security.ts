@@ -17,8 +17,9 @@ export function securityHeaders(isProd: boolean) {
           "default-src 'self'",
           "script-src 'self' https://challenges.cloudflare.com",
           "style-src 'self' 'unsafe-inline'",
-          "img-src 'self' data: blob: https:",
-          "media-src 'self' blob: https:",
+          /* Pas de https: ici : aucune image/vidéo externe (pixel espion, traçage) ne doit se charger. */
+          "img-src 'self' data: blob:",
+          "media-src 'self' blob:",
           "connect-src 'self'",
           'frame-src https://challenges.cloudflare.com',
           "object-src 'none'",

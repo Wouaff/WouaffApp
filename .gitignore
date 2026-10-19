@@ -43,4 +43,7 @@ temp/
 # Test scripts with credentials
 __test_db*
 client/tsconfig.tsbuildinfo
+server/tsconfig.tsbuildinfo
+.install-server.log
+.freebuff/
 /.agents

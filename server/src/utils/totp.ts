@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
@@ -32,14 +32,29 @@ function hotp(secret: string, counter: number): string {
   return String(code % 1_000_000).padStart(6, '0');
 }
 
-/* Tolère ±1 pas de 30 s (décalage d'horloge). */
-export function verifyTotp(secret: string, code: string): boolean {
-  if (!/^\d{6}$/.test(code)) return false;
-  const step = Math.floor(Date.now() / 30_000);
-  for (const delta of [-1, 0, 1]) {
-    if (hotp(secret, step + delta) === code) return true;
+function safeEqual(a: string, b: string): boolean {
+  return a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+
+/* Tolère ±1 pas de 30 s (décalage d'horloge). Renvoie le pas qui correspond au code, ou null.
+   `lastStep` = dernier pas déjà consommé pour ce compte : un code ne peut servir qu'une fois (anti-rejeu). */
+export function verifyTotpStep(secret: string, code: string, lastStep?: number | null): number | null {
+  if (!/^\d{6}$/.test(code)) return null;
+  try {
+    const now = Math.floor(Date.now() / 30_000);
+    let match: number | null = null;
+    for (const delta of [-1, 0, 1]) {
+      const step = now + delta;
+      if (safeEqual(hotp(secret, step), code) && (lastStep == null || step > lastStep)) match = step;
+    }
+    return match;
+  } catch {
+    return null; // secret illisible : jamais un 500, simplement un code refusé
   }
-  return false;
+}
+
+export function verifyTotp(secret: string, code: string): boolean {
+  return verifyTotpStep(secret, code) !== null;
 }
 
 export function totpUri(secret: string, account: string, issuer = 'Wouaff'): string {

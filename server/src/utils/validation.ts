@@ -31,6 +31,20 @@ export const RESERVED_PSEUDOS = new Set([
 ]);
 
 export const PSEUDO_RE = /^[a-zA-Z0-9_]{3,30}$/;
+
+/* bcrypt ignore silencieusement tout ce qui dépasse 72 OCTETS (pas caractères) : un mot de passe avec
+   des accents ou des emojis pouvait donc être tronqué sans prévenir. */
+export const PASSWORD_ERROR =
+  'Le mot de passe doit faire au moins 8 caractères et 72 octets au maximum (les accents et emojis comptent pour plusieurs octets)';
+export function isValidPassword(value: unknown): value is string {
+  return typeof value === 'string' && value.length >= 8 && Buffer.byteLength(value, 'utf8') <= 72;
+}
+
+/* Identifiant numérique reçu dans une URL : entier strictement positif, sinon null (évite NaN en SQL). */
+export function parseId(raw: unknown): number | null {
+  const n = Number(raw);
+  return Number.isSafeInteger(n) && n > 0 ? n : null;
+}
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /* Une URL de média n'est acceptée que si elle pointe vers un fichier uploadé chez nous. */

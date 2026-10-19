@@ -1,6 +1,7 @@
 import { Router } from 'express';
+import { patchRouter } from '../middleware/asyncHandler.js';
 import { authMiddleware, currentUser } from '../middleware/auth.js';
-import { rateLimit } from '../middleware/rateLimit.js';
+import { byUser, rateLimit } from '../middleware/rateLimit.js';
 import { fetchPosts, filters } from '../services/postQuery.js';
 import {
   createComment,
@@ -16,15 +17,49 @@ import {
   toggleLike,
   toggleRepost,
 } from '../services/rtdb.js';
-import { isSafeUploadPath, toInt } from '../utils/validation.js';
+import { uploadExists } from '../services/uploads.js';
+import { isSafeUploadPath, parseId, toInt } from '../utils/validation.js';
 
-const router = Router();
-const writeLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: 'Tu publies trop vite, patiente un peu' });
+const router = patchRouter(Router());
+
+/* Un limiteur par action et par utilisateur : avant, un seul compteur partagé (par IP) mélangeait
+   publications, likes, reposts et commentaires, et bloquait tout un foyer derrière la même IP. */
+const minute = 60 * 1000;
+const postLimiter = rateLimit({
+  windowMs: minute,
+  max: 20,
+  message: 'Tu publies trop vite, patiente un peu',
+  key: byUser,
+});
+const likeLimiter = rateLimit({
+  windowMs: minute,
+  max: 120,
+  message: 'Trop de likes d’affilée, ralentis un peu',
+  key: byUser,
+});
+const repostLimiter = rateLimit({
+  windowMs: minute,
+  max: 40,
+  message: 'Trop de reposts d’affilée, ralentis un peu',
+  key: byUser,
+});
+const commentLimiter = rateLimit({
+  windowMs: minute,
+  max: 30,
+  message: 'Tu commentes trop vite, patiente un peu',
+  key: byUser,
+});
+const reportLimiter = rateLimit({
+  windowMs: 60 * minute,
+  max: 20,
+  message: 'Trop de signalements, réessaie plus tard',
+  key: byUser,
+});
 
 /* Résout l'id reçu vers le post d'origine : on ne like/commente jamais une ligne de repost. */
 async function resolveSourcePost(rawId: unknown) {
-  const id = Number(rawId);
-  if (!Number.isInteger(id) || id <= 0) return null;
+  const id = parseId(rawId);
+  if (!id) return null;
   const post = await findPostById(id);
   if (!post) return null;
   return post.repost_of ? findPostById(post.repost_of) : post;
@@ -54,7 +89,7 @@ router.get('/feed', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, writeLimiter, async (req, res) => {
+router.post('/', authMiddleware, postLimiter, async (req, res) => {
   try {
     const { text, image, video } = req.body ?? {};
     const uid = currentUser(req).uid;
@@ -71,6 +106,9 @@ router.post('/', authMiddleware, writeLimiter, async (req, res) => {
     if (image && video) {
       return res.status(400).json({ error: 'Un seul média par post' });
     }
+    if ((image && !uploadExists(image)) || (video && !uploadExists(video))) {
+      return res.status(400).json({ error: 'Média introuvable, renvoie le fichier' });
+    }
     const postId = await createPost(uid, cleanText || null, image || null, video || null);
     if (cleanText) await notifyMentions(cleanText, uid, postId);
     res.json({ id: postId });
@@ -83,7 +121,9 @@ router.post('/', authMiddleware, writeLimiter, async (req, res) => {
 /* Ligne du fil (post ou repost) appartenant à l'utilisateur. */
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const ok = await deletePost(Number(req.params.id), currentUser(req).uid);
+    const id = parseId(req.params.id);
+    if (!id) return res.status(404).json({ error: 'Post introuvable' });
+    const ok = await deletePost(id, currentUser(req).uid);
     if (!ok) return res.status(404).json({ error: 'Post introuvable' });
     res.json({ ok: true });
   } catch (err) {
@@ -92,7 +132,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/:id/like', authMiddleware, writeLimiter, async (req, res) => {
+router.post('/:id/like', authMiddleware, likeLimiter, async (req, res) => {
   try {
     const uid = currentUser(req).uid;
     const post = await resolveSourcePost(req.params.id);
@@ -106,7 +146,7 @@ router.post('/:id/like', authMiddleware, writeLimiter, async (req, res) => {
   }
 });
 
-router.post('/:id/repost', authMiddleware, writeLimiter, async (req, res) => {
+router.post('/:id/repost', authMiddleware, repostLimiter, async (req, res) => {
   try {
     const uid = currentUser(req).uid;
     const post = await resolveSourcePost(req.params.id);
@@ -120,10 +160,12 @@ router.post('/:id/repost', authMiddleware, writeLimiter, async (req, res) => {
   }
 });
 
-router.post('/:id/report', authMiddleware, rateLimit({ windowMs: 60 * 60 * 1000, max: 20 }), async (req, res) => {
+router.post('/:id/report', authMiddleware, reportLimiter, async (req, res) => {
   try {
     const post = await resolveSourcePost(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post introuvable' });
+    if (post.uid === currentUser(req).uid)
+      return res.status(400).json({ error: 'Tu ne peux pas signaler ton propre post' });
     const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 500) : null;
     await createReport(currentUser(req).uid, post.id, post.uid, reason || null);
     res.json({ ok: true });
@@ -133,7 +175,7 @@ router.post('/:id/report', authMiddleware, rateLimit({ windowMs: 60 * 60 * 1000,
   }
 });
 
-router.post('/:id/comment', authMiddleware, writeLimiter, async (req, res) => {
+router.post('/:id/comment', authMiddleware, commentLimiter, async (req, res) => {
   try {
     const uid = currentUser(req).uid;
     const post = await resolveSourcePost(req.params.id);
@@ -178,7 +220,10 @@ router.get('/:id/comments', authMiddleware, async (req, res) => {
 
 router.delete('/:id/comments/:commentId', authMiddleware, async (req, res) => {
   try {
-    const ok = await deleteComment(Number(req.params.commentId), Number(req.params.id), currentUser(req).uid);
+    const commentId = parseId(req.params.commentId);
+    const postId = parseId(req.params.id);
+    if (!commentId || !postId) return res.status(404).json({ error: 'Commentaire introuvable' });
+    const ok = await deleteComment(commentId, postId, currentUser(req).uid);
     if (!ok) return res.status(404).json({ error: 'Commentaire introuvable' });
     res.json({ ok: true });
   } catch (err) {
@@ -189,8 +234,8 @@ router.delete('/:id/comments/:commentId', authMiddleware, async (req, res) => {
 
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) return res.status(404).json({ error: 'Post introuvable' });
+    const id = parseId(req.params.id);
+    if (!id) return res.status(404).json({ error: 'Post introuvable' });
     const [post] = await fetchPosts(currentUser(req).uid, filters.single(id), 1, 0);
     if (!post) return res.status(404).json({ error: 'Post introuvable' });
     res.json(post);

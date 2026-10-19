@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { query } from '../config/database.js';
+import { patchRouter } from '../middleware/asyncHandler.js';
 import { authMiddleware, currentUser } from '../middleware/auth.js';
-import { rateLimit } from '../middleware/rateLimit.js';
+import { byUser, rateLimit } from '../middleware/rateLimit.js';
 import {
   createNotification,
   findUserByPseudo,
@@ -12,8 +13,8 @@ import {
 } from '../services/rtdb.js';
 import { escapeLike } from '../utils/validation.js';
 
-const router = Router();
-const actionLimiter = rateLimit({ windowMs: 60 * 1000, max: 60 });
+const router = patchRouter(Router());
+const actionLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, key: byUser });
 
 interface UserRow {
   uid: string;

@@ -3,7 +3,8 @@
   "version": "1.0.1",
   "private": true,
   "scripts": {
-    "start": "npm --prefix server run build:all && node server/dist/index.js",
+    "start": "node server/dist/index.js",
+    "start:build": "npm run build && node server/dist/index.js",
     "dev": "npm --prefix server run dev",
     "build": "npm --prefix client run build && npm --prefix server run build",
     "lint": "biome check",

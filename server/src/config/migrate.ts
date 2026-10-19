@@ -21,6 +21,22 @@ export function findMigrationsDir(candidates: string[]): string | null {
   return candidates.find((dir) => existsSync(dir) && statSync(dir).isDirectory()) ?? null;
 }
 
+/* Découpe un fichier SQL en requêtes (séparées par « ; »), commentaires retirés : un reste de
+   commentaire en fin de fichier ne doit pas être exécuté comme une requête vide. */
+export function splitStatements(sql: string): string[] {
+  return sql
+    .split(';')
+    .map((chunk) =>
+      chunk
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .split('\n')
+        .filter((line) => !line.trim().startsWith('--'))
+        .join('\n')
+        .trim(),
+    )
+    .filter((stmt) => stmt.length > 0);
+}
+
 export async function runMigrations(): Promise<void> {
   const rootDir = resolve(__dirname, '../../');
   const migrationsDir = findMigrationsDir([resolve(__dirname, '../migrations'), resolve(rootDir, 'src/migrations')]);
@@ -28,6 +44,9 @@ export async function runMigrations(): Promise<void> {
     console.warn('[MIGRATE] Aucun dossier de migrations trouvé : schéma non vérifié');
     return;
   }
+  /* Par défaut une migration en échec empêche le démarrage : mieux vaut un arrêt net qu'un serveur
+     qui tourne sur un schéma à moitié migré. MIGRATE_IGNORE_FAILURES=1 rétablit l'ancien comportement. */
+  const ignoreFailures = process.env.MIGRATE_IGNORE_FAILURES === '1';
 
   const connection = await pool.getConnection();
   try {
@@ -48,8 +67,7 @@ export async function runMigrations(): Promise<void> {
     for (const file of files) {
       if (applied.has(file)) continue;
       const sqlPath = resolve(migrationsDir, file);
-      const sql = readFileSync(sqlPath, 'utf8');
-      const statements = sql.split(';').filter((s) => s.trim().length > 0);
+      const statements = splitStatements(readFileSync(sqlPath, 'utf8'));
       let failure: string | null = null;
       for (const stmt of statements) {
         try {
@@ -60,7 +78,9 @@ export async function runMigrations(): Promise<void> {
             try {
               await connection.query(stmt);
             } catch (err2: unknown) {
-              failure = (err2 as { message?: string }).message ?? String(err2);
+              const e2 = err2 as { code?: string; message?: string };
+              if (e2.code === 'ER_DUP_FIELDNAME' || e2.code === 'ER_DUP_KEYNAME') continue;
+              failure = e2.message ?? String(err2);
               break;
             }
           } else if (e.code === 'ER_DUP_FIELDNAME' || e.code === 'ER_DUP_KEYNAME') {
@@ -73,9 +93,12 @@ export async function runMigrations(): Promise<void> {
       }
       if (failure) {
         console.error(`[MIGRATE] ÉCHEC sur ${file} : ${failure}`);
-        console.error(
-          `[MIGRATE] ${file} n'est pas marqué comme appliqué et sera retenté au prochain démarrage — corrigez la migration ou la base`,
-        );
+        if (!ignoreFailures) {
+          throw new Error(
+            `Migration ${file} en échec (${failure}). Corrigez la migration ou la base, puis relancez. (MIGRATE_IGNORE_FAILURES=1 pour démarrer malgré tout.)`,
+          );
+        }
+        console.error(`[MIGRATE] ${file} n'est pas marqué comme appliqué et sera retenté au prochain démarrage`);
         continue;
       }
       await connection.query('INSERT IGNORE INTO schema_migrations (filename, appliedAt) VALUES (?,?)', [

@@ -1,6 +1,9 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { getOne, query, withTransaction } from '../config/database.js';
+import { hashSessionId, sha256Hex } from '../utils/crypto.js';
 import { countHashtags, type HashtagTrend } from '../utils/hashtags.js';
+import { decryptSecret, encryptSecret, isSecretEncryptionEnabled } from './secrets.js';
+import { removeUploadsIfUnreferenced } from './uploads.js';
 
 export interface User {
   uid: string;
@@ -17,21 +20,29 @@ export interface User {
   emailVerified: number;
   totp_secret: string | null;
   totp_enabled: number;
+  /* Dernier pas TOTP (30 s) déjà consommé : empêche de rejouer un code. */
+  totp_last_step: number | null;
   createdAt: number;
 }
 
 /* ── Utilisateurs ───────────────────────────────────────────────────────────── */
 
+/* Le secret TOTP est chiffré en base (si TOTP_ENCRYPTION_KEY est définie) : on le déchiffre ici, une fois. */
+function hydrateUser(user: User | null): User | null {
+  if (user) user.totp_secret = decryptSecret(user.totp_secret);
+  return user;
+}
+
 export async function findUserByEmail(email: string) {
-  return getOne<User>('SELECT * FROM users WHERE email = ?', [email.trim().toLowerCase()]);
+  return hydrateUser(await getOne<User>('SELECT * FROM users WHERE email = ?', [email.trim().toLowerCase()]));
 }
 
 export async function findUserByPseudo(pseudo: string) {
-  return getOne<User>('SELECT * FROM users WHERE pseudo = ?', [pseudo]);
+  return hydrateUser(await getOne<User>('SELECT * FROM users WHERE pseudo = ?', [pseudo]));
 }
 
 export async function findUserByUid(uid: string) {
-  return getOne<User>('SELECT * FROM users WHERE uid = ?', [uid]);
+  return hydrateUser(await getOne<User>('SELECT * FROM users WHERE uid = ?', [uid]));
 }
 
 export async function createUser(uid: string, pseudo: string, email: string, passwordHash: string) {
@@ -55,28 +66,68 @@ const UPDATABLE_USER_FIELDS = new Set([
   'emailVerified',
   'totp_secret',
   'totp_enabled',
+  'totp_last_step',
 ]);
 
 export async function updateUser(uid: string, fields: Record<string, unknown>) {
   const keys = Object.keys(fields).filter((k) => UPDATABLE_USER_FIELDS.has(k));
   if (keys.length === 0) return;
   const sets = keys.map((k) => `\`${k}\` = ?`).join(', ');
-  await query(`UPDATE users SET ${sets} WHERE uid = ?`, [...keys.map((k) => fields[k]), uid]);
+  const values = keys.map((k) => {
+    const value = fields[k];
+    return k === 'totp_secret' && typeof value === 'string' ? encryptSecret(value) : value;
+  });
+  /* Avatar / bannière remplacés ou retirés : l'ancien fichier est supprimé du disque s'il n'est plus utilisé. */
+  const touchesMedia = keys.includes('avatar') || keys.includes('banner');
+  const before = touchesMedia
+    ? await getOne<{ avatar: string | null; banner: string | null }>('SELECT avatar, banner FROM users WHERE uid = ?', [
+        uid,
+      ])
+    : null;
+  await query(`UPDATE users SET ${sets} WHERE uid = ?`, [...values, uid]);
+  if (before) await removeUploadsIfUnreferenced([before.avatar, before.banner]);
+}
+
+/* Consomme un pas TOTP de façon atomique : faux si ce pas (ou un plus récent) a déjà servi. */
+export async function claimTotpStep(uid: string, step: number): Promise<boolean> {
+  const result = await query<{ affectedRows: number }>(
+    'UPDATE users SET totp_last_step = ? WHERE uid = ? AND (totp_last_step IS NULL OR totp_last_step < ?)',
+    [step, uid, step],
+  );
+  return result.affectedRows === 1;
+}
+
+/* Au démarrage, si une clé de chiffrement vient d'être configurée : chiffre les secrets TOTP encore en clair. */
+export async function encryptLegacyTotpSecrets(): Promise<number> {
+  if (!isSecretEncryptionEnabled()) return 0;
+  const rows = await query<{ uid: string; totp_secret: string }[]>(
+    "SELECT uid, totp_secret FROM users WHERE totp_secret IS NOT NULL AND totp_secret NOT LIKE 'enc:v1:%'",
+  );
+  for (const row of rows) {
+    await query('UPDATE users SET totp_secret = ? WHERE uid = ? AND totp_secret = ?', [
+      encryptSecret(row.totp_secret),
+      row.uid,
+      row.totp_secret,
+    ]);
+  }
+  return rows.length;
 }
 
 /* ── Sessions ───────────────────────────────────────────────────────────────── */
 
+/* `id` est la valeur brute du cookie ; seule son empreinte est stockée. */
 export async function createSession(id: string, uid: string, expiresAt: number, userAgent?: string) {
   await query('INSERT INTO sessions (id, uid, expires_at, user_agent) VALUES (?, ?, ?, ?)', [
-    id,
+    hashSessionId(id),
     uid,
     expiresAt,
     userAgent ? userAgent.slice(0, 255) : null,
   ]);
 }
 
+/* `id` est la valeur brute du cookie. */
 export async function deleteSession(id: string) {
-  await query('DELETE FROM sessions WHERE id = ?', [id]);
+  await query('DELETE FROM sessions WHERE id = ?', [hashSessionId(id)]);
 }
 
 export async function deleteSessionOfUser(uid: string, id: string) {
@@ -103,7 +154,7 @@ export async function purgeExpiredSessions() {
 
 /* ── Jetons à usage unique (reset mot de passe, vérification e-mail) ────────── */
 
-const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
+const hashToken = sha256Hex;
 
 export async function createAuthToken(uid: string, type: 'reset' | 'verify', ttlMs: number): Promise<string> {
   const token = randomBytes(32).toString('hex');
@@ -119,12 +170,18 @@ export async function createAuthToken(uid: string, type: 'reset' | 'verify', ttl
 
 /* Retourne l'uid et consomme le jeton, ou null s'il est inconnu/expiré. */
 export async function consumeAuthToken(token: string, type: 'reset' | 'verify'): Promise<string | null> {
+  const hash = hashToken(token);
   const row = await getOne<{ uid: string; expires_at: number }>(
     'SELECT uid, expires_at FROM auth_tokens WHERE token_hash = ? AND type = ?',
-    [hashToken(token), type],
+    [hash, type],
   );
   if (!row) return null;
-  await query('DELETE FROM auth_tokens WHERE token_hash = ?', [hashToken(token)]);
+  /* Suppression atomique : si deux requêtes présentent le même jeton en même temps, une seule le consomme. */
+  const result = await query<{ affectedRows: number }>('DELETE FROM auth_tokens WHERE token_hash = ? AND type = ?', [
+    hash,
+    type,
+  ]);
+  if (result.affectedRows !== 1) return null;
   return row.expires_at < Date.now() ? null : row.uid;
 }
 
@@ -137,15 +194,26 @@ const TREND_SCAN_LIMIT = 5000;
  * Tendances calculées depuis les posts : un hashtag compte une fois par post qui le
  * contient. `days = 0` couvre tout l'historique, sinon fenêtre glissante en jours.
  */
+const TREND_CACHE_MS = 60_000;
+const trendCache = new Map<string, { at: number; value: HashtagTrend[] }>();
+
 export async function getTrendingHashtags(days = 0, limit = 10): Promise<HashtagTrend[]> {
   const window = Math.max(0, Math.trunc(days));
+  const max = Math.max(1, Math.trunc(limit));
+  /* Cache de 60 s : sans lui, chaque ouverture de la colonne de droite relisait jusqu'à 5000 posts. */
+  const cacheKey = `${window}:${max}`;
+  const hit = trendCache.get(cacheKey);
+  if (hit && Date.now() - hit.at < TREND_CACHE_MS) return hit.value;
   const rows = await query<{ text: string | null }[]>(
     `SELECT text FROM posts
      WHERE text IS NOT NULL AND text LIKE '%#%'${window > 0 ? ` AND created_at >= NOW() - INTERVAL ${window} DAY` : ''}
      ORDER BY created_at DESC
      LIMIT ${TREND_SCAN_LIMIT}`,
   );
-  return countHashtags(rows.map((row) => row.text)).slice(0, Math.max(1, Math.trunc(limit)));
+  const value = countHashtags(rows.map((row) => row.text)).slice(0, max);
+  if (trendCache.size >= 200) trendCache.clear(); // borne la mémoire (days/limit viennent de la requête)
+  trendCache.set(cacheKey, { at: Date.now(), value });
+  return value;
 }
 
 /* ── Posts ──────────────────────────────────────────────────────────────────── */
@@ -169,7 +237,10 @@ export async function findPostById(postId: number) {
 
 /* Supprime un post (ou annule un repost) appartenant à `uid`. Faux s'il n'existe pas / pas à lui. */
 export async function deletePost(postId: number, uid: string): Promise<boolean> {
-  const row = await getOne<{ id: number }>('SELECT id FROM posts WHERE id = ? AND uid = ?', [postId, uid]);
+  const row = await getOne<{ id: number; image: string | null; video: string | null }>(
+    'SELECT id, image, video FROM posts WHERE id = ? AND uid = ?',
+    [postId, uid],
+  );
   if (!row) return false;
   await withTransaction(async (conn) => {
     await conn.execute('DELETE FROM posts WHERE repost_of = ?', [postId]);
@@ -178,6 +249,8 @@ export async function deletePost(postId: number, uid: string): Promise<boolean> 
     await conn.execute('DELETE FROM notifications WHERE post_id = ?', [postId]);
     await conn.execute('DELETE FROM posts WHERE id = ?', [postId]);
   });
+  /* Le média du post part aussi du disque (droit à l'effacement), sauf s'il sert encore ailleurs. */
+  await removeUploadsIfUnreferenced([row.image, row.video]);
   return true;
 }
 
@@ -197,7 +270,8 @@ export async function toggleRepost(uid: string, postId: number) {
     await query('DELETE FROM posts WHERE id = ?', [existing.id]);
     return false;
   }
-  await query('INSERT INTO posts (uid, repost_of) VALUES (?, ?)', [uid, postId]);
+  /* IGNORE + index UNIQUE (uid, repost_of) : un double-clic ne crée jamais deux reposts. */
+  await query('INSERT IGNORE INTO posts (uid, repost_of) VALUES (?, ?)', [uid, postId]);
   return true;
 }
 
@@ -259,7 +333,7 @@ export async function createReport(
   reportedUid: string | null,
   reason: string | null,
 ) {
-  await query('INSERT INTO reports (reporter_uid, post_id, reported_uid, reason) VALUES (?, ?, ?, ?)', [
+  await query('INSERT IGNORE INTO reports (reporter_uid, post_id, reported_uid, reason) VALUES (?, ?, ?, ?)', [
     reporterUid,
     postId,
     reportedUid,
@@ -432,6 +506,11 @@ export async function exportUserData(uid: string) {
 
 /* Suppression définitive : toutes les données du compte, en une transaction. */
 export async function deleteAccount(uid: string) {
+  /* Médias à effacer du disque une fois la transaction validée. */
+  const [ownPosts, owner] = await Promise.all([
+    query<{ image: string | null; video: string | null }[]>('SELECT image, video FROM posts WHERE uid = ?', [uid]),
+    getOne<{ avatar: string | null; banner: string | null }>('SELECT avatar, banner FROM users WHERE uid = ?', [uid]),
+  ]);
   await withTransaction(async (conn) => {
     await conn.execute('DELETE r FROM posts r JOIN posts o ON r.repost_of = o.id WHERE o.uid = ?', [uid]);
     for (const sql of [
@@ -449,4 +528,5 @@ export async function deleteAccount(uid: string) {
     await conn.execute('DELETE FROM posts WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM users WHERE uid = ?', [uid]);
   });
+  await removeUploadsIfUnreferenced([...ownPosts.flatMap((p) => [p.image, p.video]), owner?.avatar, owner?.banner]);
 }

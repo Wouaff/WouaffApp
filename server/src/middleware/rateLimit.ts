@@ -1,5 +1,12 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 
+/* Clé « par utilisateur » (à placer après authMiddleware) : évite que tout un foyer ou un réseau mobile
+   partageant une même IP se bloque mutuellement. Repli sur l'IP si aucun utilisateur n'est connecté. */
+export const byUser = (req: Request): string => {
+  const uid = (req as { user?: { uid?: string } }).user?.uid;
+  return uid ? `u:${uid}` : `ip:${req.ip || 'unknown'}`;
+};
+
 interface Bucket {
   count: number;
   resetAt: number;

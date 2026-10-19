@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { getOne, query } from '../config/database.js';
+import { patchRouter } from '../middleware/asyncHandler.js';
 import { authMiddleware, currentUser } from '../middleware/auth.js';
 import { fetchPosts, filters } from '../services/postQuery.js';
 import { findUserByPseudo, isBlockedEitherWay, updateUser } from '../services/rtdb.js';
+import { uploadExists } from '../services/uploads.js';
 import { isSafeUploadPath, normalizeWebsite, toInt } from '../utils/validation.js';
 
-const router = Router();
+const router = patchRouter(Router());
 
 interface UserListRow {
   uid: string;
@@ -96,7 +98,9 @@ router.put('/me', authMiddleware, async (req, res) => {
       ['banner', banner],
     ] as const) {
       if (value === undefined) continue;
-      if (value !== null && !isSafeUploadPath(value)) return res.status(400).json({ error: 'Image invalide' });
+      if (value !== null && (!isSafeUploadPath(value) || !uploadExists(value))) {
+        return res.status(400).json({ error: 'Image invalide' });
+      }
       fields[key] = value;
     }
 

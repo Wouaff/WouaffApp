@@ -1,3 +1,17 @@
+[20/10/2026]
+- SÉCURITÉ : les identifiants de session ne sont plus stockés en clair (hash SHA-256 en base ; les sessions existantes restent valides), requête d'authentification unique, contrôle de l'en-tête Origin sur toute requête qui modifie des données (anti-CSRF), CORS tolérant à un `APP_URL` avec « / » final, CSP sans images/vidéos externes (`https:` retiré)
+- SÉCURITÉ : double authentification — secret TOTP chiffré en base (AES-256-GCM, clé `TOTP_ENCRYPTION_KEY`, optionnelle), un code ne peut plus être rejoué, comparaison à temps constant, refus (et non contournement) si le secret est illisible
+- SÉCURITÉ : mots de passe vérifiés en octets (bcrypt ignorait tout après 72 octets : accents et emojis étaient tronqués en silence), jetons de réinitialisation/vérification consommés de façon atomique, « mot de passe oublié » sans écart de temps selon l'existence du compte
+- SÉCURITÉ : uploads contrôlés sur leur contenu réel (premiers octets, plus le type MIME déclaré par le navigateur), extension déduite du contenu, métadonnées EXIF/GPS retirées et photos réorientées (module `sharp`), un média doit exister pour être rattaché à un post ou un profil
+- RGPD : les fichiers sont effacés du disque à la suppression d'un post, d'un compte et au remplacement d'un avatar/d'une bannière ; balayage horaire des fichiers jamais publiés (> 24 h, `UPLOAD_SWEEP=off` pour désactiver)
+- FIX : limiteurs distincts pour publier, liker, reposter, commenter et signaler, comptés par utilisateur et non par IP (avant : un compteur commun de 30/min bloquait les likes comme les posts)
+- FIX : une erreur dans une route d'authentification répondait après 30 s de blocage ; elle répond maintenant immédiatement (500)
+- FIX : un double-clic ne peut plus créer deux reposts (index unique) ni deux signalements identiques ; identifiants d'URL invalides → 404 au lieu d'une erreur SQL
+- FIX : une migration SQL en échec arrête désormais le démarrage (`MIGRATE_IGNORE_FAILURES=1` pour l'ancien comportement) ; `/api/health` vérifie la base ; avertissement si `TRUST_PROXY` manque derrière un proxy
+- FIX : service worker — plus de mise en cache des réponses d'erreur ni des médias utilisateurs, fichiers non hachés revalidés, reste de socket.io retiré
+- PERF : tendances mises en cache 60 s, cache HTTP long sur les bundles hachés et les uploads
+- DÉPLOIEMENT : `npm start` ne reconstruit plus tout à chaque démarrage (`npm run build` avant, ou `npm run start:build`) ; dépendances mises à jour (0 vulnérabilité connue), `sharp` ajouté ; migration `007_hardening.sql`
+
 [19/10/2026]
 - FIX : le schéma SQL est maintenant créé par `001_init.sql` (avant : aucune table n'était définie) ; `003_security_moderation.sql` ajoute blocages, signalements, jetons et colonnes 2FA
 - FIX : les médias uploadés s'affichent (le dossier d'écriture et le dossier servi étaient différents)
